@@ -35,11 +35,11 @@ import org.robolectric.annotation.GraphicsMode
  * README: «Alto mínimo 96 dp, crece con el texto», también con la fuente al 200 %. Con las tarjetas del
  * feed de prueba, ningún texto puede quedar aplastado ni salirse de la tarjeta (la tarjeta recorta).
  * Gráficos nativos: el texto se mide con las fuentes reales (Outfit, Manrope) y se parte en líneas de verdad.
- * Los cortes pueden variar un poco frente a un teléfono concreto; por eso se prueban dos anchos y tres escalas.
+ * Los cortes pueden variar un poco frente a un teléfono concreto; por eso se prueban tres anchos y tres escalas.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w412dp-h915dp-420dpi")
+@Config(qualifiers = "w412dp-h915dp-450dpi")
 class POICardLayoutTest {
 
     @get:Rule
@@ -111,8 +111,8 @@ class POICardLayoutTest {
     }
 
     private companion object {
-        /** Ancho de la tarjeta en un teléfono de 360 dp (menos el margen del feed) y en el Galaxy S20+ del fallo. */
-        val CardWidthsDp = listOf(328, 384)
+        /** Ancho de la tarjeta (pantalla menos 2 × 16 dp del feed) con 360, 384 (el Galaxy S20+ del fallo) y 412 dp. */
+        val CardWidthsDp = listOf(328, 352, 380)
 
         val hasTextLayout = SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult)
     }
