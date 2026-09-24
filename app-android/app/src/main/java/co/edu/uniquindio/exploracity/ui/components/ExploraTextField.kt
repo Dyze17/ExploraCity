@@ -45,6 +45,7 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
  * - Deshabilitado: borde discontinuo, candado y [disabledReason] como texto de apoyo.
  * - Sin alturas fijas: crece con la escala de fuente.
  * - [inputTransformation]: límites al escribir, p. ej. `InputTransformation.maxLength(300)`.
+ * - [minLines]: alto mínimo en líneas cuando no es de una sola línea (textos largos como 14.b).
  */
 @Composable
 fun ExploraTextField(
@@ -57,6 +58,7 @@ fun ExploraTextField(
     enabled: Boolean = true,
     disabledReason: String? = null,
     singleLine: Boolean = true,
+    minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
     inputTransformation: InputTransformation? = null,
@@ -66,7 +68,7 @@ fun ExploraTextField(
     val isError = enabled && errorMessage != null
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    val lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine()
+    val lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minHeightInLines = minLines)
     val textColor = if (enabled) scheme.onSurface else explora.iconSecondary
 
     val colors = OutlinedTextFieldDefaults.colors(

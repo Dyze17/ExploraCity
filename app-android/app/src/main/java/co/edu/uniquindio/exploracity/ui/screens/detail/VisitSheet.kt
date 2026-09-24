@@ -158,8 +158,9 @@ private fun VisitSheetContent(
                 label = stringResource(R.string.visit_experience),
                 supportingText = stringResource(R.string.visit_counter, textState.text.length, VisitExperience.MAX_LENGTH),
                 singleLine = false,
+                minLines = 3,
                 inputTransformation = InputTransformation.maxLength(VisitExperience.MAX_LENGTH),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
+                modifier = Modifier.fillMaxWidth(),
             )
             ShowName(draft.showName) { onDraftChange(draft.copy(showName = it)) }
         }

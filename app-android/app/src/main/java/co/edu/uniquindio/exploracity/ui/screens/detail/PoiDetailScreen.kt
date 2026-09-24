@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.ui.screens.detail
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -57,11 +59,15 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -171,10 +177,19 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
     val snackbarHostState = remember { SnackbarHostState() }
     DetailMessageEffect(state.message, snackbarHostState, callbacks.onMessageShown)
 
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    val statusBarPx = WindowInsets.statusBars.getTop(density)
+    // Cuando la galería sale por arriba, la franja de «Volver» y «Compartir» toma fondo: si no, el texto pasa por
+    // debajo de la barra de estado y de los botones (visto al 200 % en el S20+).
+    val solidTop by remember(density, statusBarPx) {
+        derivedStateOf { scrollState.value > with(density) { (GalleryHeight - TopBarHeight).toPx() } - statusBarPx }
+    }
+
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         when (val content = state.content) {
             DetailContent.Loading -> DetailSkeleton()
-            is DetailContent.Loaded -> DetailLoaded(content.details, state.voting, callbacks)
+            is DetailContent.Loaded -> DetailLoaded(content.details, state.voting, callbacks, scrollState)
             DetailContent.Error -> Centered {
                 EmptyState(
                     icon = R.drawable.ic_sync_problem,
@@ -199,6 +214,7 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
         TopButtons(
             onBack = callbacks.onBack,
             onShare = state.details?.let { details -> { callbacks.onShare(details) } },
+            solid = solidTop,
         )
         SnackbarHost(
             snackbarHostState,
@@ -240,15 +256,16 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
             DetailMessage.VisitFailed -> visitFailed
             is DetailMessage.VisitSaved -> if (message.points > 0) visitSavedPoints else visitSaved
         }
-        currentOnShown()
+        // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
         hostState.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Long)
+        currentOnShown()
     }
 }
 
 @Composable
-private fun DetailLoaded(details: PoiDetails, voting: Boolean, callbacks: DetailCallbacks) {
+private fun DetailLoaded(details: PoiDetails, voting: Boolean, callbacks: DetailCallbacks, scrollState: ScrollState) {
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(Modifier.weight(1f).verticalScroll(scrollState)) {
             Gallery(details)
             DetailBody(details, voting, callbacks)
         }
@@ -301,15 +318,23 @@ private fun Gallery(details: PoiDetails) {
 }
 
 @Composable
-private fun TopButtons(onBack: () -> Unit, onShare: (() -> Unit)?) {
-    Row(
-        Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = 8.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        RoundIconButton(R.drawable.ic_arrow_back, stringResource(R.string.navigate_back), onBack)
-        if (onShare != null) RoundIconButton(R.drawable.ic_share, stringResource(R.string.detail_share), onShare)
+private fun TopButtons(onBack: () -> Unit, onShare: (() -> Unit)?, solid: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth().background(if (solid) scheme.surface else Color.Transparent)) {
+        Row(
+            Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            RoundIconButton(R.drawable.ic_arrow_back, stringResource(R.string.navigate_back), onBack)
+            if (onShare != null) RoundIconButton(R.drawable.ic_share, stringResource(R.string.detail_share), onShare)
+        }
+        if (solid) Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.exploraColors.divider))
     }
 }
+
+/** Alto de la galería (13.a) y de la franja de botones sobre ella, sin contar la barra de estado. */
+private val GalleryHeight = 200.dp
+private val TopBarHeight = 64.dp
 
 /** Botón redondo de 48 dp sobre surface al 92 %: legible encima de cualquier foto. */
 @Composable
@@ -442,14 +467,21 @@ private fun MiniMap(details: PoiDetails, onOpenMap: () -> Unit) {
             val target = LatLng(poi.location.latitude, poi.location.longitude)
             val colors = poi.category.colors
             val border = MaterialTheme.exploraColors.mapClusterBorder
+            val dark = LocalDarkTheme.current
+            // El modo lite no aplica el esquema oscuro de Google: en oscuro se usa un estilo JSON propio con tonos
+            // parecidos (res/raw/map_style_dark.json).
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 mergeDescendants = true,
                 cameraPositionState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(target, 15f) },
                 googleMapOptionsFactory = { GoogleMapOptions().liteMode(true) },
-                properties = MapProperties(mapStyleOptions = remember(context) { MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style) }),
+                properties = MapProperties(
+                    mapStyleOptions = remember(context, dark) {
+                        MapStyleOptions.loadRawResourceStyle(context, if (dark) R.raw.map_style_dark else R.raw.map_style)
+                    },
+                ),
                 uiSettings = MapUiSettings(mapToolbarEnabled = false, zoomControlsEnabled = false, compassEnabled = false, myLocationButtonEnabled = false),
-                mapColorScheme = if (LocalDarkTheme.current) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT,
+                mapColorScheme = if (dark) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT,
             ) {
                 MarkerComposable(poi.id, state = rememberUpdatedMarkerState(position = target), anchor = Offset(0.5f, 1f)) {
                     PlacePin(poi.category, colors, selected = false, border = border)
@@ -549,12 +581,17 @@ private fun VoteButton(details: PoiDetails, voting: Boolean, onToggle: () -> Uni
         text = stringResource(if (voted) R.string.detail_voted else R.string.detail_vote, votes),
         container = container,
         content = content,
+        // Todo en un solo nodo: con semantics suelto, la descripción quedaba en un hijo del nodo marcable y el
+        // lector repetía «Es importante · 48» (visto en el volcado de accesibilidad del S20+).
         modifier = modifier
             .toggleable(value = voted, enabled = !voting, role = Role.Checkbox, onValueChange = { onToggle() })
-            .semantics {
+            .clearAndSetSemantics {
                 contentDescription = description
                 stateDescription = state
+                role = Role.Checkbox
+                toggleableState = ToggleableState(voted)
                 liveRegion = LiveRegionMode.Polite
+                if (voting) disabled() else onClick { onToggle(); true }
             },
     )
 }
@@ -588,8 +625,12 @@ private fun VisitedButton(visited: Boolean, onOpen: () -> Unit, modifier: Modifi
             content = MaterialTheme.exploraColors.textSecondary,
             outlined = true,
             modifier = modifier
-                .clickable(role = Role.Button, onClickLabel = action, onClick = onOpen)
-                .semantics { contentDescription = action },
+                .clickable(role = Role.Button, onClick = onOpen)
+                .clearAndSetSemantics {
+                    contentDescription = action
+                    role = Role.Button
+                    onClick { onOpen(); true }
+                },
         )
     }
 }
