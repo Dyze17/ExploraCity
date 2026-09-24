@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ExploraCity</string>
+
+    <!-- Categorías -->
+    <string name="category_gastronomy">Gastronomía</string>
+    <string name="category_culture">Cultura</string>
+    <string name="category_nature">Naturaleza</string>
+    <string name="category_entertainment">Entretenimiento</string>
+    <string name="category_history">Historia</string>
+
+    <!-- Estados de publicación -->
+    <string name="status_pending">Pendiente</string>
+    <string name="status_verified">Verificada</string>
+    <string name="status_rejected">Rechazada</string>
+    <string name="status_finalized">Resuelta / finalizada</string>
+    <string name="duplicate_flag">Posible duplicado</string>
 </resources>

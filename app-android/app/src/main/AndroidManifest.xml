@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- allowBackup desactivado: la sesión (JWT) se guarda en DataStore y no debe copiarse a otro equipo. -->
+    <!-- Sin copias de seguridad: la sesión (JWT) se guarda en DataStore y no debe copiarse a otro equipo.
+         allowBackup cubre Android 9–11 (por eso no hace falta fullBackupContent);
+         dataExtractionRules, Android 12 y posteriores. -->
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ExploraCity">
+        android:theme="@style/Theme.ExploraCity"
+        tools:ignore="DataExtractionRules">
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
