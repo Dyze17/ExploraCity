@@ -97,6 +97,40 @@
         <item quantity="other">Filtros, %d activos</item>
     </plurals>
 
+    <!-- Mapa (8) -->
+    <!-- El lienzo dice «este área»; con demostrativo va en femenino («esta área», RAE). -->
+    <string name="map_search_placeholder">Buscar en esta área</string>
+    <plurals name="map_places_in_area">
+        <item quantity="one">%d lugar en el área</item>
+        <item quantity="many">%d lugares en el área</item>
+        <item quantity="other">%d lugares en el área</item>
+    </plurals>
+    <string name="map_searching">Buscando lugares…</string>
+    <string name="map_searching_description">Buscando lugares en esta zona</string>
+    <string name="map_my_location">Centrar el mapa en tu ubicación</string>
+    <string name="map_you_are_here">Estás aquí</string>
+    <plurals name="map_group_description">
+        <item quantity="one">Grupo de %d lugar, toca para acercar</item>
+        <item quantity="many">Grupo de %d lugares, toca para acercar</item>
+        <item quantity="other">Grupo de %d lugares, toca para acercar</item>
+    </plurals>
+    <string name="map_marker_description">%1$s, %2$s, %3$s, a %4$s</string>
+    <string name="map_marker_selected">%1$s, seleccionado</string>
+    <string name="map_open_place">Ver el lugar</string>
+    <string name="map_distance">a %1$s</string>
+    <string name="map_open_now">abierto ahora</string>
+    <string name="map_closed_now">cerrado ahora</string>
+    <string name="map_price_1">económico</string>
+    <string name="map_price_2">precio moderado</string>
+    <string name="map_price_3">costoso</string>
+    <string name="map_price_4">muy costoso</string>
+    <string name="map_empty_area">Todavía no hay lugares publicados en esta zona. Aleja el mapa para ver más.</string>
+    <string name="map_empty_area_criteria">Ningún lugar en esta zona con estos criterios. Aleja el mapa o quita un filtro.</string>
+    <string name="map_error">No pudimos buscar lugares en esta zona. Tus filtros siguen guardados.</string>
+    <string name="map_location_denied">Para centrar el mapa en tu ubicación necesitamos tu permiso.</string>
+    <!-- Solo en compilaciones de desarrollo sin clave. -->
+    <string name="map_missing_key">Falta la clave de Google Maps: añade MAPS_API_KEY en app-android/local.properties y vuelve a compilar.</string>
+
     <!-- Hoja de filtros (9) -->
     <string name="filters_title">Filtros</string>
     <string name="filters_close">Cerrar filtros</string>

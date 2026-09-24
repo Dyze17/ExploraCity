@@ -1,9 +1,12 @@
 package co.edu.uniquindio.exploracity.data
 
+import co.edu.uniquindio.exploracity.data.location.LocationProvider
+import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 
 /**
  * Dependencias de la app (inyección manual). Hoy con repositorios en memoria; al llegar la API se cambian
@@ -12,7 +15,11 @@ import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 class AppContainer {
     val poiRepository: PoiRepository = FakePoiRepository()
     val moderationRepository: ModerationRepository = FakeModerationRepository()
+    val locationProvider: LocationProvider = SimulatedLocationProvider()
 
     /** Temporal: llegará de la ubicación del dispositivo y la geocodificación de Google Maps (ADR-08). */
     val areaName: String = "Bogotá"
+
+    /** Centro del área: donde abre el mapa (8) mientras no haya permiso de ubicación. Temporal como [areaName]. */
+    val areaCenter: GeoPoint = GeoPoint(4.6097, -74.0817)
 }

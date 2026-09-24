@@ -43,11 +43,12 @@ fun ListMapToggle(
     onSelect: (FeedMode) -> Unit,
     modifier: Modifier = Modifier,
     expanded: Boolean = false,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
 ) {
     Row(
         modifier
             .then(if (expanded) Modifier.fillMaxWidth() else Modifier)
-            .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
+            .background(containerColor, CircleShape)
             .padding(horizontal = 4.dp)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(2.dp),

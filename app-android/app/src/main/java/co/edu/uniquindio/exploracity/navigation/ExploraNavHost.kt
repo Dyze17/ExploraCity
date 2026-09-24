@@ -2,7 +2,10 @@ package co.edu.uniquindio.exploracity.navigation
 
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -15,6 +18,8 @@ import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
+import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
+import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 
 /**
  * Grafo de navegación completo. Cada destino es por ahora una [PlaceholderScreen] con los enlaces que
@@ -54,6 +59,16 @@ fun NavController.navigateToTab(tab: TopLevelDestination) {
 }
 
 private fun NavController.back(): () -> Unit = { popBackStack() }
+
+/**
+ * El FeedViewModel vive en el grafo de Explorar, no en cada pantalla: lista (7) y mapa (8) comparten búsqueda,
+ * filtros y la hoja 9, y el mapa muestra los mismos chips activos que la lista.
+ */
+@Composable
+private fun exploreFeedViewModel(nav: NavController, entry: NavBackStackEntry, role: UserRole): FeedViewModel {
+    val exploreEntry = remember(entry) { nav.getBackStackEntry<ExploreGraph>() }
+    return viewModel(viewModelStoreOwner = exploreEntry, factory = FeedViewModel.factory(role == UserRole.MODERATOR))
+}
 
 private fun link(label: String, onClick: () -> Unit) = PlaceholderLink(label, onClick)
 
@@ -145,8 +160,9 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
 
 private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
     navigation<ExploreGraph>(startDestination = Feed) {
-        composable<Feed> {
+        composable<Feed> { entry ->
             FeedRoute(
+                viewModel = exploreFeedViewModel(nav, entry, role),
                 isModerator = role == UserRole.MODERATOR,
                 onOpenPoi = { nav.navigate(PoiDetail(it)) },
                 onOpenMap = { nav.navigate(FeedMap) },
@@ -154,14 +170,17 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
                 onOpenModeration = { nav.navigateToTab(TopLevelDestination.MODERATION) },
             )
         }
-        composable<FeedMap> {
-            PlaceholderScreen(
-                "8", "Explorar · mapa",
-                listOf(
-                    link("Ver la lista") { nav.popBackStack() },
-                    link("Ver el lugar") { nav.navigate(PoiDetail("cafe-las-acacias")) },
-                ),
-                onBack = nav.back(),
+        composable<FeedMap> { entry ->
+            FeedMapRoute(
+                feedViewModel = exploreFeedViewModel(nav, entry, role),
+                // Vuelve a la lista aunque el mapa se haya abierto desde otra pantalla (p. ej. el detalle).
+                onOpenList = {
+                    nav.navigate(Feed) {
+                        popUpTo<Feed>()
+                        launchSingleTop = true
+                    }
+                },
+                onOpenPoi = { nav.navigate(PoiDetail(it)) },
             )
         }
         composable<PoiDetail> { entry ->

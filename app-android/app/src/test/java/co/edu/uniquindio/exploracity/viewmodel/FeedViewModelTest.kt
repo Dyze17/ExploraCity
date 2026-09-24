@@ -153,8 +153,7 @@ class FeedViewModelTest {
         assertEquals(ModerationSummary(pending = 7, oldestWaitingDays = 3), vm.state.value.moderation)
     }
 
-    private class FailingOnceRepository : PoiRepository {
-        private val delegate = FakePoiRepository()
+    private class FailingOnceRepository(private val delegate: FakePoiRepository = FakePoiRepository()) : PoiRepository by delegate {
         private var failed = false
 
         override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int): FeedPage {
@@ -164,8 +163,6 @@ class FeedViewModelTest {
             }
             return delegate.feedPage(query, page, pageSize)
         }
-
-        override suspend fun count(query: FeedQuery): Int = delegate.count(query)
     }
 
     // ── 9 · Hoja de filtros ──
@@ -355,7 +352,9 @@ class FeedViewModelTest {
         assertEquals("parque", after.state.value.query)
         assertEquals(FeedFilters(setOf(Category.ENTERTAINMENT)), after.state.value.filters)
         assertEquals(draft, after.sheet.draft)
-        assertEquals(0, after.sheet.count)
+        // El conteo se recalcula en el proceso nuevo con el borrador y la búsqueda restaurados.
+        val expected = nearbyPois.count { it.category in draft.categories && "parque" in it.title.lowercase() }
+        assertEquals(expected, after.sheet.count)
 
         after.onLocationDenied()
         advanceUntilIdle()
@@ -375,11 +374,8 @@ class FeedViewModelTest {
         assertEquals(null, vm.sheet.count)
     }
 
-    private class CountingRepository : PoiRepository {
-        private val delegate = FakePoiRepository()
+    private class CountingRepository(private val delegate: FakePoiRepository = FakePoiRepository()) : PoiRepository by delegate {
         var counts = 0
-
-        override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int) = delegate.feedPage(query, page, pageSize)
 
         override suspend fun count(query: FeedQuery): Int {
             counts++
@@ -387,11 +383,7 @@ class FeedViewModelTest {
         }
     }
 
-    private class CountFailingRepository : PoiRepository {
-        private val delegate = FakePoiRepository()
-
-        override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int) = delegate.feedPage(query, page, pageSize)
-
+    private class CountFailingRepository : PoiRepository by FakePoiRepository() {
         override suspend fun count(query: FeedQuery): Int = throw IOException("sin red")
     }
 }

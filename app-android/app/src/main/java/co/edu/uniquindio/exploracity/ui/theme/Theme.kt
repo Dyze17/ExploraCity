@@ -6,8 +6,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+/**
+ * Si el tema aplicado es oscuro, según la preferencia de Ajustes (29), no solo el del sistema. Lo usan las
+ * superficies que no pinta Material, como el mapa (8).
+ */
+val LocalDarkTheme = staticCompositionLocalOf { false }
 
 /** Preferencia de Ajustes (29): Claro / Oscuro / Sistema. */
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
@@ -35,7 +42,10 @@ fun ExploraCityTheme(
         }
     }
 
-    CompositionLocalProvider(LocalExploraColors provides if (darkTheme) DarkExploraColors else LightExploraColors) {
+    CompositionLocalProvider(
+        LocalExploraColors provides if (darkTheme) DarkExploraColors else LightExploraColors,
+        LocalDarkTheme provides darkTheme,
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             typography = ExploraTypography,
