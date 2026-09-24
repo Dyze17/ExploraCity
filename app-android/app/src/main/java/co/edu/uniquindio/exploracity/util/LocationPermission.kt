@@ -26,7 +26,13 @@ fun Context.hasLocationPermission(): Boolean =
 fun Activity.shouldShowLocationRationale(): Boolean =
     LOCATION_PERMISSIONS.any { ActivityCompat.shouldShowRequestPermissionRationale(this, it) }
 
-/** Abre la ficha de la app en Ajustes para que la persona dé allí el permiso. La app no cambia nada por su cuenta. */
+/**
+ * Abre la ficha de la app en Ajustes para que la persona dé allí el permiso. La app no cambia nada por su cuenta.
+ * En su propia tarea: si no, Ajustes queda apilado dentro de la app y reaparece al abrirla desde el icono.
+ */
 fun Context.openAppSettings() {
-    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+    startActivity(
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+    )
 }

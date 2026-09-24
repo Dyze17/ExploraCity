@@ -74,6 +74,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
@@ -134,16 +136,23 @@ fun FeedRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = LocalActivity.current
-    // Quién pidió el permiso de ubicación: la hoja al aplicar «Cercanos» o el aviso «Permitir».
+    // Quién pidió el permiso de ubicación: la hoja al aplicar «Cercanos», el aviso «Permitir» o su paso por Ajustes.
     var locationRequester by rememberSaveable { mutableStateOf<LocationRequester?>(null) }
     val requestLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
         val granted = grants.values.any { it }
         when (locationRequester) {
             LocationRequester.SHEET -> if (granted) viewModel.onApplyFilters() else viewModel.onLocationDenied()
             LocationRequester.SNACKBAR -> if (granted) viewModel.onLocationGranted()
-            null -> Unit
+            LocationRequester.SETTINGS, null -> Unit
         }
         locationRequester = null
+    }
+    // «Permitir» llevó a Ajustes: al volver, si la persona dio el permiso, se activa «Cercanos» como con el diálogo.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (locationRequester == LocationRequester.SETTINGS) {
+            if (context.hasLocationPermission()) viewModel.onLocationGranted()
+            locationRequester = null
+        }
     }
     FeedScreen(
         state = state,
@@ -175,7 +184,10 @@ fun FeedRoute(
                         requestLocation.launch(LOCATION_PERMISSIONS)
                     }
                     // Negado para siempre: el sistema ya no muestra el diálogo, solo queda la ficha de la app.
-                    else -> context.openAppSettings()
+                    else -> {
+                        locationRequester = LocationRequester.SETTINGS
+                        context.openAppSettings()
+                    }
                 }
             },
             onMessageShown = viewModel::onMessageShown,
@@ -189,7 +201,7 @@ fun FeedRoute(
     )
 }
 
-private enum class LocationRequester { SHEET, SNACKBAR }
+private enum class LocationRequester { SHEET, SNACKBAR, SETTINGS }
 
 class FeedCallbacks(
     val onQueryChange: (String) -> Unit = {},
