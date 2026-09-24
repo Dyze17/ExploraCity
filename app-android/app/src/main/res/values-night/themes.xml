@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo de ventana = surface del tema oscuro. -->
+    <style name="Theme.ExploraCity" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <color name="window_background">#16110F</color>
+</resources>

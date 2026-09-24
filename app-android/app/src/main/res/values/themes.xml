@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo de ventana = surface del tema claro, para que no haya destello antes de que Compose pinte. -->
+    <style name="Theme.ExploraCity" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <color name="window_background">#FDF8F5</color>
+</resources>
