@@ -8,15 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -117,9 +116,14 @@ fun POICard(
             }
         }
     } else {
-        Row(cardModifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Photo(Modifier.width(96.dp).fillMaxHeight().heightIn(min = 96.dp), photo)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // El texto fija el alto (mínimo 96 dp) y la foto lo iguala. Sin IntrinsicSize.Min: TitleWithBadge y FlowRow
+        // dan un alto intrínseco menor que el real y la tarjeta recortaba la fila de votos.
+        Box(cardModifier) {
+            Photo(Modifier.matchParentSize().wrapContentWidth(Alignment.Start).width(96.dp), photo)
+            Column(
+                Modifier.fillMaxWidth().heightIn(min = 96.dp).padding(start = 96.dp + 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 TitleWithBadge(
                     title = title,
                     titleStyle = titleStyle,
