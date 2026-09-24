@@ -13,6 +13,8 @@ import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.FeedFilters
+import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -50,12 +52,31 @@ sealed interface FeedContent {
     data object Error : FeedContent
 }
 
+/**
+ * 9 · Hoja de filtros abierta. Nada se aplica hasta «Ver N lugares»: el feed sigue con los filtros de antes.
+ * [count] es el último conteo del borrador; null mientras no llega el primero o si falló.
+ */
+data class FilterSheetState(val draft: FeedFilters, val count: Int? = null)
+
+/** Avisos de una sola vez (snackbar). */
+enum class FeedMessage {
+    /** Se aplicó con «Cercanos» pero no hay permiso de ubicación: se muestra toda la ciudad. */
+    LOCATION_DENIED,
+}
+
 data class FeedUiState(
     val areaName: String,
     val query: String = "",
-    val selectedCategories: Set<Category> = emptySet(),
+    val filters: FeedFilters = FeedFilters.DEFAULT,
+    /**
+     * Orden de los chips de categoría del feed. Solo cambia al aplicar la hoja (las activas primero, para que
+     * se vean): los chips que se tocan en la fila no se mueven bajo el dedo.
+     */
+    val categoryOrder: List<Category> = Category.entries,
     val content: FeedContent = FeedContent.Loading,
     val moderation: ModerationSummary? = null,
+    val filterSheet: FilterSheetState? = null,
+    val message: FeedMessage? = null,
 )
 
 class FeedViewModel(
@@ -71,6 +92,7 @@ class FeedViewModel(
 
     private var loadJob: Job? = null
     private var searchJob: Job? = null
+    private var countJob: Job? = null
     private var nextPage = 0
 
     init {
@@ -92,19 +114,66 @@ class FeedViewModel(
         }
     }
 
-    fun onToggleCategory(category: Category) {
-        _state.update {
-            val categories = if (category in it.selectedCategories) it.selectedCategories - category else it.selectedCategories + category
-            it.copy(selectedCategories = categories)
-        }
+    /** Chip de categoría de la fila del feed: se aplica al instante. */
+    fun onToggleCategory(category: Category) = applyFilters(_state.value.filters.let { it.copy(categories = it.categories.toggle(category)) })
+
+    /** 10.a «Buscar en toda la ciudad» y el chip «Cercanos» del feed: amplía sin tocar el resto de filtros. */
+    fun onSearchWholeCity() = applyFilters(_state.value.filters.copy(scope = LocationScope.CITY))
+
+    /** Chip «Solo verificados» del feed. */
+    fun onRemoveVerifiedOnly() = applyFilters(_state.value.filters.copy(verifiedOnly = false))
+
+    /** 10.a «Quitar todos los filtros»: también borra la búsqueda. */
+    fun onClearFilters() {
+        searchJob?.cancel()
+        _state.update { it.copy(query = "", filters = FeedFilters.DEFAULT) }
         reload()
     }
 
-    fun onClearFilters() {
-        searchJob?.cancel()
-        _state.update { it.copy(query = "", selectedCategories = emptySet()) }
-        reload()
+    fun onOpenFilters() {
+        val state = _state.value
+        // Si el borrador es lo ya aplicado, el feed ya sabe el total: el botón lo muestra sin esperar.
+        val known = when (val content = state.content) {
+            is FeedContent.Loaded -> content.total
+            is FeedContent.NoResults -> 0
+            else -> null
+        }
+        _state.update { it.copy(filterSheet = FilterSheetState(draft = state.filters, count = known)) }
+        if (known == null) recount(debounce = false)
     }
+
+    fun onDraftChange(draft: FeedFilters) {
+        val sheet = _state.value.filterSheet ?: return
+        if (sheet.draft == draft) return
+        _state.update { it.copy(filterSheet = sheet.copy(draft = draft)) }
+        recount(debounce = true)
+    }
+
+    /** «Limpiar»: vuelve al valor inicial sin cerrar la hoja. */
+    fun onClearDraft() = onDraftChange(FeedFilters.DEFAULT)
+
+    /** «Ver N lugares». La pantalla pide antes el permiso de ubicación si el borrador usa «Cercanos». */
+    fun onApplyFilters() {
+        val sheet = _state.value.filterSheet ?: return
+        closeSheet()
+        _state.update { it.copy(categoryOrder = activeFirst(sheet.draft.categories)) }
+        applyFilters(sheet.draft)
+    }
+
+    /** Se negó el permiso al aplicar: se aplica el resto con toda la ciudad y se explica por qué. */
+    fun onLocationDenied() {
+        val sheet = _state.value.filterSheet ?: return
+        _state.update { it.copy(filterSheet = sheet.copy(draft = sheet.draft.copy(scope = LocationScope.CITY)), message = FeedMessage.LOCATION_DENIED) }
+        onApplyFilters()
+    }
+
+    /** Se concedió el permiso desde el aviso: se activa «Cercanos», que era lo que la persona pidió. */
+    fun onLocationGranted() = applyFilters(_state.value.filters.copy(scope = LocationScope.NEARBY))
+
+    /** Cerrar (x), deslizar, atrás o tocar fuera: se descarta el borrador. */
+    fun onDismissFilters() = closeSheet()
+
+    fun onMessageShown() = _state.update { it.copy(message = null) }
 
     fun onRetry() = reload()
 
@@ -128,6 +197,30 @@ class FeedViewModel(
         }
     }
 
+    private fun applyFilters(filters: FeedFilters) {
+        if (filters == _state.value.filters) return
+        _state.update { it.copy(filters = filters) }
+        reload()
+    }
+
+    private fun closeSheet() {
+        countJob?.cancel()
+        _state.update { it.copy(filterSheet = null) }
+    }
+
+    /** Recalcula el conteo del borrador con la búsqueda actual, para que coincida con lo que se verá al aplicar. */
+    private fun recount(debounce: Boolean) {
+        countJob?.cancel()
+        val state = _state.value
+        val sheet = state.filterSheet ?: return
+        val query = FeedQuery(sheet.draft, state.query.trim())
+        countJob = viewModelScope.launch {
+            if (debounce) delay(COUNT_DEBOUNCE)
+            val count = runCatchingNonCancellation { poiRepository.count(query) }
+            _state.update { current -> current.copy(filterSheet = current.filterSheet?.copy(count = count)) }
+        }
+    }
+
     private fun reload() {
         loadJob?.cancel()
         nextPage = 0
@@ -140,7 +233,7 @@ class FeedViewModel(
         }
     }
 
-    private fun currentQuery() = _state.value.let { FeedQuery(categories = it.selectedCategories, text = it.query.trim()) }
+    private fun currentQuery() = _state.value.let { FeedQuery(filters = it.filters, text = it.query.trim()) }
 
     private fun FeedPage?.toContent(query: FeedQuery): FeedContent = when {
         this == null -> FeedContent.Error
@@ -154,6 +247,9 @@ class FeedViewModel(
         val FIRST_PAGE_TIMEOUT = 8.seconds
         val SEARCH_DEBOUNCE = 300.milliseconds
 
+        /** Pausa antes de recontar: tocar varios chips seguidos pide un solo conteo. */
+        val COUNT_DEBOUNCE = 150.milliseconds
+
         fun factory(isModerator: Boolean): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
@@ -162,6 +258,11 @@ class FeedViewModel(
         }
     }
 }
+
+private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item else this + item
+
+/** Categorías activas primero, cada grupo en el orden habitual (sortedBy es estable). */
+private fun activeFirst(active: Set<Category>): List<Category> = Category.entries.sortedBy { it !in active }
 
 /** Como runCatching, pero deja pasar la cancelación de la corrutina. */
 private suspend fun <T> runCatchingNonCancellation(block: suspend () -> T): T? = try {

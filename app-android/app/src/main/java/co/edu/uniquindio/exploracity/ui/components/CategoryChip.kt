@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -69,5 +70,38 @@ fun CategoryChip(
             style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (selected) FontWeight.W700 else FontWeight.W600),
             color = content,
         )
+    }
+}
+
+/**
+ * Filtro activo que no es una categoría («Cercanos», «Solo verificados»), en la fila de chips del feed.
+ * Solo aparece activo (relleno tertiaryContainer + borde, como en 10.a); tocarlo lo quita.
+ */
+@Composable
+fun ActiveFilterChip(
+    label: String,
+    @DrawableRes icon: Int,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = MaterialTheme.shapes.small
+    val scheme = MaterialTheme.colorScheme
+    val state = stringResource(R.string.state_selected)
+
+    Row(
+        modifier
+            .minimumInteractiveComponentSize()
+            .clip(shape)
+            .toggleable(value = true, role = Role.Checkbox, onValueChange = { onRemove() })
+            .semantics { stateDescription = state }
+            .heightIn(min = 36.dp)
+            .background(scheme.tertiaryContainer, shape)
+            .border(1.dp, scheme.tertiary, shape)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = scheme.onTertiaryContainer, modifier = Modifier.size(20.dp.scaledWithFont()))
+        Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.W700), color = scheme.onTertiaryContainer)
     }
 }

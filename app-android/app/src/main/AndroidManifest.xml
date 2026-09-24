@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- «Cercanos» de la hoja de filtros (9); se pide al aplicar. Con las dos la persona elige precisa o aproximada. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <!-- Sin copias de seguridad: la sesión (JWT) se guarda en DataStore y no debe copiarse a otro equipo.
          allowBackup cubre Android 9–11 (por eso no hace falta fullBackupContent);

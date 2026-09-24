@@ -6,6 +6,8 @@ import co.edu.uniquindio.exploracity.domain.model.Category.ENTERTAINMENT
 import co.edu.uniquindio.exploracity.domain.model.Category.GASTRONOMY
 import co.edu.uniquindio.exploracity.domain.model.Category.HISTORY
 import co.edu.uniquindio.exploracity.domain.model.Category.NATURE
+import co.edu.uniquindio.exploracity.domain.model.FeedFilters
+import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus.FINALIZED
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus.VERIFIED
@@ -17,23 +19,37 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Temporal hasta que exista la API (api-ktor): feed en memoria con lugares de Bogotá, ya ordenado por
- * cercanía. Simula la latencia de red; la búsqueda ignora mayúsculas y tildes.
+ * cercanía. Simula la latencia de red; la búsqueda ignora mayúsculas y tildes. «Cercanos» usa la distancia
+ * guardada en cada lugar, porque todavía no se lee la ubicación del dispositivo.
  */
 class FakePoiRepository(
     private val pois: List<Poi> = samplePois,
     private val latency: Duration = 700.milliseconds,
+    private val countLatency: Duration = 150.milliseconds,
 ) : PoiRepository {
 
     override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int): FeedPage {
         delay(latency)
-        val text = query.text.normalizedForSearch()
-        val matches = pois.filter { poi ->
-            (query.categories.isEmpty() || poi.category in query.categories) &&
-                (text.isEmpty() || poi.title.normalizedForSearch().contains(text))
-        }
+        val matches = matching(query)
         val from = page * pageSize
         val items = matches.drop(from).take(pageSize)
         return FeedPage(items = items, total = matches.size, hasMore = from + items.size < matches.size)
+    }
+
+    override suspend fun count(query: FeedQuery): Int {
+        delay(countLatency)
+        return matching(query).size
+    }
+
+    private fun matching(query: FeedQuery): List<Poi> {
+        val text = query.text.normalizedForSearch()
+        val filters = query.filters
+        return pois.filter { poi ->
+            (filters.categories.isEmpty() || poi.category in filters.categories) &&
+                (filters.scope == LocationScope.CITY || poi.distanceMeters <= FeedFilters.NEARBY_RADIUS_METERS) &&
+                (!filters.verifiedOnly || poi.status == VERIFIED) &&
+                (text.isEmpty() || poi.title.normalizedForSearch().contains(text))
+        }
     }
 }
 

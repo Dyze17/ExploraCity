@@ -58,18 +58,61 @@
     <string name="feed_error_title">No pudimos traer los lugares</string>
     <string name="feed_error_body">Algo falló de nuestro lado. Tu sesión y tus borradores están a salvo. Intenta de nuevo en un momento.</string>
     <string name="feed_no_results_title">Ningún lugar coincide con tu búsqueda</string>
-    <string name="feed_no_results_query_categories">Buscaste «%1$s» en %2$s. Prueba quitando un filtro o con otras palabras.</string>
-    <string name="feed_no_results_query">Buscaste «%1$s». Prueba con otras palabras.</string>
-    <string name="feed_no_results_categories">Todavía no hay lugares de %1$s. Prueba quitando un filtro.</string>
+    <!-- 10.a: «Buscaste «teatro al aire libre» en Naturaleza y cerca de ti. Prueba quitando un filtro o ampliando a toda la ciudad.» -->
+    <string name="feed_no_results_query">Buscaste «%1$s».</string>
+    <string name="feed_no_results_query_criteria">Buscaste «%1$s» %2$s.</string>
+    <string name="feed_no_results_criteria">Todavía no hay lugares %1$s.</string>
+    <string name="feed_criteria_categories">en %1$s</string>
+    <string name="feed_criteria_nearby">cerca de ti</string>
+    <string name="feed_criteria_verified">solo entre los verificados</string>
+    <string name="feed_no_results_hint_city">Prueba quitando un filtro o ampliando a toda la ciudad.</string>
+    <string name="feed_no_results_hint_filters_words">Prueba quitando un filtro o con otras palabras.</string>
+    <string name="feed_no_results_hint_words">Prueba con otras palabras.</string>
+    <string name="feed_no_results_hint_filters">Prueba quitando un filtro.</string>
+    <string name="feed_search_whole_city">Buscar en toda la ciudad</string>
     <string name="feed_clear_filters">Quitar todos los filtros</string>
+    <string name="feed_chip_nearby">Cercanos</string>
+    <string name="feed_chip_verified">Solo verificados</string>
+    <string name="feed_location_denied">Para ver los lugares cercanos necesitamos tu ubicación. Mientras tanto te mostramos toda la ciudad.</string>
+    <string name="feed_location_allow">Permitir</string>
     <string name="feed_empty_area_title">Todavía nadie publica en %1$s</string>
     <string name="feed_empty_area_body">Sé la primera persona en mostrar esta zona. Publica un lugar y, cuando se verifique, aparecerá aquí para todos.</string>
     <string name="feed_publish_first">Publicar el primero</string>
     <string name="list_and">y</string>
+    <string name="list_or">o</string>
     <plurals name="feed_places_nearby">
         <item quantity="one">%d lugar cerca de ti</item>
         <item quantity="many">%d lugares cerca de ti</item>
         <item quantity="other">%d lugares cerca de ti</item>
+    </plurals>
+    <plurals name="feed_places_in_area">
+        <item quantity="one">%1$d lugar en %2$s</item>
+        <item quantity="many">%1$d lugares en %2$s</item>
+        <item quantity="other">%1$d lugares en %2$s</item>
+    </plurals>
+    <string name="feed_filters_button">Filtros</string>
+    <plurals name="feed_filters_button_active">
+        <item quantity="one">Filtros, %d activo</item>
+        <item quantity="many">Filtros, %d activos</item>
+        <item quantity="other">Filtros, %d activos</item>
+    </plurals>
+
+    <!-- Hoja de filtros (9) -->
+    <string name="filters_title">Filtros</string>
+    <string name="filters_close">Cerrar filtros</string>
+    <string name="filters_category">Categoría</string>
+    <string name="filters_location">Ubicación</string>
+    <string name="filters_nearby">Cercanos</string>
+    <string name="filters_city">En la ciudad</string>
+    <string name="filters_nearby_hint">«Cercanos» usa tu ubicación actual (radio de %1$d km). Si no diste permiso, te lo pedimos al aplicar.</string>
+    <string name="filters_show_only">Solo mostrar</string>
+    <string name="filters_verified">Lugares verificados</string>
+    <string name="filters_clear">Limpiar</string>
+    <string name="filters_apply_unknown">Ver lugares</string>
+    <plurals name="filters_apply">
+        <item quantity="one">Ver %d lugar</item>
+        <item quantity="many">Ver %d lugares</item>
+        <item quantity="other">Ver %d lugares</item>
     </plurals>
     <plurals name="feed_moderation_pending">
         <item quantity="one">%d publicación espera revisión</item>

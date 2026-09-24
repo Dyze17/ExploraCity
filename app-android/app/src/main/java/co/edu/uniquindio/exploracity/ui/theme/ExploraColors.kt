@@ -60,6 +60,8 @@ data class ExploraColors(
     val onPrimaryContainerAccent: Color,
     /** Divisores y borde superior de la barra inferior. */
     val divider: Color,
+    /** Asa de arrastre de las hojas inferiores: decorativa (la hoja también se cierra con su botón). */
+    val sheetHandle: Color,
     /** Fondo del campo con error. */
     val errorFieldContainer: Color,
     /** Borde discontinuo del campo deshabilitado. */
@@ -91,6 +93,7 @@ internal val LightExploraColors = ExploraColors(
     onSurfaceAccent = Color(0xFF7A2A12),
     onPrimaryContainerAccent = Color(0xFF7A2A12),
     divider = Color(0xFFE5D5CC),
+    sheetHandle = Color(0xFFC9B4A9),
     errorFieldContainer = Color(0xFFFFF7F6),
     outlineDisabled = Color(0xFFA99086),
     warning = ContainerColors(Color(0xFFFFE3BE), Color(0xFF4A2C00)),
@@ -123,6 +126,7 @@ internal val DarkExploraColors = ExploraColors(
     onSurfaceAccent = Color(0xFFFFB59D),
     onPrimaryContainerAccent = Color(0xFFFFDBD0),
     divider = Color(0xFF3A2C27),
+    sheetHandle = Color(0xFF5B4741),
     errorFieldContainer = Color(0xFF2A1917),
     outlineDisabled = Color(0xFF6B564E),
     warning = ContainerColors(Color(0xFF503500), Color(0xFFFFD9A0)),

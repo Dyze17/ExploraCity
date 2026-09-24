@@ -8,6 +8,9 @@ import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.FeedFilters
+import co.edu.uniquindio.exploracity.domain.model.LocationScope
+import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -101,7 +104,7 @@ class FeedViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            FeedContent.NoResults(FeedQuery(setOf(Category.NATURE), "teatro al aire libre")),
+            FeedContent.NoResults(FeedQuery(FeedFilters(categories = setOf(Category.NATURE)), "teatro al aire libre")),
             vm.state.value.content,
         )
 
@@ -160,5 +163,207 @@ class FeedViewModelTest {
             }
             return delegate.feedPage(query, page, pageSize)
         }
+
+        override suspend fun count(query: FeedQuery): Int = delegate.count(query)
+    }
+
+    // ── 9 · Hoja de filtros ──
+
+    private val FeedViewModel.sheet get() = requireNotNull(state.value.filterSheet) { "La hoja debería estar abierta" }
+
+    private val nearbyPois = samplePois.filter { it.distanceMeters <= FeedFilters.NEARBY_RADIUS_METERS }
+
+    @Test
+    fun `los filtros empiezan en toda la ciudad sin categorías ni solo verificados`() = runTest(dispatcher) {
+        val vm = viewModel()
+
+        assertEquals(FeedFilters(emptySet(), LocationScope.CITY, verifiedOnly = false), vm.state.value.filters)
+        assertTrue(vm.state.value.filters.isDefault)
+    }
+
+    @Test
+    fun `abrir la hoja copia los filtros aplicados y ya sabe el conteo`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onOpenFilters()
+
+        assertEquals(FilterSheetState(draft = FeedFilters.DEFAULT, count = samplePois.size), vm.state.value.filterSheet)
+    }
+
+    @Test
+    fun `cambiar el borrador recuenta en vivo sin tocar el feed`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        val feedBefore = vm.state.value.content
+        vm.onOpenFilters()
+
+        vm.onDraftChange(FeedFilters(scope = LocationScope.NEARBY))
+        advanceUntilIdle()
+
+        assertEquals(nearbyPois.size, vm.sheet.count)
+        assertEquals(FeedFilters.DEFAULT, vm.state.value.filters)
+        assertEquals(feedBefore, vm.state.value.content)
+    }
+
+    @Test
+    fun `varios cambios seguidos piden un solo conteo, el del último borrador`() = runTest(dispatcher) {
+        val repository = CountingRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenFilters()
+
+        vm.onDraftChange(FeedFilters(categories = setOf(Category.CULTURE)))
+        vm.onDraftChange(FeedFilters(categories = setOf(Category.CULTURE, Category.HISTORY)))
+        advanceUntilIdle()
+
+        assertEquals(1, repository.counts)
+        assertEquals(samplePois.count { it.category == Category.CULTURE || it.category == Category.HISTORY }, vm.sheet.count)
+    }
+
+    @Test
+    fun `limpiar vuelve al valor inicial sin cerrar la hoja`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onOpenFilters()
+        vm.onDraftChange(FeedFilters(setOf(Category.NATURE), LocationScope.NEARBY, verifiedOnly = true))
+        advanceUntilIdle()
+
+        vm.onClearDraft()
+        advanceUntilIdle()
+
+        assertEquals(FeedFilters.DEFAULT, vm.sheet.draft)
+        assertEquals(samplePois.size, vm.sheet.count)
+    }
+
+    @Test
+    fun `aplicar cierra la hoja, filtra el feed y pone primero las categorías activas`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onOpenFilters()
+        val draft = FeedFilters(setOf(Category.HISTORY), LocationScope.NEARBY, verifiedOnly = true)
+        vm.onDraftChange(draft)
+
+        vm.onApplyFilters()
+        advanceUntilIdle()
+
+        assertEquals(null, vm.state.value.filterSheet)
+        assertEquals(draft, vm.state.value.filters)
+        assertEquals(Category.HISTORY, vm.state.value.categoryOrder.first())
+        val expected = nearbyPois.filter { it.category == Category.HISTORY && it.status == PublicationStatus.VERIFIED }
+        assertEquals(expected, vm.loaded.items)
+    }
+
+    @Test
+    fun `cerrar sin aplicar descarta el borrador`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onOpenFilters()
+        vm.onDraftChange(FeedFilters(verifiedOnly = true))
+
+        vm.onDismissFilters()
+        advanceUntilIdle()
+
+        assertEquals(null, vm.state.value.filterSheet)
+        assertEquals(FeedFilters.DEFAULT, vm.state.value.filters)
+        assertEquals(samplePois.size, vm.loaded.total)
+    }
+
+    @Test
+    fun `los chips de la fila no reordenan las categorías`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onToggleCategory(Category.HISTORY)
+        advanceUntilIdle()
+
+        assertEquals(Category.entries, vm.state.value.categoryOrder)
+    }
+
+    @Test
+    fun `sin permiso de ubicación aplica el resto con toda la ciudad y lo avisa`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onOpenFilters()
+        vm.onDraftChange(FeedFilters(setOf(Category.NATURE), LocationScope.NEARBY))
+
+        vm.onLocationDenied()
+        advanceUntilIdle()
+
+        assertEquals(FeedFilters(setOf(Category.NATURE), LocationScope.CITY), vm.state.value.filters)
+        assertEquals(FeedMessage.LOCATION_DENIED, vm.state.value.message)
+        assertEquals(null, vm.state.value.filterSheet)
+
+        vm.onMessageShown()
+        vm.onLocationGranted()
+        advanceUntilIdle()
+        assertEquals(null, vm.state.value.message)
+        assertEquals(LocationScope.NEARBY, vm.state.value.filters.scope)
+    }
+
+    @Test
+    fun `buscar en toda la ciudad quita solo «Cercanos»`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onOpenFilters()
+        vm.onDraftChange(FeedFilters(setOf(Category.NATURE), LocationScope.NEARBY, verifiedOnly = true))
+        vm.onApplyFilters()
+        advanceUntilIdle()
+
+        vm.onSearchWholeCity()
+        advanceUntilIdle()
+
+        assertEquals(FeedFilters(setOf(Category.NATURE), LocationScope.CITY, verifiedOnly = true), vm.state.value.filters)
+    }
+
+    @Test
+    fun `quitar todos los filtros desde 10a borra también la búsqueda`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onQueryChange("teatro al aire libre")
+        vm.onOpenFilters()
+        vm.onDraftChange(FeedFilters(scope = LocationScope.NEARBY))
+        vm.onApplyFilters()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.content is FeedContent.NoResults)
+
+        vm.onClearFilters()
+        advanceUntilIdle()
+
+        assertEquals("", vm.state.value.query)
+        assertEquals(FeedFilters.DEFAULT, vm.state.value.filters)
+        assertEquals(samplePois.size, vm.loaded.total)
+    }
+
+    @Test
+    fun `si el conteo falla el botón queda sin cifra`() = runTest(dispatcher) {
+        val vm = viewModel(CountFailingRepository())
+        advanceUntilIdle()
+        vm.onOpenFilters()
+
+        vm.onDraftChange(FeedFilters(verifiedOnly = true))
+        advanceUntilIdle()
+
+        assertEquals(null, vm.sheet.count)
+    }
+
+    private class CountingRepository : PoiRepository {
+        private val delegate = FakePoiRepository()
+        var counts = 0
+
+        override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int) = delegate.feedPage(query, page, pageSize)
+
+        override suspend fun count(query: FeedQuery): Int {
+            counts++
+            return delegate.count(query)
+        }
+    }
+
+    private class CountFailingRepository : PoiRepository {
+        private val delegate = FakePoiRepository()
+
+        override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int) = delegate.feedPage(query, page, pageSize)
+
+        override suspend fun count(query: FeedQuery): Int = throw IOException("sin red")
     }
 }
