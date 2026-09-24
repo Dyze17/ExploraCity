@@ -14,5 +14,20 @@
     <string name="status_verified">Verificada</string>
     <string name="status_rejected">Rechazada</string>
     <string name="status_finalized">Resuelta / finalizada</string>
+    <string name="status_rejected_action">Rechazada · ver motivo</string>
     <string name="duplicate_flag">Posible duplicado</string>
+
+    <!-- Componentes base -->
+    <string name="state_selected">seleccionado</string>
+    <string name="state_not_selected">no seleccionado</string>
+    <string name="button_unavailable">no disponible, %1$s</string>
+    <string name="poi_card_description">%1$s, %2$s, %3$s, a %4$s, %5$s, %6$s</string>
+    <plurals name="poi_votes">
+        <item quantity="one">%d voto</item>
+        <item quantity="other">%d votos</item>
+    </plurals>
+    <plurals name="poi_comments">
+        <item quantity="one">%d comentario</item>
+        <item quantity="other">%d comentarios</item>
+    </plurals>
 </resources>

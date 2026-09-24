@@ -49,8 +49,17 @@ data class ExploraColors(
     val textSecondary: Color,
     /** Iconos de apoyo y textos de ayuda. */
     val iconSecondary: Color,
-    /** Placeholders y controles sin marcar. */
+    /**
+     * Placeholders y controles sin marcar. También el contenido de botones deshabilitados:
+     * los lienzos usan outline (4,25:1), pero el diseño exige 4,5:1 también deshabilitado.
+     */
     val textPlaceholder: Color,
+    /** Texto de acento sobre superficies: botón contorneado. */
+    val onSurfaceAccent: Color,
+    /** Fondo del campo con error. */
+    val errorFieldContainer: Color,
+    /** Borde discontinuo del campo deshabilitado. */
+    val outlineDisabled: Color,
     /**
      * Banner sin conexión y urgencia ámbar (≥ 1 día). La urgencia roja (≥ 3 días) usa
      * `colorScheme.errorContainer` / `onErrorContainer`.
@@ -71,6 +80,9 @@ internal val LightExploraColors = ExploraColors(
     textSecondary = Color(0xFF3A2A25),
     iconSecondary = Color(0xFF4E3A33),
     textPlaceholder = Color(0xFF6B564E),
+    onSurfaceAccent = Color(0xFF7A2A12),
+    errorFieldContainer = Color(0xFFFFF7F6),
+    outlineDisabled = Color(0xFFA99086),
     warning = ContainerColors(Color(0xFFFFE3BE), Color(0xFF4A2C00)),
     status = StatusColors(
         pending = ContainerColors(Color(0xFFFFE3BE), Color(0xFF4A2C00)),
@@ -96,6 +108,9 @@ internal val DarkExploraColors = ExploraColors(
     textSecondary = Color(0xFFE8D6CE),
     iconSecondary = Color(0xFFD6C1B8),
     textPlaceholder = Color(0xFFBCA69C),
+    onSurfaceAccent = Color(0xFFFFB59D),
+    errorFieldContainer = Color(0xFF2A1917),
+    outlineDisabled = Color(0xFF6B564E),
     warning = ContainerColors(Color(0xFF503500), Color(0xFFFFD9A0)),
     status = StatusColors(
         pending = ContainerColors(Color(0xFF503500), Color(0xFFFFD9A0)),

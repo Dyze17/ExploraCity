@@ -63,6 +63,12 @@ class ThemeContrastTest {
                 add(ColorPair("$name / error", surface, s.error))
             }
 
+        add(ColorPair("surface / texto de acento", s.surface, e.onSurfaceAccent))
+        add(ColorPair("tarjeta / texto de acento", s.surfaceContainerLowest, e.onSurfaceAccent))
+        add(ColorPair("botón deshabilitado", s.surfaceContainerHighest, e.textPlaceholder))
+        add(ColorPair("campo con error / texto", e.errorFieldContainer, s.onSurface))
+        add(ColorPair("campo con error / placeholder", e.errorFieldContainer, e.textPlaceholder))
+        add(ColorPair("campo deshabilitado / texto", s.surfaceContainerHigh, e.iconSecondary))
         add(ColorPair("warning", e.warning.container, e.warning.content))
         add(ColorPair("estado pendiente", e.status.pending.container, e.status.pending.content))
         add(ColorPair("estado verificada", e.status.verified.container, e.status.verified.content))

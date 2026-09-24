@@ -7,42 +7,44 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.ui.components.BadgeSize
+import co.edu.uniquindio.exploracity.ui.components.CategoryChip
+import co.edu.uniquindio.exploracity.ui.components.CategoryTag
+import co.edu.uniquindio.exploracity.ui.components.DuplicateFlag
+import co.edu.uniquindio.exploracity.ui.components.ExploraButton
+import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
+import co.edu.uniquindio.exploracity.ui.components.POICard
+import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.iconRes
-import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraSpacing
 import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
@@ -59,8 +61,104 @@ internal fun DesignCatalog(modifier: Modifier = Modifier) {
             .background(scheme.surface)
             .verticalScroll(rememberScrollState())
             .padding(ExploraSpacing.ScreenMargin),
-        verticalArrangement = Arrangement.spacedBy(ExploraSpacing.BetweenBlocks),
+        verticalArrangement = Arrangement.spacedBy(ExploraSpacing.BetweenSections),
     ) {
+        Section("POICard") {
+            POICard(
+                title = "Café Las Acacias",
+                category = Category.GASTRONOMY,
+                status = PublicationStatus.VERIFIED,
+                distance = "1,2 km",
+                votes = 48,
+                comments = 12,
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+            )
+            POICard(
+                title = "Sendero Quebrada La Vieja",
+                category = Category.NATURE,
+                status = PublicationStatus.PENDING,
+                distance = "3,4 km",
+                votes = 1,
+                comments = 0,
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Section("Estados") {
+            PublicationStatus.entries.forEach { StatusBadge(it) }
+            StatusBadge(PublicationStatus.REJECTED, onClick = {})
+            DuplicateFlag()
+            StatusBadge(PublicationStatus.PENDING, size = BadgeSize.SMALL)
+            DuplicateFlag(size = BadgeSize.SMALL)
+        }
+        Section("Categorías · filtro, etiqueta y marcador") {
+            val selected = remember { mutableStateListOf(Category.GASTRONOMY, Category.NATURE) }
+            Category.entries.forEach { category ->
+                CategoryChip(
+                    category = category,
+                    selected = category in selected,
+                    onSelectedChange = { if (it) selected += category else selected -= category },
+                )
+            }
+            Category.entries.forEach { CategoryTag(it) }
+            Category.entries.forEach { Marker(it.iconRes, it.colors.marker, it.colors.onMarker) }
+        }
+        Section("Botones") {
+            ExploraButton("Enviar a verificación", onClick = {}, modifier = Modifier.fillMaxWidth())
+            ExploraButton(
+                "Guardar borrador",
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+                style = ExploraButtonStyle.SECONDARY,
+            )
+            ExploraButton("Omitir por ahora", onClick = {}, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
+            ExploraButton(
+                "Eliminar publicación",
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+                style = ExploraButtonStyle.DESTRUCTIVE,
+                icon = R.drawable.ic_delete,
+            )
+            ExploraButton(
+                "Continuar",
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false,
+                disabledReason = "completa el título",
+            )
+            ExploraButton("Entrando…", onClick = {}, modifier = Modifier.fillMaxWidth(), loading = true)
+        }
+        Section("Campos") {
+            ExploraTextField(
+                state = rememberTextFieldState("Café Las Acacias"),
+                label = "Título del lugar",
+                supportingText = "Entre 5 y 60 caracteres · 16/60",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ExploraTextField(
+                state = rememberTextFieldState(),
+                label = "Descripción",
+                placeholder = "Ej. Tostión propia y patio interior",
+                supportingText = "Cuéntanos qué hace especial el lugar · mínimo 30 caracteres",
+                singleLine = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ExploraTextField(
+                state = rememberTextFieldState(),
+                label = "Horario de atención",
+                placeholder = "Ej. Lunes a sábado, 8:00 a 18:00",
+                errorMessage = "Falta el horario. Escribe los días y las horas de atención.",
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ExploraTextField(
+                state = rememberTextFieldState("Carrera 14 # 20-35"),
+                label = "Ubicación",
+                enabled = false,
+                disabledReason = "Se activa en el paso 3",
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Section("Roles Material 3") {
             Swatch("primary", scheme.primary, scheme.onPrimary)
             Swatch("primaryContainer", scheme.primaryContainer, scheme.onPrimaryContainer)
@@ -80,26 +178,6 @@ internal fun DesignCatalog(modifier: Modifier = Modifier) {
             Swatch("high", scheme.surfaceContainerHigh, scheme.onSurfaceVariant)
             Swatch("highest", scheme.surfaceContainerHighest, scheme.onSurfaceVariant)
             Swatch("outline", scheme.outline, scheme.surface)
-        }
-        Section("Estados") {
-            PublicationStatus.entries.forEach { status ->
-                Badge(stringResource(status.labelRes), status.iconRes, status.colors.container, status.colors.content)
-            }
-            Badge(
-                stringResource(R.string.duplicate_flag),
-                R.drawable.ic_join_inner,
-                explora.duplicateFlag.container,
-                explora.duplicateFlag.content,
-                Modifier.dashedBorder(1.dp, explora.duplicateFlag.border, 8.dp),
-            )
-        }
-        Section("Categorías · marcador y chip") {
-            Category.entries.forEach { category ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Marker(category.iconRes, category.colors.marker, category.colors.onMarker)
-                    Chip(stringResource(category.labelRes), category.iconRes, category.colors.container, category.colors.content)
-                }
-            }
         }
         Column(verticalArrangement = Arrangement.spacedBy(ExploraSpacing.BetweenChips)) {
             Title("Tipografía")
@@ -167,40 +245,11 @@ private fun Swatch(name: String, container: Color, content: Color, border: Color
     }
 }
 
-@Composable
-private fun Badge(label: String, @DrawableRes icon: Int, container: Color, content: Color, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .background(container, MaterialTheme.shapes.small)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(painterResource(icon), contentDescription = null, tint = content, modifier = Modifier.size(16.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = content)
-    }
-}
-
-@Composable
-private fun Chip(label: String, @DrawableRes icon: Int, container: Color, content: Color) {
-    Row(
-        Modifier
-            .background(container, MaterialTheme.shapes.small)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(painterResource(icon), contentDescription = null, tint = content, modifier = Modifier.size(20.dp))
-        Text(label, style = MaterialTheme.typography.labelLarge, color = content)
-    }
-}
-
-/** Gota del mapa: 40 dp, esquina inferior en punta tras girar -45°. */
+/** Gota del mapa: 40 dp, esquina inferior en punta tras girar -45°. El componente real llega con el mapa (8). */
 @Composable
 private fun Marker(@DrawableRes icon: Int, color: Color, onColor: Color) {
     Box(
         Modifier
-            .padding(end = ExploraSpacing.BetweenChips)
             .size(40.dp)
             .rotate(-45f)
             .background(color, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomEnd = 20.dp, bottomStart = 4.dp)),
@@ -208,17 +257,6 @@ private fun Marker(@DrawableRes icon: Int, color: Color, onColor: Color) {
     ) {
         Icon(painterResource(icon), contentDescription = null, tint = onColor, modifier = Modifier.rotate(45f).size(20.dp))
     }
-}
-
-private fun Modifier.dashedBorder(width: Dp, color: Color, radius: Dp) = drawBehind {
-    val stroke = width.toPx()
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(stroke / 2, stroke / 2),
-        size = Size(size.width - stroke, size.height - stroke),
-        cornerRadius = CornerRadius(radius.toPx()),
-        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
-    )
 }
 
 @Composable
@@ -234,19 +272,19 @@ private fun ShapeSample(name: String, shape: Shape) {
     }
 }
 
-@Preview(name = "Claro", widthDp = 360, heightDp = 2200)
+@Preview(name = "Claro", widthDp = 360, heightDp = 3000)
 @Composable
 private fun DesignCatalogLightPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) { DesignCatalog() }
 }
 
-@Preview(name = "Oscuro", widthDp = 360, heightDp = 2200)
+@Preview(name = "Oscuro", widthDp = 360, heightDp = 3000)
 @Composable
 private fun DesignCatalogDarkPreview() {
     ExploraCityTheme(ThemeMode.DARK) { DesignCatalog() }
 }
 
-@Preview(name = "Claro · fuente 200 %", widthDp = 360, heightDp = 3200, fontScale = 2f)
+@Preview(name = "Claro · fuente 200 %", widthDp = 360, heightDp = 5000, fontScale = 2f)
 @Composable
 private fun DesignCatalogLargeFontPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) { DesignCatalog() }
