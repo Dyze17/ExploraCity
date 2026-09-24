@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
@@ -17,6 +18,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
@@ -30,7 +32,8 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 
 /**
  * Buscador del feed: 52 dp, píldora sobre surfaceContainer, lupa, placeholder y borrar cuando hay texto.
- * [trailing] aloja la acción extra (botón de filtros, 9).
+ * [trailing] aloja la acción extra (botón de filtros, 9). Con texto sigue visible junto a «Borrar búsqueda»:
+ * el lienzo 10.a solo dibuja la x, pero así no se podría llegar a los filtros mientras se busca.
  */
 @Composable
 fun ExploraSearchBar(
@@ -76,20 +79,23 @@ fun ExploraSearchBar(
                 interactionSource = interactionSource,
                 placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyLarge) },
                 leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null, modifier = Modifier.size(22.dp)) },
-                trailingIcon = when {
-                    value.isNotEmpty() -> {
-                        {
-                            IconButton(onClick = { onValueChange("") }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_close),
-                                    contentDescription = stringResource(R.string.search_clear),
-                                    modifier = Modifier.size(20.dp),
-                                )
+                trailingIcon = if (value.isEmpty() && trailing == null) {
+                    null
+                } else {
+                    {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (value.isNotEmpty()) {
+                                IconButton(onClick = { onValueChange("") }) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_close),
+                                        contentDescription = stringResource(R.string.search_clear),
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
                             }
+                            trailing?.invoke()
                         }
                     }
-                    trailing != null -> trailing
-                    else -> null
                 },
                 colors = colors,
                 contentPadding = PaddingValues(vertical = 12.dp),

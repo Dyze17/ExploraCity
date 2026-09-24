@@ -91,6 +91,10 @@ class ThemeContrastTest {
         add(ColorPair("outline / tarjeta", s.surfaceContainerLowest, s.outline))
         add(ColorPair("borde de posible duplicado", e.duplicateFlag.container, e.duplicateFlag.border))
         add(ColorPair("icono de la cola de moderación", s.surfaceContainerLowest, e.warningAccent))
+        add(ColorPair("casilla marcada / surface", s.surface, s.primary))
+        add(ColorPair("casilla sin marcar / surface", s.surface, e.textPlaceholder))
+        add(ColorPair("opción de ubicación elegida / borde", s.surface, s.tertiary))
+        add(ColorPair("botón de filtros / icono", s.primaryContainer, e.onPrimaryContainerAccent))
         categories(e).forEach { (name, c) -> add(ColorPair("marcador $name", c.marker, c.onMarker)) }
     }
 
