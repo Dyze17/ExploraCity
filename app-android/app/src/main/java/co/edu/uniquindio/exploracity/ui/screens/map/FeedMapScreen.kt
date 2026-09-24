@@ -237,9 +237,10 @@ fun FeedMapScreen(
     // La hoja parcial muestra la tarjeta entera si cabe en el 45 % del alto; si no (fuente grande), muestra ese 45 %
     // y se arrastra hacia arriba hasta ver todo, como máximo el 90 % (README: «hojas crecen hasta el 90 %»).
     var cardHeightPx by remember { mutableIntStateOf(0) }
+    var handleHeightPx by remember { mutableIntStateOf(0) }
     var headerHeightPx by remember { mutableIntStateOf(0) }
     var containerHeightPx by remember { mutableIntStateOf(0) }
-    val peekHeight = with(density) { minOf(cardHeightPx, (containerHeightPx * 0.45f).toInt()).toDp() }
+    val peekHeight = with(density) { minOf(handleHeightPx + cardHeightPx, (containerHeightPx * 0.45f).toInt()).toDp() }
 
     // Tocar un lugar vuelve a mostrar la tarjeta si se había deslizado fuera.
     val select: (String) -> Unit = { id ->
@@ -257,7 +258,9 @@ fun FeedMapScreen(
         // El asa de M3 (con el color y la medida del lienzo) da al lector las acciones de expandir y contraer: con
         // fuente grande la hoja parcial no muestra todo. Aquí no hay foco inicial que proteger (no es modal).
         sheetDragHandle = {
-            BottomSheetDefaults.DragHandle(width = 32.dp, height = 4.dp, color = MaterialTheme.exploraColors.sheetHandle)
+            Box(Modifier.onSizeChanged { handleHeightPx = it.height }) {
+                BottomSheetDefaults.DragHandle(width = 32.dp, height = 4.dp, color = MaterialTheme.exploraColors.sheetHandle)
+            }
         },
         snackbarHost = { SnackbarHost(it) },
         sheetContent = {
