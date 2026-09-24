@@ -1,12 +1,18 @@
 package co.edu.uniquindio.exploracity.domain.model
 
+import kotlinx.serialization.Serializable
+
 /** Alcance de ubicación del feed (9): alrededor de la persona o toda la ciudad. */
 enum class LocationScope {
     NEARBY,
     CITY,
 }
 
-/** Filtros de la hoja 9, compartidos por la lista (7) y el mapa (8). «Limpiar» vuelve a [DEFAULT]. */
+/**
+ * Filtros de la hoja 9, compartidos por la lista (7) y el mapa (8). «Limpiar» vuelve a [DEFAULT].
+ * Serializable para guardarlos en el estado de la pantalla y recuperarlos si el sistema cierra la app.
+ */
+@Serializable
 data class FeedFilters(
     val categories: Set<Category> = emptySet(),
     val scope: LocationScope = LocationScope.CITY,

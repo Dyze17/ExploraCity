@@ -1,8 +1,10 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -22,9 +24,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -79,15 +85,29 @@ data class FeedUiState(
     val message: FeedMessage? = null,
 )
 
+/**
+ * Lo que el feed recupera si el sistema cierra la app en segundo plano. Pasa, por ejemplo, al negar el
+ * permiso de ubicación: Android mata el proceso y el resultado llega a uno nuevo, que debe seguir teniendo
+ * la hoja abierta con su borrador para aplicarlo.
+ */
+@Serializable
+private data class SavedFeed(
+    val query: String,
+    val filters: FeedFilters,
+    val categoryOrder: List<Category>,
+    val draft: FeedFilters?,
+)
+
 class FeedViewModel(
     private val poiRepository: PoiRepository,
     private val moderationRepository: ModerationRepository,
     areaName: String,
     isModerator: Boolean,
+    private val savedStateHandle: SavedStateHandle,
     private val firstPageTimeout: Duration = FIRST_PAGE_TIMEOUT,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(FeedUiState(areaName = areaName))
+    private val _state = MutableStateFlow(restoredState(areaName))
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
@@ -96,7 +116,13 @@ class FeedViewModel(
     private var nextPage = 0
 
     init {
+        viewModelScope.launch {
+            state.map { SavedFeed(it.query, it.filters, it.categoryOrder, it.filterSheet?.draft) }
+                .distinctUntilChanged()
+                .collect { savedStateHandle[SAVED_FEED_KEY] = Json.encodeToString(it) }
+        }
         reload()
+        if (_state.value.filterSheet != null) recount(debounce = false)
         if (isModerator) {
             viewModelScope.launch {
                 val summary = runCatchingNonCancellation { moderationRepository.summary() }
@@ -197,6 +223,19 @@ class FeedViewModel(
         }
     }
 
+    private fun restoredState(areaName: String): FeedUiState {
+        val saved = savedStateHandle.get<String>(SAVED_FEED_KEY)
+            ?.let { runCatching { Json.decodeFromString<SavedFeed>(it) }.getOrNull() }
+            ?: return FeedUiState(areaName = areaName)
+        return FeedUiState(
+            areaName = areaName,
+            query = saved.query,
+            filters = saved.filters,
+            categoryOrder = saved.categoryOrder,
+            filterSheet = saved.draft?.let { FilterSheetState(draft = it) },
+        )
+    }
+
     private fun applyFilters(filters: FeedFilters) {
         if (filters == _state.value.filters) return
         _state.update { it.copy(filters = filters) }
@@ -250,10 +289,18 @@ class FeedViewModel(
         /** Pausa antes de recontar: tocar varios chips seguidos pide un solo conteo. */
         val COUNT_DEBOUNCE = 150.milliseconds
 
+        private const val SAVED_FEED_KEY = "feed"
+
         fun factory(isModerator: Boolean): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                FeedViewModel(container.poiRepository, container.moderationRepository, container.areaName, isModerator)
+                FeedViewModel(
+                    container.poiRepository,
+                    container.moderationRepository,
+                    container.areaName,
+                    isModerator,
+                    savedStateHandle = createSavedStateHandle(),
+                )
             }
         }
     }

@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FeedPage
@@ -40,7 +41,7 @@ class FeedViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(repository: PoiRepository = FakePoiRepository(), moderator: Boolean = false) =
-        FeedViewModel(repository, FakeModerationRepository(), areaName = "Bogotá", isModerator = moderator)
+        FeedViewModel(repository, FakeModerationRepository(), areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
 
     private val FeedViewModel.loaded get() = state.value.content as FeedContent.Loaded
 
@@ -333,6 +334,33 @@ class FeedViewModelTest {
         assertEquals("", vm.state.value.query)
         assertEquals(FeedFilters.DEFAULT, vm.state.value.filters)
         assertEquals(samplePois.size, vm.loaded.total)
+    }
+
+    @Test
+    fun `si el sistema cierra la app con la hoja abierta, el borrador sigue ahí para aplicarlo`() = runTest(dispatcher) {
+        // Pasa al negar el permiso de ubicación: Android mata el proceso y el resultado llega a uno nuevo.
+        val savedState = SavedStateHandle()
+        val before = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        advanceUntilIdle()
+        before.onQueryChange("parque")
+        before.onToggleCategory(Category.ENTERTAINMENT)
+        before.onOpenFilters()
+        val draft = FeedFilters(setOf(Category.NATURE, Category.ENTERTAINMENT), LocationScope.NEARBY)
+        before.onDraftChange(draft)
+        advanceUntilIdle()
+
+        val after = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        advanceUntilIdle()
+
+        assertEquals("parque", after.state.value.query)
+        assertEquals(FeedFilters(setOf(Category.ENTERTAINMENT)), after.state.value.filters)
+        assertEquals(draft, after.sheet.draft)
+        assertEquals(0, after.sheet.count)
+
+        after.onLocationDenied()
+        advanceUntilIdle()
+        assertEquals(FeedFilters(draft.categories, LocationScope.CITY), after.state.value.filters)
+        assertEquals(FeedMessage.LOCATION_DENIED, after.state.value.message)
     }
 
     @Test
