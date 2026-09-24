@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.ui.components
 
+import android.os.Build
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -57,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogWindowProvider
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
@@ -134,6 +138,13 @@ private fun FiltersSheetContent(
 ) {
     val titleFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { titleFocus.requestFocus() }
+    // La hoja vive en su propia ventana: sin esto el sistema pinta un velo oscuro bajo la barra de gestos,
+    // como hacía en la actividad (ver MainActivity).
+    val view = LocalView.current
+    SideEffect {
+        val window = (view as? DialogWindowProvider ?: view.parent as? DialogWindowProvider)?.window
+        if (window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
+    }
     val stackRows = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
 
     Column(modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp)) {
@@ -168,7 +179,7 @@ private fun FiltersSheetContent(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CategorySection(draft, onDraftChange)
+            CategorySection(draft, onDraftChange, stackRows)
             LocationSection(draft, onDraftChange, stackRows)
             VerifiedSection(draft, onDraftChange)
         }
@@ -189,11 +200,15 @@ private fun SectionLabel(text: String) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CategorySection(draft: FeedFilters, onDraftChange: (FeedFilters) -> Unit) {
+private fun CategorySection(draft: FeedFilters, onDraftChange: (FeedFilters) -> Unit, stackRows: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SectionLabel(stringResource(R.string.filters_category))
-        // Cada chip mide 40 dp a la vista (lienzo 9.a) dentro de su área táctil de 48 dp.
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Cada chip mide 40 dp a la vista (lienzo 9.a) dentro de su área táctil de 48 dp, que ya deja 8 dp
+        // entre filas. Con fuente grande el chip supera los 48 dp y ese margen desaparece: se añade aparte.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (stackRows) 8.dp else 0.dp),
+        ) {
             Category.entries.forEach { category ->
                 CategoryChip(
                     category = category,
@@ -301,13 +316,16 @@ private fun VerifiedSection(draft: FeedFilters, onDraftChange: (FeedFilters) -> 
     }
 }
 
-/** Casilla de 24 dp y radio 6 del lienzo (la de M3 mide 18 dp). El estado lo anuncia la fila. */
+/**
+ * Casilla de 24 dp y radio 6 del lienzo (la de M3 mide 18 dp). Acompaña a un texto, así que escala con la
+ * fuente como los iconos de chips y badges. El estado lo anuncia la fila.
+ */
 @Composable
 private fun CheckBox(checked: Boolean) {
-    val shape = RoundedCornerShape(6.dp)
+    val shape = RoundedCornerShape(6.dp.scaledWithFont())
     Box(
         Modifier
-            .size(24.dp)
+            .size(24.dp.scaledWithFont())
             .then(
                 if (checked) {
                     Modifier.background(MaterialTheme.colorScheme.primary, shape)
@@ -318,7 +336,12 @@ private fun CheckBox(checked: Boolean) {
         contentAlignment = Alignment.Center,
     ) {
         if (checked) {
-            Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
+            Icon(
+                painterResource(R.drawable.ic_check),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(18.dp.scaledWithFont()),
+            )
         }
     }
 }
