@@ -47,6 +47,15 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Robolectric necesita los recursos (fuentes, textos) para medir la UI en las pruebas JVM, y en JDK 25
+    // acceso a internos de java.base y a sus librerías nativas de gráficos.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all { it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED", "--enable-native-access=ALL-UNNAMED") }
+        }
+    }
 }
 
 room {
@@ -85,6 +94,11 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    // compose-ui-test trae un Espresso anterior a SDK 35 (usa InputManager.getInstance, ya retirado).
+    testImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
