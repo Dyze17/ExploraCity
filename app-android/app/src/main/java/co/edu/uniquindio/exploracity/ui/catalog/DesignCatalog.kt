@@ -40,6 +40,8 @@ import co.edu.uniquindio.exploracity.ui.components.CategoryTag
 import co.edu.uniquindio.exploracity.ui.components.DuplicateFlag
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraNavigationBar
+import co.edu.uniquindio.exploracity.ui.components.NavigationBarItem
 import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.ui.components.POICard
 import co.edu.uniquindio.exploracity.ui.components.PublishFab
@@ -133,6 +135,15 @@ internal fun DesignCatalog(modifier: Modifier = Modifier) {
         Section("FAB") {
             PublishFab(onClick = {})
             PublishFab(onClick = {}, expanded = true)
+        }
+        Section("Barra inferior · Usuario y Moderador") {
+            val explore = NavigationBarItem(R.drawable.ic_explore, "Explorar")
+            val publish = NavigationBarItem(R.drawable.ic_add_location_alt, "Publicar")
+            val notifications = NavigationBarItem(R.drawable.ic_notifications, "Avisos", 3, "Avisos, 3 sin leer")
+            val profile = NavigationBarItem(R.drawable.ic_person, "Perfil")
+            val moderation = NavigationBarItem(R.drawable.ic_shield_person, "Moderación", 7, "Moderación, 7 por revisar")
+            ExploraNavigationBar(listOf(explore, publish, notifications, profile), selectedIndex = 0, onSelect = {})
+            ExploraNavigationBar(listOf(explore, publish, moderation, notifications, profile), selectedIndex = 2, onSelect = {})
         }
         Section("Campos") {
             ExploraTextField(

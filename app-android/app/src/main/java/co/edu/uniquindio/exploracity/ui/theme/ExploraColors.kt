@@ -56,6 +56,10 @@ data class ExploraColors(
     val textPlaceholder: Color,
     /** Texto de acento sobre superficies: botón contorneado. */
     val onSurfaceAccent: Color,
+    /** Contenido de acento sobre primaryContainer y su entorno: pestaña seleccionada de la barra inferior. */
+    val onPrimaryContainerAccent: Color,
+    /** Divisores y borde superior de la barra inferior. */
+    val divider: Color,
     /** Fondo del campo con error. */
     val errorFieldContainer: Color,
     /** Borde discontinuo del campo deshabilitado. */
@@ -81,6 +85,8 @@ internal val LightExploraColors = ExploraColors(
     iconSecondary = Color(0xFF4E3A33),
     textPlaceholder = Color(0xFF6B564E),
     onSurfaceAccent = Color(0xFF7A2A12),
+    onPrimaryContainerAccent = Color(0xFF7A2A12),
+    divider = Color(0xFFE5D5CC),
     errorFieldContainer = Color(0xFFFFF7F6),
     outlineDisabled = Color(0xFFA99086),
     warning = ContainerColors(Color(0xFFFFE3BE), Color(0xFF4A2C00)),
@@ -109,6 +115,8 @@ internal val DarkExploraColors = ExploraColors(
     iconSecondary = Color(0xFFD6C1B8),
     textPlaceholder = Color(0xFFBCA69C),
     onSurfaceAccent = Color(0xFFFFB59D),
+    onPrimaryContainerAccent = Color(0xFFFFDBD0),
+    divider = Color(0xFF3A2C27),
     errorFieldContainer = Color(0xFF2A1917),
     outlineDisabled = Color(0xFF6B564E),
     warning = ContainerColors(Color(0xFF503500), Color(0xFFFFD9A0)),
