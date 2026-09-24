@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -32,6 +33,7 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 
 /**
  * Buscador del feed: 52 dp, píldora sobre surfaceContainer, lupa, placeholder y borrar cuando hay texto.
+ * Sobre el mapa (8) flota con [containerColor] surface y sombra.
  * [trailing] aloja la acción extra (botón de filtros, 9). Con texto sigue visible junto a «Borrar búsqueda»:
  * el lienzo 10.a solo dibuja la x, pero así no se podría llegar a los filtros mientras se busca.
  */
@@ -42,6 +44,7 @@ fun ExploraSearchBar(
     placeholder: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -99,7 +102,7 @@ fun ExploraSearchBar(
                 },
                 colors = colors,
                 contentPadding = PaddingValues(vertical = 12.dp),
-                container = { Box(Modifier.background(scheme.surfaceContainer, MaterialTheme.shapes.extraLarge)) },
+                container = { Box(Modifier.background(containerColor, MaterialTheme.shapes.extraLarge)) },
             )
         },
     )

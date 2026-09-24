@@ -1,8 +1,5 @@
 package co.edu.uniquindio.exploracity.ui.screens.feed
 
-import androidx.activity.compose.LocalActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -31,20 +28,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -57,7 +50,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -74,10 +66,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
@@ -110,11 +99,7 @@ import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
-import co.edu.uniquindio.exploracity.util.LOCATION_PERMISSIONS
 import co.edu.uniquindio.exploracity.util.formatDistance
-import co.edu.uniquindio.exploracity.util.hasLocationPermission
-import co.edu.uniquindio.exploracity.util.openAppSettings
-import co.edu.uniquindio.exploracity.util.shouldShowLocationRationale
 import co.edu.uniquindio.exploracity.viewmodel.FeedContent
 import co.edu.uniquindio.exploracity.viewmodel.FeedMessage
 import co.edu.uniquindio.exploracity.viewmodel.FeedUiState
@@ -123,74 +108,25 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
-/** 7 · Feed en modo lista, conectado a su ViewModel. */
+/**
+ * 7 · Feed en modo lista. [viewModel] vive en el grafo de Explorar: el mapa (8) comparte búsqueda, filtros
+ * y hoja de filtros.
+ */
 @Composable
 fun FeedRoute(
+    viewModel: FeedViewModel,
     isModerator: Boolean,
     onOpenPoi: (String) -> Unit,
     onOpenMap: () -> Unit,
     onPublish: () -> Unit,
     onOpenModeration: () -> Unit,
-    viewModel: FeedViewModel = viewModel(factory = FeedViewModel.factory(isModerator)),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val activity = LocalActivity.current
-    // Quién pidió el permiso de ubicación: la hoja al aplicar «Cercanos», el aviso «Permitir» o su paso por Ajustes.
-    var locationRequester by rememberSaveable { mutableStateOf<LocationRequester?>(null) }
-    val requestLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
-        val granted = grants.values.any { it }
-        when (locationRequester) {
-            LocationRequester.SHEET -> if (granted) viewModel.onApplyFilters() else viewModel.onLocationDenied()
-            LocationRequester.SNACKBAR -> if (granted) viewModel.onLocationGranted()
-            LocationRequester.SETTINGS, null -> Unit
-        }
-        locationRequester = null
-    }
-    // «Permitir» llevó a Ajustes: al volver, si la persona dio el permiso, se activa «Cercanos» como con el diálogo.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if (locationRequester == LocationRequester.SETTINGS) {
-            if (context.hasLocationPermission()) viewModel.onLocationGranted()
-            locationRequester = null
-        }
-    }
     FeedScreen(
         state = state,
         isModerator = isModerator,
         callbacks = FeedCallbacks(
-            onQueryChange = viewModel::onQueryChange,
-            onToggleCategory = viewModel::onToggleCategory,
-            onSearchWholeCity = viewModel::onSearchWholeCity,
-            onRemoveVerifiedOnly = viewModel::onRemoveVerifiedOnly,
-            onClearFilters = viewModel::onClearFilters,
-            onOpenFilters = viewModel::onOpenFilters,
-            onDraftChange = viewModel::onDraftChange,
-            onClearDraft = viewModel::onClearDraft,
-            onApplyFilters = {
-                // README 9: «Si no diste permiso, te lo pedimos al aplicar».
-                if (state.filterSheet?.draft?.scope == LocationScope.NEARBY && !context.hasLocationPermission()) {
-                    locationRequester = LocationRequester.SHEET
-                    requestLocation.launch(LOCATION_PERMISSIONS)
-                } else {
-                    viewModel.onApplyFilters()
-                }
-            },
-            onDismissFilters = viewModel::onDismissFilters,
-            onAllowLocation = {
-                when {
-                    context.hasLocationPermission() -> viewModel.onLocationGranted()
-                    activity?.shouldShowLocationRationale() == true -> {
-                        locationRequester = LocationRequester.SNACKBAR
-                        requestLocation.launch(LOCATION_PERMISSIONS)
-                    }
-                    // Negado para siempre: el sistema ya no muestra el diálogo, solo queda la ficha de la app.
-                    else -> {
-                        locationRequester = LocationRequester.SETTINGS
-                        context.openAppSettings()
-                    }
-                }
-            },
-            onMessageShown = viewModel::onMessageShown,
+            filters = rememberFilterCallbacks(viewModel),
             onRetry = viewModel::onRetry,
             onLoadMore = viewModel::onLoadMore,
             onOpenPoi = onOpenPoi,
@@ -201,21 +137,8 @@ fun FeedRoute(
     )
 }
 
-private enum class LocationRequester { SHEET, SNACKBAR, SETTINGS }
-
 class FeedCallbacks(
-    val onQueryChange: (String) -> Unit = {},
-    val onToggleCategory: (Category) -> Unit = {},
-    val onSearchWholeCity: () -> Unit = {},
-    val onRemoveVerifiedOnly: () -> Unit = {},
-    val onClearFilters: () -> Unit = {},
-    val onOpenFilters: () -> Unit = {},
-    val onDraftChange: (FeedFilters) -> Unit = {},
-    val onClearDraft: () -> Unit = {},
-    val onApplyFilters: () -> Unit = {},
-    val onDismissFilters: () -> Unit = {},
-    val onAllowLocation: () -> Unit = {},
-    val onMessageShown: () -> Unit = {},
+    val filters: FilterCallbacks = FilterCallbacks(),
     val onRetry: () -> Unit = {},
     val onLoadMore: () -> Unit = {},
     val onOpenPoi: (String) -> Unit = {},
@@ -246,14 +169,14 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                         if (content.query.filters.scope == LocationScope.NEARBY) {
                             ExploraButton(
                                 stringResource(R.string.feed_search_whole_city),
-                                onClick = callbacks.onSearchWholeCity,
+                                onClick = callbacks.filters.onSearchWholeCity,
                                 modifier = Modifier.fillMaxWidth(),
                                 icon = R.drawable.ic_location_city,
                             )
                         }
                         ExploraButton(
                             stringResource(R.string.feed_clear_filters),
-                            onClick = callbacks.onClearFilters,
+                            onClick = callbacks.filters.onClearFilters,
                             modifier = Modifier.fillMaxWidth(),
                             style = ExploraButtonStyle.TEXT,
                         )
@@ -295,33 +218,23 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
             if (state.content is FeedContent.Loaded) {
                 PublishFab(onClick = callbacks.onPublish, modifier = Modifier.padding(ExploraSpacing.ScreenMargin))
             }
-            FeedSnackbar(state.message, callbacks)
+            FeedSnackbar(state.message, callbacks.filters)
         }
         FiltersBottomSheet(
             draft = state.filterSheet?.draft,
             count = state.filterSheet?.count,
-            onDraftChange = callbacks.onDraftChange,
-            onClear = callbacks.onClearDraft,
-            onApply = callbacks.onApplyFilters,
-            onDismissRequest = callbacks.onDismissFilters,
+            onDraftChange = callbacks.filters.onDraftChange,
+            onClear = callbacks.filters.onClearDraft,
+            onApply = callbacks.filters.onApplyFilters,
+            onDismissRequest = callbacks.filters.onDismissFilters,
         )
     }
 }
 
-/** Avisos del feed. Sin permiso de ubicación: persiste hasta que la persona actúa («Permitir» o cerrar). */
 @Composable
-private fun FeedSnackbar(message: FeedMessage?, callbacks: FeedCallbacks) {
+private fun FeedSnackbar(message: FeedMessage?, callbacks: FilterCallbacks) {
     val hostState = remember { SnackbarHostState() }
-    val currentCallbacks by rememberUpdatedState(callbacks)
-    val locationDenied = stringResource(R.string.feed_location_denied)
-    val allow = stringResource(R.string.feed_location_allow)
-    LaunchedEffect(message) {
-        if (message == FeedMessage.LOCATION_DENIED) {
-            val result = hostState.showSnackbar(locationDenied, actionLabel = allow, withDismissAction = true, duration = SnackbarDuration.Indefinite)
-            currentCallbacks.onMessageShown()
-            if (result == SnackbarResult.ActionPerformed) currentCallbacks.onAllowLocation()
-        }
-    }
+    FeedMessageEffect(message, hostState, callbacks)
     SnackbarHost(hostState)
 }
 
@@ -375,10 +288,10 @@ private fun CollapsibleFilters(state: FeedUiState, isModerator: Boolean, callbac
         if (isModerator) ModeratorChip()
         ExploraSearchBar(
             value = state.query,
-            onValueChange = callbacks.onQueryChange,
+            onValueChange = callbacks.filters.onQueryChange,
             placeholder = stringResource(R.string.feed_search_placeholder, state.areaName),
             modifier = Modifier.onFocusChanged { if (it.isFocused) collapsing.expand() },
-            trailing = { FiltersButton(activeCount = state.filters.activeCount, onClick = callbacks.onOpenFilters) },
+            trailing = { FiltersButton(activeCount = state.filters.activeCount, onClick = callbacks.filters.onOpenFilters) },
         )
         // Primero los filtros que no son categorías y después las categorías, activas primero tras aplicar la hoja.
         val chipsScroll = rememberScrollState()
@@ -388,16 +301,16 @@ private fun CollapsibleFilters(state: FeedUiState, isModerator: Boolean, callbac
             horizontalArrangement = Arrangement.spacedBy(ExploraSpacing.BetweenChips),
         ) {
             if (state.filters.scope == LocationScope.NEARBY) {
-                ActiveFilterChip(stringResource(R.string.feed_chip_nearby), R.drawable.ic_near_me, onRemove = callbacks.onSearchWholeCity)
+                ActiveFilterChip(stringResource(R.string.feed_chip_nearby), R.drawable.ic_near_me, onRemove = callbacks.filters.onSearchWholeCity)
             }
             if (state.filters.verifiedOnly) {
-                ActiveFilterChip(stringResource(R.string.feed_chip_verified), R.drawable.ic_verified, onRemove = callbacks.onRemoveVerifiedOnly)
+                ActiveFilterChip(stringResource(R.string.feed_chip_verified), R.drawable.ic_verified, onRemove = callbacks.filters.onRemoveVerifiedOnly)
             }
             state.categoryOrder.forEach { category ->
                 CategoryChip(
                     category = category,
                     selected = category in state.filters.categories,
-                    onSelectedChange = { callbacks.onToggleCategory(category) },
+                    onSelectedChange = { callbacks.filters.onToggleCategory(category) },
                 )
             }
         }
