@@ -35,7 +35,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object Feed // 7 (10, 11 y 12 son estados del feed)
 
-@Serializable data object FeedMap // 8
+/** 8. Con [focusPoiId] abre centrado en ese lugar y con él seleccionado (mapa pequeño del detalle, 13). */
+@Serializable data class FeedMap(val focusPoiId: String? = null) // 8
 
 @Serializable data class PoiDetail(val poiId: String) // 13
 

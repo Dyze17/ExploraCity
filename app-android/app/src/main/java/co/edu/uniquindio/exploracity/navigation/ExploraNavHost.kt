@@ -17,6 +17,7 @@ import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
+import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
@@ -165,7 +166,7 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
                 viewModel = exploreFeedViewModel(nav, entry, role),
                 isModerator = role == UserRole.MODERATOR,
                 onOpenPoi = { nav.navigate(PoiDetail(it)) },
-                onOpenMap = { nav.navigate(FeedMap) },
+                onOpenMap = { nav.navigate(FeedMap()) },
                 onPublish = { nav.navigateToTab(TopLevelDestination.PUBLISH) },
                 onOpenModeration = { nav.navigateToTab(TopLevelDestination.MODERATION) },
             )
@@ -183,16 +184,12 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
                 onOpenPoi = { nav.navigate(PoiDetail(it)) },
             )
         }
-        composable<PoiDetail> { entry ->
-            val poiId = entry.toRoute<PoiDetail>().poiId
-            PlaceholderScreen(
-                "13", "Detalle del lugar",
-                listOf(
-                    link("Ver comentarios") { nav.navigate(Comments(poiId)) },
-                    link("Publicado por Camilo R.") { nav.navigate(PublicProfile("camilo-r")) },
-                    link("Ver en el mapa") { nav.navigate(FeedMap) },
-                ),
+        composable<PoiDetail> {
+            PoiDetailRoute(
                 onBack = nav.back(),
+                onOpenComments = { nav.navigate(Comments(it)) },
+                onOpenAuthor = { nav.navigate(PublicProfile(it)) },
+                onOpenMap = { nav.navigate(FeedMap(focusPoiId = it)) },
             )
         }
         composable<Comments> { PlaceholderScreen("14", "Comentarios", emptyList(), onBack = nav.back()) }

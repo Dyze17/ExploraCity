@@ -40,6 +40,8 @@ data class MapUiState(
     val selectedId: String? = null,
     /** Solo se conoce tras pedirla con el permiso concedido («Mi ubicación»). */
     val userLocation: GeoPoint? = null,
+    /** Abierto desde el detalle (13): la cámara debe centrarse aquí una vez. */
+    val focusTarget: GeoPoint? = null,
 ) {
     val selected: Poi? get() = pois.firstOrNull { it.id == selectedId }
 }
@@ -58,6 +60,29 @@ class MapViewModel(
     private var criteria = FeedQuery()
     private var area: GeoBounds? = null
     private var loadJob: Job? = null
+
+    /** Argumento de la ruta FeedMap(focusPoiId): el lugar que se quiere ver en el mapa. */
+    private val focusPoiId: String? = savedStateHandle[FOCUS_POI_ID_KEY]
+
+    /** Si el mapa se abrió enfocado en un lugar; entonces no se centra en la persona al abrir. */
+    val hasFocus: Boolean get() = focusPoiId != null
+
+    init {
+        // Una sola vez: al volver al mapa (o si Android lo recrea) manda la cámara guardada.
+        if (focusPoiId != null && savedStateHandle.get<Boolean>(FOCUS_SHOWN_KEY) != true) {
+            viewModelScope.launch {
+                val poi = runCatchingNonCancellation { poiRepository.poiDetails(focusPoiId) }?.poi ?: return@launch
+                select(poi.id)
+                _state.update { it.copy(focusTarget = poi.location) }
+            }
+        }
+    }
+
+    /** La cámara ya se centró en el lugar del detalle. */
+    fun onFocusShown() {
+        _state.update { it.copy(focusTarget = null) }
+        savedStateHandle[FOCUS_SHOWN_KEY] = true
+    }
 
     /** La cámara se detuvo: consulta el área visible. */
     fun onAreaChange(bounds: GeoBounds) {
@@ -120,6 +145,8 @@ class MapViewModel(
         val AREA_TIMEOUT = 8.seconds
 
         private const val SELECTED_KEY = "selected"
+        private const val FOCUS_SHOWN_KEY = "focusShown"
+        const val FOCUS_POI_ID_KEY = "focusPoiId"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

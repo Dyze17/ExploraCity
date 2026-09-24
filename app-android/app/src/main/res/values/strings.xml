@@ -120,16 +120,89 @@
     <string name="map_distance">a %1$s</string>
     <string name="map_open_now">abierto ahora</string>
     <string name="map_closed_now">cerrado ahora</string>
-    <string name="map_price_1">económico</string>
-    <string name="map_price_2">precio moderado</string>
-    <string name="map_price_3">costoso</string>
-    <string name="map_price_4">muy costoso</string>
     <string name="map_empty_area">Todavía no hay lugares publicados en esta zona. Aleja el mapa para ver más.</string>
     <string name="map_empty_area_criteria">Ningún lugar en esta zona con estos criterios. Aleja el mapa o quita un filtro.</string>
     <string name="map_error">No pudimos buscar lugares en esta zona. Tus filtros siguen guardados.</string>
     <string name="map_location_denied">Para centrar el mapa en tu ubicación necesitamos tu permiso.</string>
     <!-- Solo en compilaciones de desarrollo sin clave. -->
     <string name="map_missing_key">Falta la clave de Google Maps: añade MAPS_API_KEY en app-android/local.properties y vuelve a compilar.</string>
+
+    <!-- Precio (paso 4, 18) -->
+    <string name="price_free">Entrada libre</string>
+    <string name="price_low">Hasta 25.000</string>
+    <string name="price_medium">Entre 25.000 y 60.000</string>
+    <string name="price_high">Más de 60.000</string>
+    <string name="price_free_spoken">entrada libre</string>
+    <string name="price_low_spoken">hasta 25.000 pesos</string>
+    <string name="price_medium_spoken">entre 25.000 y 60.000 pesos</string>
+    <string name="price_high_spoken">más de 60.000 pesos</string>
+
+    <!-- Niveles (LevelChip) -->
+    <string name="level_tourist">Turista</string>
+    <string name="level_explorer">Explorador</string>
+    <string name="level_adventurer">Aventurero</string>
+    <string name="level_local_ambassador">Embajador Local</string>
+
+    <!-- Horario: «Lunes a sábado, 7:00 a 19:00» -->
+    <string name="hours_every_day">Todos los días</string>
+    <string name="hours_to">a</string>
+
+    <!-- Detalle del POI (13) -->
+    <string name="detail_share">Compartir</string>
+    <string name="detail_share_chooser">Compartir lugar</string>
+    <string name="detail_share_text">%1$s en ExploraCity: %2$s</string>
+    <string name="detail_photo_description">%1$s. Foto %2$d de %3$d</string>
+    <string name="detail_open_now">Abierto ahora</string>
+    <string name="detail_closed_now">Cerrado ahora</string>
+    <string name="detail_distance_description">A %1$s</string>
+    <string name="detail_view_on_map">Ver en el mapa</string>
+    <string name="detail_published_by">Publicado por %1$s</string>
+    <string name="detail_author_description">Publicado por %1$s, nivel %2$s. Ver su perfil</string>
+    <string name="detail_vote">Es importante · %1$d</string>
+    <string name="detail_voted">Ya votaste · %1$d</string>
+    <plurals name="detail_vote_description">
+        <item quantity="one">Es importante, %d voto</item>
+        <item quantity="many">Es importante, %d votos</item>
+        <item quantity="other">Es importante, %d votos</item>
+    </plurals>
+    <string name="detail_vote_state_on">votaste</string>
+    <string name="detail_vote_state_off">sin votar</string>
+    <string name="detail_visited">Visitado</string>
+    <string name="detail_mark_visited">Marcar como visitado</string>
+    <string name="detail_visited_state">ya marcaste tu visita</string>
+    <plurals name="detail_comments">
+        <item quantity="one">Ver %d comentario</item>
+        <item quantity="many">Ver %d comentarios</item>
+        <item quantity="other">Ver %d comentarios</item>
+    </plurals>
+    <string name="detail_no_comments">Todavía no hay comentarios</string>
+    <string name="detail_add_comment">Escribir un comentario</string>
+    <string name="detail_loading">Cargando el lugar</string>
+    <string name="detail_error_title">No pudimos abrir este lugar</string>
+    <string name="detail_error_body">Algo falló de nuestro lado. Tus votos y visitas están a salvo. Intenta de nuevo en un momento.</string>
+    <string name="detail_not_found_title">Este lugar ya no está disponible</string>
+    <string name="detail_not_found_body">Puede que lo hayan retirado o que su autor lo esté editando.</string>
+    <string name="detail_vote_failed">No pudimos registrar tu voto. Intenta de nuevo.</string>
+
+    <!-- Hoja «Marcar como visitado» (14.b) -->
+    <string name="visit_title">¿Cómo te fue en %1$s?</string>
+    <string name="visit_subtitle">Tu experiencia ayuda a quien va por primera vez. Puedes dejarla en blanco.</string>
+    <string name="visit_recommend">¿Lo recomiendas?</string>
+    <string name="visit_yes">Sí</string>
+    <string name="visit_no">No</string>
+    <string name="visit_experience">Cuéntanos tu experiencia</string>
+    <string name="visit_counter">%1$d/%2$d caracteres</string>
+    <string name="visit_show_name">Mostrar mi nombre junto a la experiencia</string>
+    <string name="visit_cancel">Cancelar</string>
+    <string name="visit_confirm">Marcar visitado</string>
+    <string name="visit_saving">Guardando…</string>
+    <string name="visit_saved">Marcamos tu visita.</string>
+    <plurals name="visit_saved_points">
+        <item quantity="one">Marcamos tu visita. +%d punto</item>
+        <item quantity="many">Marcamos tu visita. +%d puntos</item>
+        <item quantity="other">Marcamos tu visita. +%d puntos</item>
+    </plurals>
+    <string name="visit_failed">No pudimos marcar tu visita. Lo que escribiste sigue ahí; intenta de nuevo.</string>
 
     <!-- Hoja de filtros (9) -->
     <string name="filters_title">Filtros</string>

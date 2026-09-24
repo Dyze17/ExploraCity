@@ -12,8 +12,8 @@ data class Poi(
     val votes: Int,
     val comments: Int,
     val photoUrl: String? = null,
-    /** 1 a 4 («$» a «$$$$»); null si no se indicó precio. */
-    val priceLevel: Int? = null,
+    /** Rango del paso 4 (18); null si no se indicó precio. */
+    val price: PriceRange? = null,
     /** Según el horario publicado; null si no hay horario. Lo calcula la API. */
     val openNow: Boolean? = null,
     /** Frase corta para la tarjeta del mapa. */

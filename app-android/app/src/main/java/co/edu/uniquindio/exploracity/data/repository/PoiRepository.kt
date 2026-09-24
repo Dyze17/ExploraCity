@@ -3,6 +3,9 @@ package co.edu.uniquindio.exploracity.data.repository
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.Poi
+import co.edu.uniquindio.exploracity.domain.model.PoiDetails
+import co.edu.uniquindio.exploracity.domain.model.VisitExperience
+import co.edu.uniquindio.exploracity.domain.model.VisitResult
 
 /** Tamaño de página del feed (README: paginación de 20). */
 const val FEED_PAGE_SIZE = 20
@@ -32,4 +35,13 @@ interface PoiRepository {
 
     /** Lugares de [query] dentro de [bounds], para los marcadores del mapa (8). Lanza excepción si falla la red. */
     suspend fun mapArea(query: FeedQuery, bounds: GeoBounds, limit: Int = MAP_MARKER_LIMIT): MapArea
+
+    /** 13 · Detalle; null si el lugar ya no existe. Lanza excepción si falla la red. */
+    suspend fun poiDetails(id: String): PoiDetails?
+
+    /** Voto «Es importante» de la persona; devuelve el total de votos resultante. Lanza excepción si falla la red. */
+    suspend fun setVote(id: String, voted: Boolean): Int
+
+    /** 14.b · Marca el lugar como visitado con la experiencia (opcional). Lanza excepción si falla la red. */
+    suspend fun markVisited(id: String, experience: VisitExperience): VisitResult
 }
