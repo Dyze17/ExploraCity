@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
     <string name="app_name">ExploraCity</string>
 
     <!-- Categorías -->
@@ -31,15 +31,65 @@
     <string name="tab_moderation">Moderación</string>
     <string name="tab_notifications">Avisos</string>
     <string name="tab_profile">Perfil</string>
-    <string name="tab_notifications_badge">%1$s, %2$d sin leer</string>
-    <string name="tab_moderation_badge">%1$s, %2$d por revisar</string>
+    <plurals name="tab_notifications_badge">
+        <item quantity="one">%1$s, %2$d sin leer</item>
+        <item quantity="many">%1$s, %2$d sin leer</item>
+        <item quantity="other">%1$s, %2$d sin leer</item>
+    </plurals>
+    <plurals name="tab_moderation_badge">
+        <item quantity="one">%1$s, %2$d por revisar</item>
+        <item quantity="many">%1$s, %2$d por revisar</item>
+        <item quantity="other">%1$s, %2$d por revisar</item>
+    </plurals>
+
+    <!-- Acciones comunes -->
+    <string name="action_retry">Reintentar</string>
+    <string name="search_clear">Borrar búsqueda</string>
+
+    <!-- Feed (7, 10, 11, 12) -->
+    <string name="feed_exploring">Estás explorando</string>
+    <string name="feed_mode_list">Lista</string>
+    <string name="feed_mode_map">Mapa</string>
+    <string name="feed_search_placeholder">Buscar lugares en %1$s</string>
+    <string name="feed_moderator">Moderador</string>
+    <string name="feed_sort_nearest">Más cercanos</string>
+    <string name="feed_loading">Cargando lugares</string>
+    <string name="feed_loading_more">Cargando más lugares…</string>
+    <string name="feed_error_title">No pudimos traer los lugares</string>
+    <string name="feed_error_body">Algo falló de nuestro lado. Tu sesión y tus borradores están a salvo. Intenta de nuevo en un momento.</string>
+    <string name="feed_no_results_title">Ningún lugar coincide con tu búsqueda</string>
+    <string name="feed_no_results_query_categories">Buscaste «%1$s» en %2$s. Prueba quitando un filtro o con otras palabras.</string>
+    <string name="feed_no_results_query">Buscaste «%1$s». Prueba con otras palabras.</string>
+    <string name="feed_no_results_categories">Todavía no hay lugares de %1$s. Prueba quitando un filtro.</string>
+    <string name="feed_clear_filters">Quitar todos los filtros</string>
+    <string name="feed_empty_area_title">Todavía nadie publica en %1$s</string>
+    <string name="feed_empty_area_body">Sé la primera persona en mostrar esta zona. Publica un lugar y, cuando se verifique, aparecerá aquí para todos.</string>
+    <string name="feed_publish_first">Publicar el primero</string>
+    <string name="list_and">y</string>
+    <plurals name="feed_places_nearby">
+        <item quantity="one">%d lugar cerca de ti</item>
+        <item quantity="many">%d lugares cerca de ti</item>
+        <item quantity="other">%d lugares cerca de ti</item>
+    </plurals>
+    <plurals name="feed_moderation_pending">
+        <item quantity="one">%d publicación espera revisión</item>
+        <item quantity="many">%d publicaciones esperan revisión</item>
+        <item quantity="other">%d publicaciones esperan revisión</item>
+    </plurals>
+    <plurals name="feed_moderation_oldest">
+        <item quantity="one">La más antigua lleva %d día.</item>
+        <item quantity="many">La más antigua lleva %d días.</item>
+        <item quantity="other">La más antigua lleva %d días.</item>
+    </plurals>
 
     <plurals name="poi_votes">
         <item quantity="one">%d voto</item>
+        <item quantity="many">%d votos</item>
         <item quantity="other">%d votos</item>
     </plurals>
     <plurals name="poi_comments">
         <item quantity="one">%d comentario</item>
+        <item quantity="many">%d comentarios</item>
         <item quantity="other">%d comentarios</item>
     </plurals>
 </resources>

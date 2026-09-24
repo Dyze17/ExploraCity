@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -76,7 +77,7 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
 
 @Composable
 private fun badgeDescription(tab: TopLevelDestination, label: String, count: Int): String? = when (tab) {
-    TopLevelDestination.NOTIFICATIONS -> stringResource(R.string.tab_notifications_badge, label, count)
-    TopLevelDestination.MODERATION -> stringResource(R.string.tab_moderation_badge, label, count)
+    TopLevelDestination.NOTIFICATIONS -> pluralStringResource(R.plurals.tab_notifications_badge, count, label, count)
+    TopLevelDestination.MODERATION -> pluralStringResource(R.plurals.tab_moderation_badge, count, label, count)
     else -> null
 }

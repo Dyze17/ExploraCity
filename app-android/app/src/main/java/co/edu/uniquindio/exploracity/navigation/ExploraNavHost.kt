@@ -12,9 +12,9 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
-import co.edu.uniquindio.exploracity.ui.components.PublishFab
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
+import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 
 /**
  * Grafo de navegación completo. Cada destino es por ahora una [PlaceholderScreen] con los enlaces que
@@ -146,16 +146,12 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
 private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
     navigation<ExploreGraph>(startDestination = Feed) {
         composable<Feed> {
-            PlaceholderScreen(
-                "7", "Explorar",
-                buildList {
-                    add(link("Ver en el mapa") { nav.navigate(FeedMap) })
-                    add(link("Café Las Acacias") { nav.navigate(PoiDetail("cafe-las-acacias")) })
-                    if (role == UserRole.MODERATOR) {
-                        add(link("7 publicaciones esperan revisión") { nav.navigateToTab(TopLevelDestination.MODERATION) })
-                    }
-                },
-                fab = { PublishFab(onClick = { nav.navigateToTab(TopLevelDestination.PUBLISH) }) },
+            FeedRoute(
+                isModerator = role == UserRole.MODERATOR,
+                onOpenPoi = { nav.navigate(PoiDetail(it)) },
+                onOpenMap = { nav.navigate(FeedMap) },
+                onPublish = { nav.navigateToTab(TopLevelDestination.PUBLISH) },
+                onOpenModeration = { nav.navigateToTab(TopLevelDestination.MODERATION) },
             )
         }
         composable<FeedMap> {

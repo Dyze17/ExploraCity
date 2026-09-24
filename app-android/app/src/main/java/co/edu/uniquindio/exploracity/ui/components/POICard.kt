@@ -22,10 +22,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -35,7 +37,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -115,10 +120,12 @@ fun POICard(
         Row(cardModifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Photo(Modifier.width(96.dp).fillMaxHeight().heightIn(min = 96.dp), photo)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(title, style = titleStyle, color = scheme.onSurface, modifier = Modifier.weight(1f))
-                    StatusBadge(status, size = BadgeSize.SMALL)
-                }
+                TitleWithBadge(
+                    title = title,
+                    titleStyle = titleStyle,
+                    titleContent = { Text(title, style = titleStyle, color = scheme.onSurface) },
+                    badge = { StatusBadge(status, size = BadgeSize.SMALL) },
+                )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -131,6 +138,42 @@ fun POICard(
                     Meta(R.drawable.ic_priority_high, votesText, scheme.onSurfaceVariant)
                     Meta(R.drawable.ic_chat_bubble, comments.toString(), scheme.onSurfaceVariant)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Título con el badge a la derecha, como en el diseño, mientras la palabra más larga del título quepa al
+ * lado; si no, el badge pasa debajo y el título usa todo el ancho. Así nunca se parte una palabra.
+ */
+@Composable
+private fun TitleWithBadge(
+    title: String,
+    titleStyle: TextStyle,
+    titleContent: @Composable () -> Unit,
+    badge: @Composable () -> Unit,
+) {
+    val measurer = rememberTextMeasurer()
+    val longestWordPx = remember(title, titleStyle, measurer) {
+        title.split(' ').filter { it.isNotBlank() }.maxOfOrNull { measurer.measure(it, titleStyle).size.width } ?: 0
+    }
+    Layout(contents = listOf(titleContent, badge)) { (titleMeasurables, badgeMeasurables), constraints ->
+        val gap = 8.dp.roundToPx()
+        val badgePlaceable = badgeMeasurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+        val besideWidth = constraints.maxWidth - badgePlaceable.width - gap
+        if (longestWordPx <= besideWidth) {
+            val titlePlaceable = titleMeasurables.first().measure(Constraints(maxWidth = besideWidth))
+            layout(constraints.maxWidth, maxOf(titlePlaceable.height, badgePlaceable.height)) {
+                titlePlaceable.place(0, 0)
+                badgePlaceable.place(constraints.maxWidth - badgePlaceable.width, 0)
+            }
+        } else {
+            val titlePlaceable = titleMeasurables.first().measure(Constraints(maxWidth = constraints.maxWidth))
+            val below = titlePlaceable.height + 6.dp.roundToPx()
+            layout(constraints.maxWidth, below + badgePlaceable.height) {
+                titlePlaceable.place(0, 0)
+                badgePlaceable.place(0, below)
             }
         }
     }

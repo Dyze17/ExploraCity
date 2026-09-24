@@ -8,6 +8,7 @@
          allowBackup cubre Android 9–11 (por eso no hace falta fullBackupContent);
          dataExtractionRules, Android 12 y posteriores. -->
     <application
+        android:name=".ExploraApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="@string/app_name"

@@ -69,6 +69,10 @@ data class ExploraColors(
      * `colorScheme.errorContainer` / `onErrorContainer`.
      */
     val warning: ContainerColors,
+    /** Iconos y acciones de acento sobre el aviso ámbar (cola de moderación, «Reintentar» del banner). */
+    val warningAccent: Color,
+    /** Brillo que recorre los skeletons sobre surfaceContainerHigh. */
+    val skeletonHighlight: Color,
     val status: StatusColors,
     val duplicateFlag: DuplicateFlagColors,
     val category: CategoryPalette,
@@ -90,6 +94,8 @@ internal val LightExploraColors = ExploraColors(
     errorFieldContainer = Color(0xFFFFF7F6),
     outlineDisabled = Color(0xFFA99086),
     warning = ContainerColors(Color(0xFFFFE3BE), Color(0xFF4A2C00)),
+    warningAccent = Color(0xFF7A4A00),
+    skeletonHighlight = Color(0xFFF8F1ED),
     status = StatusColors(
         pending = ContainerColors(Color(0xFFFFE3BE), Color(0xFF4A2C00)),
         verified = ContainerColors(Color(0xFFC8EDD5), Color(0xFF0B3A22)),
@@ -120,6 +126,8 @@ internal val DarkExploraColors = ExploraColors(
     errorFieldContainer = Color(0xFF2A1917),
     outlineDisabled = Color(0xFF6B564E),
     warning = ContainerColors(Color(0xFF503500), Color(0xFFFFD9A0)),
+    warningAccent = Color(0xFFF2C078),
+    skeletonHighlight = Color(0xFF392D28), // derivado: el lienzo oscuro no anima los skeletons
     status = StatusColors(
         pending = ContainerColors(Color(0xFF503500), Color(0xFFFFD9A0)),
         verified = ContainerColors(Color(0xFF14472C), Color(0xFF9BE3B8)),

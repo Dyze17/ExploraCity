@@ -73,6 +73,8 @@ class ThemeContrastTest {
         add(ColorPair("campo con error / placeholder", e.errorFieldContainer, e.textPlaceholder))
         add(ColorPair("campo deshabilitado / texto", s.surfaceContainerHigh, e.iconSecondary))
         add(ColorPair("warning", e.warning.container, e.warning.content))
+        add(ColorPair("acción sobre warning («Reintentar»)", e.warning.container, e.warningAccent))
+        add(ColorPair("chip de rol Moderador", s.tertiaryContainer, s.onTertiaryContainer))
         add(ColorPair("estado pendiente", e.status.pending.container, e.status.pending.content))
         add(ColorPair("estado verificada", e.status.verified.container, e.status.verified.content))
         add(ColorPair("estado rechazada", e.status.rejected.container, e.status.rejected.content))
@@ -88,6 +90,7 @@ class ThemeContrastTest {
         add(ColorPair("outline / surface", s.surface, s.outline))
         add(ColorPair("outline / tarjeta", s.surfaceContainerLowest, s.outline))
         add(ColorPair("borde de posible duplicado", e.duplicateFlag.container, e.duplicateFlag.border))
+        add(ColorPair("icono de la cola de moderación", s.surfaceContainerLowest, e.warningAccent))
         categories(e).forEach { (name, c) -> add(ColorPair("marcador $name", c.marker, c.onMarker)) }
     }
 
