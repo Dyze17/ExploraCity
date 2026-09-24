@@ -18,7 +18,6 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Poi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -310,12 +309,3 @@ private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item e
 
 /** Categorías activas primero, cada grupo en el orden habitual (sortedBy es estable). */
 private fun activeFirst(active: Set<Category>): List<Category> = Category.entries.sortedBy { it !in active }
-
-/** Como runCatching, pero deja pasar la cancelación de la corrutina. */
-private suspend fun <T> runCatchingNonCancellation(block: suspend () -> T): T? = try {
-    block()
-} catch (e: CancellationException) {
-    throw e
-} catch (e: Exception) {
-    null
-}

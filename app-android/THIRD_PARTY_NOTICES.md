@@ -13,7 +13,7 @@ Uso según el sistema de diseño: Outfit para display, headline y titleLarge; Ma
 
 ## Iconos (`app/src/main/res/drawable/ic_*.xml`)
 
-91 iconos Material Symbols Rounded (peso 400, relleno 0, grado 0, 24 dp): los que usa el diseño.
+92 iconos Material Symbols Rounded (peso 400, relleno 0, grado 0, 24 dp): los que usa el diseño.
 
 - Origen: `github.com/google/material-design-icons` → `symbols/android/<icono>/materialsymbolsrounded/<icono>_24px.xml`
 - Licencia: Apache License 2.0 · © Google

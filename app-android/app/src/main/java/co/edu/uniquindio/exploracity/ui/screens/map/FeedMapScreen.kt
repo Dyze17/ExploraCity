@@ -101,6 +101,8 @@ import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.ui.components.spokenRes
+import co.edu.uniquindio.exploracity.ui.components.symbol
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedMessageEffect
 import co.edu.uniquindio.exploracity.ui.screens.feed.FilterCallbacks
 import co.edu.uniquindio.exploracity.ui.screens.feed.rememberFilterCallbacks
@@ -176,13 +178,19 @@ fun FeedMapRoute(
             locationDenied = true
         }
     }
-    // Con el permiso ya concedido, el mapa abre donde está la persona (una vez; luego manda la cámara guardada).
+    // Con el permiso ya concedido, el mapa abre donde está la persona (una vez; luego manda la cámara guardada),
+    // salvo que venga del detalle (13): entonces se centra en ese lugar.
     var centeredOnUser by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (!centeredOnUser && location.isGranted) {
+        if (!centeredOnUser && location.isGranted && !mapViewModel.hasFocus) {
             cameraPositionState.position = CameraPosition.fromLatLngZoom(mapViewModel.locate().toLatLng(), CITY_ZOOM)
         }
         centeredOnUser = true
+    }
+    LaunchedEffect(mapState.focusTarget) {
+        val target = mapState.focusTarget ?: return@LaunchedEffect
+        cameraPositionState.position = CameraPosition.fromLatLngZoom(target.toLatLng(), STREET_ZOOM)
+        mapViewModel.onFocusShown()
     }
 
     FeedMapScreen(
@@ -701,24 +709,20 @@ private fun PlaceSummary(poi: Poi, onOpen: () -> Unit) {
     }
 }
 
-/** «$ · a 1,2 km · abierto ahora»; el lector oye «económico, a 1,2 km, abierto ahora». */
+/** «$ · a 1,2 km · abierto ahora»; el lector oye «hasta 25.000 pesos, a 1,2 km, abierto ahora». */
 @Composable
 private fun PlaceFacts(poi: Poi) {
-    val priceDescription = when (poi.priceLevel) {
-        1 -> stringResource(R.string.map_price_1)
-        2 -> stringResource(R.string.map_price_2)
-        3 -> stringResource(R.string.map_price_3)
-        4 -> stringResource(R.string.map_price_4)
-        else -> null
-    }
+    val price = poi.price
+    val priceVisible = price?.let { it.symbol ?: stringResource(it.labelRes) }
+    val priceSpoken = price?.let { stringResource(it.spokenRes) }
     val distance = stringResource(R.string.map_distance, formatDistance(poi.distanceMeters))
     val open = when (poi.openNow) {
         true -> stringResource(R.string.map_open_now)
         false -> stringResource(R.string.map_closed_now)
         null -> null
     }
-    val visible = listOfNotNull(poi.priceLevel?.let { "$".repeat(it) }, distance, open).joinToString(" · ")
-    val spoken = listOfNotNull(priceDescription, distance, open).joinToString(", ")
+    val visible = listOfNotNull(priceVisible, distance, open).joinToString(" · ")
+    val spoken = listOfNotNull(priceSpoken, distance, open).joinToString(", ")
     Text(
         visible,
         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.W600),

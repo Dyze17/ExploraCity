@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -43,6 +44,8 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
  *   y expuesto como `error()` en semantics.
  * - Deshabilitado: borde discontinuo, candado y [disabledReason] como texto de apoyo.
  * - Sin alturas fijas: crece con la escala de fuente.
+ * - [inputTransformation]: límites al escribir, p. ej. `InputTransformation.maxLength(300)`.
+ * - [minLines]: alto mínimo en líneas cuando no es de una sola línea (textos largos como 14.b).
  */
 @Composable
 fun ExploraTextField(
@@ -55,15 +58,17 @@ fun ExploraTextField(
     enabled: Boolean = true,
     disabledReason: String? = null,
     singleLine: Boolean = true,
+    minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
+    inputTransformation: InputTransformation? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
     val isError = enabled && errorMessage != null
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    val lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine()
+    val lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minHeightInLines = minLines)
     val textColor = if (enabled) scheme.onSurface else explora.iconSecondary
 
     val colors = OutlinedTextFieldDefaults.colors(
@@ -92,6 +97,7 @@ fun ExploraTextField(
         textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
         keyboardOptions = keyboardOptions,
         onKeyboardAction = onKeyboardAction,
+        inputTransformation = inputTransformation,
         lineLimits = lineLimits,
         interactionSource = interactionSource,
         cursorBrush = SolidColor(if (isError) scheme.error else scheme.primary),

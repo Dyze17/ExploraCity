@@ -175,6 +175,27 @@ class MapViewModelTest {
         assertEquals("museo-del-oro", after.state.value.selected?.id)
     }
 
+    @Test
+    fun `abierto desde el detalle se centra una vez en el lugar y lo selecciona`() = runTest(dispatcher) {
+        val savedState = SavedStateHandle(mapOf(MapViewModel.FOCUS_POI_ID_KEY to "museo-del-oro"))
+        val museo = samplePois.first { it.id == "museo-del-oro" }
+        val vm = viewModel(savedState = savedState)
+        assertTrue(vm.hasFocus)
+        advanceUntilIdle()
+
+        assertEquals(museo.location, vm.state.value.focusTarget)
+        vm.onAreaChange(candelaria)
+        advanceUntilIdle()
+        assertEquals(museo, vm.state.value.selected)
+
+        vm.onFocusShown()
+        assertEquals(null, vm.state.value.focusTarget)
+        // Al volver al mapa (o si Android lo recrea) ya no se vuelve a centrar: manda la cámara guardada.
+        val again = viewModel(savedState = savedState)
+        advanceUntilIdle()
+        assertEquals(null, again.state.value.focusTarget)
+    }
+
     private class FailingAfterFirstRepository(private val delegate: FakePoiRepository = FakePoiRepository()) : PoiRepository by delegate {
         private var calls = 0
         var failing = true
