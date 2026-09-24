@@ -42,6 +42,7 @@ import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.ui.components.POICard
+import co.edu.uniquindio.exploracity.ui.components.PublishFab
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.iconRes
@@ -128,6 +129,10 @@ internal fun DesignCatalog(modifier: Modifier = Modifier) {
                 disabledReason = "completa el título",
             )
             ExploraButton("Entrando…", onClick = {}, modifier = Modifier.fillMaxWidth(), loading = true)
+        }
+        Section("FAB") {
+            PublishFab(onClick = {})
+            PublishFab(onClick = {}, expanded = true)
         }
         Section("Campos") {
             ExploraTextField(

@@ -21,6 +21,8 @@
     <string name="state_selected">seleccionado</string>
     <string name="state_not_selected">no seleccionado</string>
     <string name="button_unavailable">no disponible, %1$s</string>
+    <string name="fab_publish">Publicar</string>
+    <string name="fab_publish_description">Publicar un lugar nuevo</string>
     <string name="poi_card_description">%1$s, %2$s, %3$s, a %4$s, %5$s, %6$s</string>
     <plurals name="poi_votes">
         <item quantity="one">%d voto</item>
