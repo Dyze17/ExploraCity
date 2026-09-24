@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -124,6 +125,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.ComposeMapColorScheme
 import com.google.maps.android.compose.GoogleMap
@@ -232,11 +234,12 @@ fun FeedMapScreen(
     FeedMessageEffect(feedState.message, snackbarHostState, callbacks.filters)
     MapLocationDeniedEffect(locationDenied, snackbarHostState, callbacks.onAllowMyLocation, onLocationDeniedShown)
 
-    // La tarjeta mide lo que su contenido; ese alto es el de la hoja parcial.
+    // La hoja parcial muestra la tarjeta entera si cabe en el 45 % del alto; si no (fuente grande), muestra ese 45 %
+    // y se arrastra hacia arriba hasta ver todo, como máximo el 90 % (README: «hojas crecen hasta el 90 %»).
     var cardHeightPx by remember { mutableIntStateOf(0) }
     var headerHeightPx by remember { mutableIntStateOf(0) }
     var containerHeightPx by remember { mutableIntStateOf(0) }
-    val cardHeight = with(density) { cardHeightPx.toDp() }
+    val peekHeight = with(density) { minOf(cardHeightPx, (containerHeightPx * 0.45f).toInt()).toDp() }
 
     // Tocar un lugar vuelve a mostrar la tarjeta si se había deslizado fuera.
     val select: (String) -> Unit = { id ->
@@ -247,17 +250,21 @@ fun FeedMapScreen(
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         modifier = modifier,
-        sheetPeekHeight = cardHeight,
+        sheetPeekHeight = peekHeight,
         sheetShape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerZero, bottomEnd = CornerZero),
         sheetContainerColor = MaterialTheme.colorScheme.surface,
         sheetShadowElevation = ExploraElevation.SheetOrDialog,
-        sheetDragHandle = null,
+        // El asa de M3 (con el color y la medida del lienzo) da al lector las acciones de expandir y contraer: con
+        // fuente grande la hoja parcial no muestra todo. Aquí no hay foco inicial que proteger (no es modal).
+        sheetDragHandle = {
+            BottomSheetDefaults.DragHandle(width = 32.dp, height = 4.dp, color = MaterialTheme.exploraColors.sheetHandle)
+        },
         snackbarHost = { SnackbarHost(it) },
         sheetContent = {
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(max = with(density) { (containerHeightPx * 0.6f).toDp() }.coerceAtLeast(160.dp))
+                    .heightIn(max = with(density) { (containerHeightPx * 0.9f).toDp() }.coerceAtLeast(160.dp))
                     .onSizeChanged { cardHeightPx = it.height },
             ) {
                 PlaceSheet(feedState, mapState, callbacks)
@@ -266,12 +273,14 @@ fun FeedMapScreen(
     ) {
         Box(Modifier.fillMaxSize().onSizeChanged { containerHeightPx = it.height }) {
             val sheetVisible = sheetState.targetValue != SheetValue.Hidden
+            // Con la tarjeta oculta, el logo de Google y «Mi ubicación» quedan por encima de la barra de gestos.
+            val navigationBarPx = WindowInsets.navigationBars.getBottom(density)
             MapLayer(
                 mapState = mapState,
                 cameraPositionState = cameraPositionState,
                 contentPadding = PaddingValues(
                     top = with(density) { headerHeightPx.toDp() },
-                    bottom = if (sheetVisible) cardHeight else 0.dp,
+                    bottom = if (sheetVisible) peekHeight else with(density) { navigationBarPx.toDp() },
                 ),
                 onAreaChange = callbacks.onAreaChange,
                 onSelect = select,
@@ -294,6 +303,7 @@ fun FeedMapScreen(
                     .align(Alignment.TopEnd)
                     .offset {
                         val sheetTop = runCatching { sheetState.requireOffset() }.getOrDefault(containerHeightPx.toFloat())
+                            .coerceAtMost((containerHeightPx - navigationBarPx).toFloat())
                         val margin = ExploraSpacing.ScreenMargin.roundToPx()
                         IntOffset(-margin, (sheetTop - 48.dp.toPx() - margin).roundToInt())
                     },
@@ -374,7 +384,11 @@ private fun MapLayer(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         contentDescription = stringResource(R.string.feed_mode_map),
-        properties = MapProperties(minZoomPreference = 10f),
+        // Sin los iconos de negocios y lugares de Google: se confundían con los marcadores (el lienzo 8.a es limpio).
+        properties = MapProperties(
+            minZoomPreference = 10f,
+            mapStyleOptions = remember(context) { MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style) },
+        ),
         uiSettings = MapUiSettings(
             compassEnabled = false,
             mapToolbarEnabled = false,
@@ -387,7 +401,12 @@ private fun MapLayer(
     ) {
         markers.forEach { marker ->
             when (marker) {
-                is MapMarker.Place -> key(marker.poi.id) { PlaceMarker(marker.poi, marker.poi.id == mapState.selectedId, dark, onSelect) }
+                // maps-compose solo fija la descripción al crear el marcador: al cambiar la selección se recrea
+                // para que el lector anuncie «seleccionado» en el correcto.
+                is MapMarker.Place -> {
+                    val selected = marker.poi.id == mapState.selectedId
+                    key(marker.poi.id, selected) { PlaceMarker(marker.poi, selected, dark, onSelect) }
+                }
                 is MapMarker.Group -> key(marker.pois.first().id, marker.pois.size) { GroupMarker(marker, dark, onGroupClick) }
             }
         }
@@ -615,15 +634,9 @@ private fun PlaceSheet(feedState: FeedUiState, mapState: MapUiState, callbacks: 
         Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier
-                .align(Alignment.CenterHorizontally)
-                .size(width = 32.dp, height = 4.dp)
-                .background(MaterialTheme.exploraColors.sheetHandle, RoundedCornerShape(2.dp)),
-        )
         val selected = mapState.selected
         when {
             selected != null -> PlaceSummary(selected, onOpen = { callbacks.onOpenPoi(selected.id) })

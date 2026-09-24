@@ -38,6 +38,18 @@ class MarkerGroupsTest {
     }
 
     @Test
+    fun `dos grupos cuyos centros se encimarían se funden en uno`() {
+        // 0 reúne a 1 (centro en 47,5); 2 reúne a 3 (centro en 146): 98,5 px entre centros, menos que el radio.
+        val markers = groupMarkers(
+            pois.take(4),
+            screen(0 to (0f to 0f), 1 to (95f to 0f), 2 to (190f to 0f), 3 to (102f to 0f)),
+            radiusPx = 100f,
+        )
+
+        assertEquals(listOf(MapMarker.Group(pois.take(4))), markers)
+    }
+
+    @Test
     fun `el seleccionado nunca se agrupa`() {
         val markers = groupMarkers(
             pois.take(3),
