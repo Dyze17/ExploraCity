@@ -6,8 +6,11 @@ import androidx.work.testing.TestListenableWorkerBuilder
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
 import co.edu.uniquindio.exploracity.data.local.PendingActionEntity
+import co.edu.uniquindio.exploracity.data.local.NOTIFICATIONS_TARGET
 import co.edu.uniquindio.exploracity.data.local.PendingType
+import co.edu.uniquindio.exploracity.data.local.QueuedRead
 import co.edu.uniquindio.exploracity.data.local.QueuedVote
+import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
@@ -78,7 +81,10 @@ class PendingSenderTest {
         clock = clock,
     )
 
-    private fun sender(remote: PoiRepository = server) = PendingSender(remote, database.pendingActionsDao(), database.savedPlacesDao())
+    private val notificationServer = FakeNotificationRepository(clock)
+
+    private fun sender(remote: PoiRepository = server) =
+        PendingSender(remote, notificationServer, database.pendingActionsDao(), database.savedPlacesDao())
 
     /** Guarda el feed con red y deja el teléfono sin ella, listo para encolar. */
     private suspend fun TestScope.offlineWithSavedFeed(): OfflinePoiRepository {
@@ -154,6 +160,23 @@ class PendingSenderTest {
 
         flaky.failComments = false
         assertEquals(ListenableWorker.Result.success(), worker().doWork())
+    }
+
+    @Test
+    fun `envía los avisos leídos sin red`() = runTest(dispatcher) {
+        val before = notificationServer.unreadCount.value
+        database.pendingActionsDao().insert(
+            PendingActionEntity(type = PendingType.NOTIFICATION_READ, poiId = NOTIFICATIONS_TARGET, payload = Json.encodeToString(QueuedRead("n-verificada")), createdAtMillis = 0),
+        )
+        database.pendingActionsDao().insert(
+            PendingActionEntity(type = PendingType.NOTIFICATION_READ, poiId = NOTIFICATIONS_TARGET, payload = Json.encodeToString(QueuedRead(null)), createdAtMillis = 1),
+        )
+
+        assertTrue(sender().flush())
+
+        assertTrue(before > 0)
+        assertEquals(0, notificationServer.unreadCount.value)
+        assertEquals(0, database.pendingActionsDao().count())
     }
 
     /** Anota qué se envía y puede simular que se cae la red al enviar comentarios. */

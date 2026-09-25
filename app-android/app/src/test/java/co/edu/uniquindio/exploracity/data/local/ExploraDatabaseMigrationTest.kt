@@ -34,14 +34,26 @@ class ExploraDatabaseMigrationTest {
     }
 
     @Test
-    fun `de la 1 a la 2 conserva lo guardado y agrega la cola vacía`() {
+    fun `de la 1 a la actual conserva lo guardado y agrega la cola y los avisos vacíos`() {
         createVersion(1) { execSQL("INSERT INTO cache_info (`key`, savedAtMillis) VALUES ('feed', 1000)") }
 
         val database = Room.databaseBuilder(context, ExploraDatabase::class.java, NAME).allowMainThreadQueries().build()
         runBlocking {
             assertEquals(1000L, database.savedPlacesDao().savedAt())
             assertEquals(0, database.pendingActionsDao().count())
+            assertEquals(emptyList<SavedNotificationEntity>(), database.notificationsDao().all())
         }
+        database.close()
+    }
+
+    @Test
+    fun `de la 2 a la actual no pierde la cola de envío`() {
+        createVersion(2) {
+            execSQL("INSERT INTO pending_actions (type, poiId, payload, createdAtMillis) VALUES ('VISIT', 'cafe-las-acacias', '{}', 1000)")
+        }
+
+        val database = Room.databaseBuilder(context, ExploraDatabase::class.java, NAME).allowMainThreadQueries().build()
+        runBlocking { assertEquals(1, database.pendingActionsDao().count()) }
         database.close()
     }
 

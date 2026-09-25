@@ -7,9 +7,12 @@ import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
+import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeUserRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
+import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
+import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyUserRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
@@ -19,9 +22,12 @@ import co.edu.uniquindio.exploracity.data.sync.PendingSender
 import co.edu.uniquindio.exploracity.data.sync.WorkManagerScheduler
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 /**
  * Dependencias de la app (inyección manual). El «servidor» todavía es un repositorio en memoria
@@ -40,18 +46,46 @@ class AppContainer(context: Context) {
     private val database = ExploraDatabase.build(context)
     private val server: PoiRepository = FakePoiRepository(currentUser = currentUser)
 
+    private val notificationServer: NotificationRepository = FakeNotificationRepository()
+
     /** Lo usa el worker de WorkManager para enviar la cola, también con la app cerrada. */
-    val pendingSender = PendingSender(server, database.pendingActionsDao(), database.savedPlacesDao())
+    val pendingSender = PendingSender(server, notificationServer, database.pendingActionsDao(), database.savedPlacesDao())
+
+    private val scheduler = WorkManagerScheduler(context)
 
     val poiRepository: PoiRepository = OfflinePoiRepository(
         remote = server,
         dao = database.savedPlacesDao(),
         pending = database.pendingActionsDao(),
-        scheduler = WorkManagerScheduler(context),
+        scheduler = scheduler,
         connectivity = connectivity,
         scope = appScope,
         currentUser = currentUser,
     )
+
+    val notificationRepository: NotificationRepository = OfflineNotificationRepository(
+        remote = notificationServer,
+        dao = database.notificationsDao(),
+        pending = database.pendingActionsDao(),
+        scheduler = scheduler,
+        connectivity = connectivity,
+        scope = appScope,
+    )
+
+    init {
+        // El badge de «Avisos» se pone al día al abrir la app con red y cada vez que vuelve la red.
+        appScope.launch {
+            connectivity.isOnline.filter { it }.collect {
+                try {
+                    notificationRepository.notifications()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Se intenta de nuevo en la próxima conexión o al abrir «Avisos».
+                }
+            }
+        }
+    }
 
     val userRepository: UserRepository = OnlineOnlyUserRepository(FakeUserRepository(server), connectivity)
     val moderationRepository: ModerationRepository = FakeModerationRepository()

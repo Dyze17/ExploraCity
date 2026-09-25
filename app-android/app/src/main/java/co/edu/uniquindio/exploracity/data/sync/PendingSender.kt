@@ -4,10 +4,12 @@ import co.edu.uniquindio.exploracity.data.local.PendingActionEntity
 import co.edu.uniquindio.exploracity.data.local.PendingActionsDao
 import co.edu.uniquindio.exploracity.data.local.PendingType
 import co.edu.uniquindio.exploracity.data.local.QueuedComment
+import co.edu.uniquindio.exploracity.data.local.QueuedRead
 import co.edu.uniquindio.exploracity.data.local.QueuedVisit
 import co.edu.uniquindio.exploracity.data.local.QueuedVote
 import co.edu.uniquindio.exploracity.data.local.SavedPlacesDao
 import co.edu.uniquindio.exploracity.data.local.payloadAs
+import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
@@ -25,6 +27,7 @@ import java.io.IOException
  */
 class PendingSender(
     private val remote: PoiRepository,
+    private val notifications: NotificationRepository,
     private val pending: PendingActionsDao,
     private val saved: SavedPlacesDao,
 ) {
@@ -66,6 +69,7 @@ class PendingSender(
                 remote.addComment(poiId, action.payloadAs<QueuedComment>().text)
                 saved.addComment(poiId)
             }
+            PendingType.NOTIFICATION_READ -> action.payloadAs<QueuedRead>().id?.let { notifications.markRead(it) } ?: notifications.markAllRead()
         }
     }
 }

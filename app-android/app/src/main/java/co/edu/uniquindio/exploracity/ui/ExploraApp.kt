@@ -10,13 +10,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.navigation.AuthGraph
@@ -41,6 +44,8 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
     val destination = navController.currentBackStackEntryAsState().value?.destination
     val tabs = topLevelDestinations(role)
     val showBottomBar = destination != null && routesWithBottomBar.any { destination.hasRoute(it) }
+    val container = (LocalContext.current.applicationContext as ExploraApplication).container
+    val unread by container.notificationRepository.unreadCount.collectAsStateWithLifecycle()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -49,8 +54,9 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
                 ExploraNavigationBar(
                     items = tabs.map { tab ->
                         val label = stringResource(tab.label)
-                        // Sin datos todavía: los badges llegan con Avisos (25) y la cola de moderación (32).
-                        NavigationBarItem(icon = tab.icon, label = label, badgeDescription = badgeDescription(tab, label, 0))
+                        // La cola de moderación (32) todavía no tiene datos: su badge llega con esa pantalla.
+                        val count = if (tab == TopLevelDestination.NOTIFICATIONS) unread else 0
+                        NavigationBarItem(icon = tab.icon, label = label, badgeCount = count, badgeDescription = badgeDescription(tab, label, count))
                     },
                     selectedIndex = tabs.indexOfFirst { tab -> destination.hierarchy.any { it.hasRoute(tab.graph::class) } }
                         .takeIf { it >= 0 },

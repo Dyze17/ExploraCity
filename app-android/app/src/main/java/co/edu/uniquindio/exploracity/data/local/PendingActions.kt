@@ -14,7 +14,17 @@ import kotlinx.serialization.json.Json
 // Cola de envío: lo que la persona hizo sin conexión y se manda al servidor cuando vuelve la red (WorkManager).
 // No depende de lo guardado para ver sin conexión: si el feed reemplaza su caché, la cola sigue intacta.
 
-enum class PendingType { VISIT, VOTE, COMMENT }
+enum class PendingType {
+    VISIT,
+    VOTE,
+    COMMENT,
+
+    /** Aviso leído sin red (25). No va sobre un lugar: [PendingActionEntity.poiId] lleva [NOTIFICATIONS_TARGET]. */
+    NOTIFICATION_READ,
+}
+
+/** Destino de las acciones que no son de un lugar (hoy, leer avisos). */
+const val NOTIFICATIONS_TARGET = "avisos"
 
 /** Acción pendiente; [payload] es el JSON de [QueuedVisit], [QueuedVote] o [QueuedComment]. Se envían por [id]. */
 @Entity(tableName = "pending_actions", indices = [Index("poiId")])
@@ -36,6 +46,10 @@ data class QueuedVote(val voted: Boolean)
 
 @Serializable
 data class QueuedComment(val text: String)
+
+/** Aviso leído; [id] null = «Marcar leídas». */
+@Serializable
+data class QueuedRead(val id: String?)
 
 fun VisitExperience.toQueued() = QueuedVisit(recommends, text, showName)
 
@@ -60,6 +74,9 @@ abstract class PendingActionsDao {
     /** Comentarios de [poiId] que esperan la red, del más reciente al más antiguo; cambia al enviarse cada uno. */
     @Query("SELECT * FROM pending_actions WHERE poiId = :poiId AND type = 'COMMENT' ORDER BY id DESC")
     abstract fun comments(poiId: String): Flow<List<PendingActionEntity>>
+
+    @Query("SELECT * FROM pending_actions WHERE type = :type ORDER BY id")
+    abstract suspend fun ofType(type: PendingType): List<PendingActionEntity>
 
     @Query("SELECT COUNT(*) FROM pending_actions")
     abstract suspend fun count(): Int

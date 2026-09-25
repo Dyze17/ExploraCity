@@ -13,17 +13,26 @@ import androidx.room.TypeConverters
  *
  * - 1: lo guardado para ver sin conexión (12.a).
  * - 2: la cola de envío (pending_actions).
+ * - 3: los últimos avisos (saved_notifications, 25).
  */
 @Database(
-    entities = [SavedPoiEntity::class, SavedDetailsEntity::class, CacheInfoEntity::class, PendingActionEntity::class],
-    version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    entities = [
+        SavedPoiEntity::class,
+        SavedDetailsEntity::class,
+        CacheInfoEntity::class,
+        PendingActionEntity::class,
+        SavedNotificationEntity::class,
+    ],
+    version = 3,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 @TypeConverters(SavedPlacesConverters::class)
 abstract class ExploraDatabase : RoomDatabase() {
     abstract fun savedPlacesDao(): SavedPlacesDao
 
     abstract fun pendingActionsDao(): PendingActionsDao
+
+    abstract fun notificationsDao(): NotificationsDao
 
     companion object {
         fun build(context: Context): ExploraDatabase =

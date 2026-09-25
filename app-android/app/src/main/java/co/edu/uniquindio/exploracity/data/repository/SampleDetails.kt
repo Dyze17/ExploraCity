@@ -25,6 +25,12 @@ internal val sampleAuthors = listOf(
     Author("laura-g", "Laura G.", points = 610),
 )
 
+/**
+ * Lugares publicados por la persona de la sesión (Ana Ríos): sus avisos (25) hablan de ellos, así el aviso «tu lugar
+ * quedó verificado» y el detalle («Publicado por Ana Ríos») coinciden.
+ */
+internal val currentUserPlaces = setOf("quinta-de-bolivar", "casa-independencia")
+
 private val mondayToSaturday = setOf(MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY)
 private val everyDay = DayOfWeek.entries.toSet()
 
@@ -71,7 +77,7 @@ fun sampleDetails(poi: Poi): PoiDetails {
         address = extra?.address ?: "Bogotá",
         // Sin dato de «abierto ahora» se asume que el autor no dio horario exacto (casilla del paso 4).
         hours = extra?.hours ?: poi.openNow?.let { OpeningHours(mondayToSaturday, LocalTime.of(9, 0), LocalTime.of(18, 0)) },
-        author = sampleAuthors[index % sampleAuthors.size],
+        author = if (poi.id in currentUserPlaces) sampleCurrentUser else sampleAuthors[index % sampleAuthors.size],
         voted = false,
         visited = false,
     )
