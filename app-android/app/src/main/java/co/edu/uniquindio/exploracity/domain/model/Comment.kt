@@ -2,13 +2,17 @@ package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.Instant
 
-/** 14 · Comentario publicado sobre un lugar. [mine] si lo escribió la persona de la sesión. */
+/**
+ * 14 · Comentario publicado sobre un lugar. [mine] si lo escribió la persona de la sesión; [pending] si se escribió sin
+ * conexión y espera en la cola de envío (todavía no lo ve nadie más).
+ */
 data class Comment(
     val id: String,
     val author: Author,
     val text: String,
     val createdAt: Instant,
     val mine: Boolean = false,
+    val pending: Boolean = false,
 ) {
     companion object {
         /** README 14: máximo 300 caracteres, con contador desde 250. */

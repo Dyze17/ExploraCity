@@ -167,10 +167,17 @@ fun CommentsScreen(state: CommentsUiState, callbacks: CommentsCallbacks, modifie
                     }
                 }
                 CommentsContent.Offline -> Centered(aboveNavigationBar = true) {
+                    // Sin la lista no se ven los pendientes: al menos se dice cuántos esperan la red.
+                    val pending = state.own.count { it.status == SendStatus.PENDING }
+                    val offlineBody = stringResource(R.string.comments_offline_body)
                     EmptyState(
                         icon = R.drawable.ic_cloud_off,
                         title = stringResource(R.string.offline_title),
-                        body = stringResource(R.string.comments_offline_body),
+                        body = if (pending > 0) {
+                            offlineBody + " " + pluralStringResource(R.plurals.comments_offline_pending, pending, pending)
+                        } else {
+                            offlineBody
+                        },
                         tone = EmptyStateTone.WARNING,
                     ) {
                         ExploraButton(stringResource(R.string.action_retry), onClick = callbacks.onRetry, modifier = Modifier.fillMaxWidth(), icon = R.drawable.ic_refresh)
@@ -270,8 +277,8 @@ private fun CommentItem(comment: Comment, now: Instant) {
 }
 
 /**
- * Comentario escrito aquí. El estado («Enviando…», «No se envió», la hora al publicarse) es un nodo aparte que se
- * anuncia al cambiar; al publicarse dice «Publicado» y no se repite cada minuto con la hora.
+ * Comentario escrito aquí. El estado («Enviando…», «No se envió», «Pendiente de envío», la hora al publicarse) es un
+ * nodo aparte que se anuncia al cambiar; al publicarse dice «Publicado» y no se repite cada minuto con la hora.
  */
 @Composable
 private fun OwnCommentItem(own: OwnComment, user: Author, now: Instant, onRetry: (String) -> Unit) {
@@ -285,6 +292,12 @@ private fun OwnCommentItem(own: OwnComment, user: Author, now: Instant, onRetry:
             when (own.status) {
                 SendStatus.SENDING -> StatusLabel(R.drawable.ic_schedule, stringResource(R.string.comments_sending), explora.warningAccent)
                 SendStatus.FAILED -> StatusLabel(R.drawable.ic_error, stringResource(R.string.comments_failed), MaterialTheme.colorScheme.error)
+                SendStatus.PENDING -> StatusLabel(
+                    R.drawable.ic_cloud_off,
+                    stringResource(R.string.comments_pending),
+                    explora.warningAccent,
+                    spoken = stringResource(R.string.comments_pending_spoken),
+                )
                 SendStatus.SENT -> StatusLabel(null, relativeTimeText(own.createdAt, now), explora.textPlaceholder, spoken = stringResource(R.string.comments_sent))
             }
         },

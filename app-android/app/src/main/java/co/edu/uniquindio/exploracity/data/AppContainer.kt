@@ -12,6 +12,8 @@ import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
+import co.edu.uniquindio.exploracity.data.sync.PendingSender
+import co.edu.uniquindio.exploracity.data.sync.WorkManagerScheduler
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import kotlinx.coroutines.CoroutineScope
@@ -33,12 +35,19 @@ class AppContainer(context: Context) {
     val connectivity: ConnectivityObserver = AndroidConnectivityObserver(context, appScope)
 
     private val database = ExploraDatabase.build(context)
+    private val server: PoiRepository = FakePoiRepository(currentUser = currentUser)
+
+    /** Lo usa el worker de WorkManager para enviar la cola, también con la app cerrada. */
+    val pendingSender = PendingSender(server, database.pendingActionsDao(), database.savedPlacesDao())
 
     val poiRepository: PoiRepository = OfflinePoiRepository(
-        remote = FakePoiRepository(currentUser = currentUser),
+        remote = server,
         dao = database.savedPlacesDao(),
+        pending = database.pendingActionsDao(),
+        scheduler = WorkManagerScheduler(context),
         connectivity = connectivity,
         scope = appScope,
+        currentUser = currentUser,
     )
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()

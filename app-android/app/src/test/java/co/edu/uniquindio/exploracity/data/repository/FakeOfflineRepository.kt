@@ -7,11 +7,17 @@ import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
+import co.edu.uniquindio.exploracity.domain.model.VoteResult
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.time.Instant
 
 /**
- * Se comporta como OfflinePoiRepository sin Room: sin red lanza OfflineException y lo guardado es [saved] y
- * [savedDetails]. Con [serverDown] hay red pero el servidor no responde al feed.
+ * Se comporta como OfflinePoiRepository sin Room: sin red, lo guardado es [saved] y [savedDetails], votar y marcar la
+ * visita quedan en la cola y los comentarios esperan en [pendingComments] hasta [sendQueued]. Con [serverDown] hay red
+ * pero el servidor no responde al feed.
  */
 class FakeOfflineRepository(
     private val connectivity: FakeConnectivity,
@@ -22,6 +28,9 @@ class FakeOfflineRepository(
     var serverDown = false
     var feedCalls = 0
         private set
+
+    private val queuedComments = MutableStateFlow<List<Pair<String, Comment>>>(emptyList())
+    private var nextPendingId = 0
 
     override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int): FeedPage {
         requireOnline()
@@ -45,14 +54,16 @@ class FakeOfflineRepository(
         return delegate.mapArea(query, bounds, limit)
     }
 
-    override suspend fun setVote(id: String, voted: Boolean): Int {
-        requireOnline()
-        return delegate.setVote(id, voted)
+    override suspend fun setVote(id: String, voted: Boolean): VoteResult {
+        if (connectivity.online) return delegate.setVote(id, voted)
+        val details = savedDetails[id] ?: throw OfflineException()
+        return VoteResult(details.poi.votes + if (voted) 1 else -1, queued = true)
     }
 
     override suspend fun markVisited(id: String, experience: VisitExperience): VisitResult {
-        requireOnline()
-        return delegate.markVisited(id, experience)
+        if (connectivity.online) return delegate.markVisited(id, experience)
+        if (id !in savedDetails) throw OfflineException()
+        return VisitResult(pointsAwarded = 0, queued = true)
     }
 
     override suspend fun comments(poiId: String, cursor: String?, pageSize: Int): CommentsPage? {
@@ -61,8 +72,19 @@ class FakeOfflineRepository(
     }
 
     override suspend fun addComment(poiId: String, text: String): Comment {
-        requireOnline()
-        return delegate.addComment(poiId, text)
+        if (connectivity.online) return delegate.addComment(poiId, text)
+        val comment = Comment("pending-${++nextPendingId}", sampleCurrentUser, text, Instant.now(), mine = true, pending = true)
+        queuedComments.value += poiId to comment
+        return comment
+    }
+
+    override fun pendingComments(poiId: String): Flow<List<Comment>> =
+        queuedComments.map { queued -> queued.filter { it.first == poiId }.map { it.second }.reversed() }
+
+    /** Como el worker de WorkManager: publica los comentarios pendientes y vacía la cola. */
+    suspend fun sendQueued() {
+        queuedComments.value.forEach { (poiId, comment) -> delegate.addComment(poiId, comment.text) }
+        queuedComments.value = emptyList()
     }
 
     private fun requireOnline() {

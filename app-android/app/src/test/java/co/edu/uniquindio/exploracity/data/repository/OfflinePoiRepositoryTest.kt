@@ -8,10 +8,12 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
+import co.edu.uniquindio.exploracity.domain.model.VoteResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -44,6 +46,9 @@ class OfflinePoiRepositoryTest {
     /** Como el de la app: sin padre. backgroundScope no sirve, advanceUntilIdle no avanza su trabajo. */
     private val appScope = CoroutineScope(dispatcher + SupervisorJob())
 
+    /** Cuántas veces se pidió a WorkManager enviar la cola. */
+    private var scheduled = 0
+
     @Before
     fun setUp() {
         // Room corre en el mismo planificador de la prueba: avanzar el tiempo virtual también termina lo guardado.
@@ -59,8 +64,16 @@ class OfflinePoiRepositoryTest {
         database.close()
     }
 
-    private fun repository(remote: PoiRepository = FakePoiRepository(clock = clock)) =
-        OfflinePoiRepository(remote, database.savedPlacesDao(), connectivity, appScope, clock)
+    private fun repository(remote: PoiRepository = FakePoiRepository(clock = clock)) = OfflinePoiRepository(
+        remote = remote,
+        dao = database.savedPlacesDao(),
+        pending = database.pendingActionsDao(),
+        scheduler = { scheduled++ },
+        connectivity = connectivity,
+        scope = appScope,
+        currentUser = sampleCurrentUser,
+        clock = clock,
+    )
 
     private suspend fun failsOffline(block: suspend () -> Unit) =
         assertTrue("Debía fallar por falta de red", runCatching { block() }.exceptionOrNull() is OfflineException)
@@ -93,7 +106,7 @@ class OfflinePoiRepositoryTest {
         assertEquals(online, offline.copy(savedAt = null))
         failsOffline { repository.feedPage(FeedQuery(), 0) }
         failsOffline { repository.comments(cafe) }
-        failsOffline { repository.setVote(cafe, voted = true) }
+        failsOffline { repository.count(FeedQuery()) }
     }
 
     @Test
@@ -140,7 +153,7 @@ class OfflinePoiRepositoryTest {
         repository.feedPage(FeedQuery(), 0)
         advanceUntilIdle()
 
-        val votes = repository.setVote(cafe, voted = true)
+        val votes = repository.setVote(cafe, voted = true).votes
         repository.markVisited(cafe, VisitExperience())
         repository.addComment(cafe, "Muy buen café.")
         connectivity.online = false
@@ -162,6 +175,50 @@ class OfflinePoiRepositoryTest {
         remote.failing = true
 
         assertNotNull(requireNotNull(repository.poiDetails(cafe)).savedAt)
+    }
+
+    @Test
+    fun `sin red la visita queda en la cola, se pide enviarla y lo guardado la muestra`() = runTest(dispatcher) {
+        val repository = repository()
+        repository.feedPage(FeedQuery(), 0)
+        advanceUntilIdle()
+        connectivity.online = false
+
+        val result = repository.markVisited(cafe, VisitExperience(recommends = true, text = "Muy bueno"))
+
+        assertTrue(result.queued)
+        assertEquals(1, scheduled)
+        assertEquals(1, database.pendingActionsDao().count())
+        assertTrue(requireNotNull(repository.poiDetails(cafe)).visited)
+    }
+
+    @Test
+    fun `sin red el voto queda en la cola y quitarlo antes de enviarlo lo cancela`() = runTest(dispatcher) {
+        val repository = repository()
+        repository.feedPage(FeedQuery(), 0)
+        advanceUntilIdle()
+        val before = requireNotNull(repository.poiDetails(cafe)).poi.votes
+        connectivity.online = false
+
+        assertEquals(VoteResult(before + 1, queued = true), repository.setVote(cafe, voted = true))
+        assertTrue(requireNotNull(repository.poiDetails(cafe)).voted)
+
+        assertEquals(VoteResult(before, queued = false), repository.setVote(cafe, voted = false))
+        assertEquals(0, database.pendingActionsDao().count())
+        assertEquals(before, requireNotNull(repository.poiDetails(cafe)).poi.votes)
+    }
+
+    @Test
+    fun `sin red el comentario queda pendiente con su autor`() = runTest(dispatcher) {
+        val repository = repository()
+        connectivity.online = false
+
+        val comment = repository.addComment(cafe, "Sin señal en el patio.")
+
+        assertTrue(comment.pending)
+        assertEquals(sampleCurrentUser, comment.author)
+        assertEquals(listOf(comment), repository.pendingComments(cafe).first())
+        assertTrue(repository.pendingComments("museo-del-oro").first().isEmpty())
     }
 
     private class FlakyRemote(private val delegate: PoiRepository) : PoiRepository by delegate {

@@ -7,6 +7,8 @@ import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
+import co.edu.uniquindio.exploracity.domain.model.VoteResult
+import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 /** Tamaño de página del feed (README: paginación de 20). */
@@ -65,10 +67,13 @@ interface PoiRepository {
     /** 12.a · Lo guardado para ver sin conexión; null si no hay nada. */
     suspend fun savedPlaces(): SavedPlaces?
 
-    /** Voto «Es importante» de la persona; devuelve el total de votos resultante. Lanza excepción si falla la red. */
-    suspend fun setVote(id: String, voted: Boolean): Int
+    /**
+     * Voto «Es importante» de la persona; devuelve el total resultante. Sin red queda en la cola de envío
+     * ([VoteResult.queued]). Lanza excepción si falla la red.
+     */
+    suspend fun setVote(id: String, voted: Boolean): VoteResult
 
-    /** 14.b · Marca el lugar como visitado con la experiencia (opcional). Lanza excepción si falla la red. */
+    /** 14.b · Marca el lugar como visitado con la experiencia (opcional). Sin red queda en la cola de envío. */
     suspend fun markVisited(id: String, experience: VisitExperience): VisitResult
 
     /**
@@ -78,6 +83,12 @@ interface PoiRepository {
      */
     suspend fun comments(poiId: String, cursor: String? = null, pageSize: Int = COMMENTS_PAGE_SIZE): CommentsPage?
 
-    /** 14 · Publica el comentario de la persona. Comentar no da puntos (Daniel, 24/09/2026). Lanza excepción si falla la red. */
+    /**
+     * 14 · Publica el comentario de la persona. Comentar no da puntos (Daniel, 24/09/2026). Sin red queda en la cola de
+     * envío y vuelve con [Comment.pending]. Lanza excepción si falla la red.
+     */
     suspend fun addComment(poiId: String, text: String): Comment
+
+    /** 14 · Comentarios de la persona en [poiId] que esperan la red; cambia a medida que se envían. */
+    fun pendingComments(poiId: String): Flow<List<Comment>>
 }

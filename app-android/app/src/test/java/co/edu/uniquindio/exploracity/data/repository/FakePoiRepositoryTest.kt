@@ -19,12 +19,12 @@ class FakePoiRepositoryTest {
     fun `el voto se refleja en el feed y en el detalle, y votar dos veces no suma dos`() = runTest {
         val before = feedVotes(cafe)
 
-        assertEquals(before + 1, repository.setVote(cafe, voted = true))
-        assertEquals(before + 1, repository.setVote(cafe, voted = true))
+        assertEquals(before + 1, repository.setVote(cafe, voted = true).votes)
+        assertEquals(before + 1, repository.setVote(cafe, voted = true).votes)
         assertEquals(before + 1, feedVotes(cafe))
         assertTrue(repository.poiDetails(cafe)!!.voted)
 
-        assertEquals(before, repository.setVote(cafe, voted = false))
+        assertEquals(before, repository.setVote(cafe, voted = false).votes)
         assertFalse(repository.poiDetails(cafe)!!.voted)
     }
 
