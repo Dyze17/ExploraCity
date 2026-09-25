@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -70,6 +73,7 @@ import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraElevation
+import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.ui.theme.exploraShadow
@@ -136,15 +140,16 @@ fun NotificationsScreen(state: NotificationsUiState, callbacks: NotificationsCal
     val snackbarHostState = remember { SnackbarHostState() }
     AllReadEffect(state.allReadShown, snackbarHostState, callbacks.onAllReadShown)
     val loaded = state.content as? NotificationsContent.Loaded
+    // Con fuente grande, «Marcar leídas» en la barra partía el título a mitad de palabra (S20+ al 200 %): pasa a la
+    // fila de «Sin leer».
+    val markAllInHeader = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
 
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxSize()) {
             ExploraTopAppBar(
                 title = stringResource(R.string.notifications_title),
                 actions = {
-                    if (loaded != null && loaded.unread.isNotEmpty()) {
-                        ExploraButton(stringResource(R.string.notifications_mark_all), onClick = callbacks.onMarkAllRead, style = ExploraButtonStyle.TEXT)
-                    }
+                    if (!markAllInHeader && loaded != null && loaded.unread.isNotEmpty()) MarkAllButton(callbacks.onMarkAllRead)
                 },
             )
             loaded?.savedAt?.let { savedAt -> SavedBanner(savedAt, state.offline, callbacks.onRetry) }
@@ -167,7 +172,7 @@ fun NotificationsScreen(state: NotificationsUiState, callbacks: NotificationsCal
                             }
                         }
                     } else {
-                        NotificationList(content, callbacks)
+                        NotificationList(content, callbacks, markAllInHeader)
                     }
                     NotificationsContent.Error -> Centered {
                         EmptyState(
@@ -225,7 +230,13 @@ private fun Centered(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun NotificationList(content: NotificationsContent.Loaded, callbacks: NotificationsCallbacks) {
+private fun MarkAllButton(onClick: () -> Unit) {
+    ExploraButton(stringResource(R.string.notifications_mark_all), onClick = onClick, style = ExploraButtonStyle.TEXT)
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun NotificationList(content: NotificationsContent.Loaded, callbacks: NotificationsCallbacks, markAllInHeader: Boolean) {
     val now by rememberNow()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -235,10 +246,17 @@ private fun NotificationList(content: NotificationsContent.Loaded, callbacks: No
         val unread = content.unread
         if (unread.isNotEmpty()) {
             item(key = "unread-header") {
-                SectionHeader(
-                    stringResource(R.string.notifications_unread_header, unread.size),
-                    pluralStringResource(R.plurals.notifications_unread_header_spoken, unread.size, unread.size),
-                )
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SectionHeader(
+                        stringResource(R.string.notifications_unread_header, unread.size),
+                        pluralStringResource(R.plurals.notifications_unread_header_spoken, unread.size, unread.size),
+                    )
+                    if (markAllInHeader) MarkAllButton(callbacks.onMarkAllRead)
+                }
             }
             notificationItems(unread, now, callbacks)
         }
