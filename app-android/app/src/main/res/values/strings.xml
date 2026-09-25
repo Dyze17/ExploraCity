@@ -204,6 +204,39 @@
     </plurals>
     <string name="visit_failed">No pudimos marcar tu visita. Lo que escribiste sigue ahí; intenta de nuevo.</string>
 
+    <!-- Sin conexión (12.a, 8.c) -->
+    <string name="offline_title">Sin conexión</string>
+    <string name="saved_badge">Guardado</string>
+    <string name="poi_card_saved_description">%1$s, guardado para ver sin conexión</string>
+    <string name="feed_not_updated_title">No pudimos actualizar los lugares</string>
+    <plurals name="feed_saved_body">
+        <item quantity="one">Estás viendo %1$d lugar guardado %2$s.</item>
+        <item quantity="many">Estás viendo %1$d lugares guardados %2$s.</item>
+        <item quantity="other">Estás viendo %1$d lugares guardados %2$s.</item>
+    </plurals>
+    <string name="feed_search_offline">Buscar (necesita internet)</string>
+    <string name="feed_saved_header">Guardados para ver sin conexión</string>
+    <string name="feed_saved_note">Los votos y comentarios nuevos aparecerán cuando recuperes la conexión.</string>
+    <string name="feed_show_saved">Ver mis lugares guardados</string>
+    <string name="feed_nothing_saved_body">Todavía no hay lugares guardados para ver sin conexión. Cuando vuelva el internet, lo que cargues en el feed quedará guardado aquí.</string>
+    <plurals name="map_offline_body">
+        <item quantity="one">El mapa no puede cargar nuevas zonas. Puedes ver el lugar que ya tenías guardado.</item>
+        <item quantity="many">El mapa no puede cargar nuevas zonas. Puedes ver los %d lugares que ya tenías guardados.</item>
+        <item quantity="other">El mapa no puede cargar nuevas zonas. Puedes ver los %d lugares que ya tenías guardados.</item>
+    </plurals>
+    <string name="map_offline_body_nothing_saved">El mapa no puede cargar nuevas zonas sin internet.</string>
+    <string name="map_offline_title">No podemos dibujar el mapa ahora</string>
+    <string name="map_offline_card_body">Necesitas internet para cargar los mosaicos del mapa. Mientras tanto, revisa tus lugares guardados en la lista.</string>
+    <string name="map_offline_card_body_nothing_saved">Necesitas internet para cargar los mosaicos del mapa. Vuelve a intentarlo cuando tengas conexión.</string>
+    <string name="map_show_saved_list">Ver lista guardada</string>
+    <string name="map_go_to_list">Ir a la lista</string>
+    <string name="detail_offline_body">Este lugar no alcanzó a guardarse para verlo sin conexión. Ábrelo de nuevo cuando vuelva el internet.</string>
+    <string name="detail_not_updated_title">No pudimos actualizar este lugar</string>
+    <string name="detail_saved_body">Estás viendo lo guardado %1$s.</string>
+    <string name="detail_vote_offline">Sin conexión: tu voto no se registró. Inténtalo cuando vuelva el internet.</string>
+    <string name="visit_offline">Sin conexión: no pudimos marcar tu visita. Lo que escribiste sigue ahí.</string>
+    <string name="comments_offline_body">Los comentarios necesitan internet. Se cargarán solos cuando vuelva la conexión.</string>
+
     <!-- Comentarios (14) -->
     <string name="comments_title">Comentarios</string>
     <string name="comments_subtitle">%1$s · %2$d</string>

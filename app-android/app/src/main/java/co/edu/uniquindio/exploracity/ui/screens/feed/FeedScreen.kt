@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
+import co.edu.uniquindio.exploracity.data.repository.SavedPlaces
 import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
@@ -86,11 +87,15 @@ import co.edu.uniquindio.exploracity.ui.components.FiltersBottomSheet
 import co.edu.uniquindio.exploracity.ui.components.FiltersButton
 import co.edu.uniquindio.exploracity.ui.components.ListMapToggle
 import co.edu.uniquindio.exploracity.ui.components.LoadingMoreRow
+import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.ui.components.POICard
 import co.edu.uniquindio.exploracity.ui.components.POICardSkeleton
 import co.edu.uniquindio.exploracity.ui.components.PublishFab
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
+import co.edu.uniquindio.exploracity.ui.components.dashedBorder
 import co.edu.uniquindio.exploracity.ui.components.labelRes
+import co.edu.uniquindio.exploracity.ui.components.relativeTimeText
+import co.edu.uniquindio.exploracity.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
@@ -104,9 +109,10 @@ import co.edu.uniquindio.exploracity.viewmodel.FeedContent
 import co.edu.uniquindio.exploracity.viewmodel.FeedMessage
 import co.edu.uniquindio.exploracity.viewmodel.FeedUiState
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
-import kotlin.math.roundToInt
+import co.edu.uniquindio.exploracity.viewmodel.SavedReason
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlin.math.roundToInt
 
 /**
  * 7 · Feed en modo lista. [viewModel] vive en el grafo de Explorar: el mapa (8) comparte búsqueda, filtros
@@ -128,6 +134,7 @@ fun FeedRoute(
         callbacks = FeedCallbacks(
             filters = rememberFilterCallbacks(viewModel),
             onRetry = viewModel::onRetry,
+            onShowSaved = viewModel::onShowSaved,
             onLoadMore = viewModel::onLoadMore,
             onOpenPoi = onOpenPoi,
             onOpenMap = onOpenMap,
@@ -140,6 +147,8 @@ fun FeedRoute(
 class FeedCallbacks(
     val filters: FilterCallbacks = FilterCallbacks(),
     val onRetry: () -> Unit = {},
+    /** 12.b «Ver mis lugares guardados». */
+    val onShowSaved: () -> Unit = {},
     val onLoadMore: () -> Unit = {},
     val onOpenPoi: (String) -> Unit = {},
     val onOpenMap: () -> Unit = {},
@@ -153,9 +162,13 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
         val collapsing = remember { CollapsingHeaderState() }
         // Al cambiar los filtros los chips activos vuelven a la vista (README 9: «con los chips activos visibles»).
         LaunchedEffect(state.filters) { collapsing.expand() }
+        val saved = state.content as? FeedContent.Saved
         Column(Modifier.fillMaxSize().nestedScroll(collapsing.connection)) {
-            PinnedHeader(state.areaName, callbacks.onOpenMap)
-            CollapsibleFilters(state, isModerator, callbacks, collapsing)
+            // 12.a: el aviso va arriba del todo y no se esconde al desplazar; sin nada guardado lo dice el vacío.
+            saved?.places?.let { places -> SavedPlacesBanner(places, saved.reason, callbacks.onRetry) }
+            PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = saved?.places == null)
+            // Sin conexión no se busca ni se filtra: lo guardado se muestra tal cual.
+            if (saved == null) CollapsibleFilters(state, isModerator, callbacks, collapsing)
             when (val content = state.content) {
                 FeedContent.Loading -> FeedSkeleton()
                 is FeedContent.Loaded -> FeedList(content, state, isModerator, callbacks)
@@ -196,7 +209,7 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                         )
                     }
                 }
-                FeedContent.Error -> Scrollable {
+                is FeedContent.Error -> Scrollable {
                     EmptyState(
                         icon = R.drawable.ic_sync_problem,
                         title = stringResource(R.string.feed_error_title),
@@ -209,6 +222,36 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                             modifier = Modifier.fillMaxWidth(),
                             icon = R.drawable.ic_refresh,
                         )
+                        if (content.hasSaved) {
+                            ExploraButton(
+                                stringResource(R.string.feed_show_saved),
+                                onClick = callbacks.onShowSaved,
+                                modifier = Modifier.fillMaxWidth(),
+                                style = ExploraButtonStyle.TEXT,
+                            )
+                        }
+                    }
+                }
+                is FeedContent.Saved -> {
+                    val places = content.places
+                    if (places != null) {
+                        SavedList(places, callbacks.onOpenPoi)
+                    } else {
+                        Scrollable {
+                            EmptyState(
+                                icon = R.drawable.ic_cloud_off,
+                                title = stringResource(R.string.offline_title),
+                                body = stringResource(R.string.feed_nothing_saved_body),
+                                tone = EmptyStateTone.WARNING,
+                            ) {
+                                ExploraButton(
+                                    stringResource(R.string.action_retry),
+                                    onClick = callbacks.onRetry,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    icon = R.drawable.ic_refresh,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -243,15 +286,92 @@ private fun Scrollable(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.Center) { content() }
 }
 
-/** Fija arriba: «Estás explorando / ciudad» y el conmutador Lista ⇄ Mapa, siempre visible (README 7). */
+/**
+ * 12.a: «Sin conexión · Estás viendo 20 lugares guardados hace 2 horas». Sin la frase del lienzo sobre publicar: la
+ * publicación (15–20) aún no existe y el aviso prometería algo que la app no hace.
+ */
+@Composable
+private fun SavedPlacesBanner(places: SavedPlaces, reason: SavedReason, onRetry: () -> Unit) {
+    val now by rememberNow()
+    val count = places.items.size
+    OfflineBanner(
+        title = stringResource(if (reason == SavedReason.OFFLINE) R.string.offline_title else R.string.feed_not_updated_title),
+        body = pluralStringResource(R.plurals.feed_saved_body, count, count, relativeTimeText(places.savedAt, now)),
+        onRetry = onRetry,
+        underStatusBar = true,
+    )
+}
+
+/**
+ * 12.a: el buscador inhabilitado dice por qué, los lugares guardados llevan «Guardado» si su detalle también se
+ * guardó, y al final se explica que los votos y comentarios nuevos llegan con la conexión.
+ */
+@Composable
+private fun SavedList(places: SavedPlaces, onOpenPoi: (String) -> Unit) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item(key = "search") {
+            ExploraSearchBar(value = "", onValueChange = {}, placeholder = stringResource(R.string.feed_search_offline), enabled = false)
+        }
+        item(key = "header") {
+            Text(
+                stringResource(R.string.feed_saved_header),
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                color = MaterialTheme.exploraColors.iconSecondary,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        items(places.items, key = { it.id }) { poi ->
+            POICard(
+                title = poi.title,
+                category = poi.category,
+                status = poi.status,
+                distance = formatDistance(poi.distanceMeters),
+                votes = poi.votes,
+                comments = poi.comments,
+                onClick = { onOpenPoi(poi.id) },
+                saved = poi.id in places.withDetails,
+            )
+        }
+        item(key = "note") { SavedNote() }
+    }
+}
+
+@Composable
+private fun SavedNote() {
+    val shape = MaterialTheme.shapes.large
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer, shape)
+            .dashedBorder(1.dp, MaterialTheme.exploraColors.outlineDisabled, 16.dp)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(painterResource(R.drawable.ic_info), null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp.scaledWithFont()))
+        Text(
+            stringResource(R.string.feed_saved_note),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 19.sp),
+            color = MaterialTheme.exploraColors.textSecondary,
+        )
+    }
+}
+
+/**
+ * Fija arriba: «Estás explorando / ciudad» y el conmutador Lista ⇄ Mapa, siempre visible (README 7). Con el aviso de
+ * 12.a encima, la barra de estado ya queda cubierta por él ([underStatusBar] false).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PinnedHeader(areaName: String, onOpenMap: () -> Unit) {
+private fun PinnedHeader(areaName: String, onOpenMap: () -> Unit, underStatusBar: Boolean = true) {
     val largeFont = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     FlowRow(
         Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .then(if (underStatusBar) Modifier.windowInsetsPadding(WindowInsets.statusBars) else Modifier)
             .padding(start = 16.dp, end = 16.dp, top = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -597,5 +717,5 @@ private fun FeedLoadingPreview() {
 @Preview(name = "12.b · Error · oscuro", widthDp = 360, heightDp = 800)
 @Composable
 private fun FeedErrorPreview() {
-    ExploraCityTheme(ThemeMode.DARK) { FeedScreen(previewState.copy(content = FeedContent.Error), isModerator = false, callbacks = FeedCallbacks()) }
+    ExploraCityTheme(ThemeMode.DARK) { FeedScreen(previewState.copy(content = FeedContent.Error(hasSaved = true)), isModerator = false, callbacks = FeedCallbacks()) }
 }

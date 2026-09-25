@@ -1,13 +1,16 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
+import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.location.SIMULATED_LOCATION
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
+import co.edu.uniquindio.exploracity.data.repository.FakeOfflineRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.MAP_MARKER_LIMIT
 import co.edu.uniquindio.exploracity.data.repository.MapArea
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.SavedPlaces
 import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
@@ -28,12 +31,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
+    private val connectivity = FakeConnectivity()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -48,7 +53,7 @@ class MapViewModelTest {
     private val candelaria = GeoBounds(GeoPoint(4.590, -74.080), GeoPoint(4.605, -74.065))
 
     private fun viewModel(repository: PoiRepository = FakePoiRepository(), savedState: SavedStateHandle = SavedStateHandle()) =
-        MapViewModel(repository, SimulatedLocationProvider(), areaCenter = GeoPoint(4.6097, -74.0817), savedStateHandle = savedState)
+        MapViewModel(repository, SimulatedLocationProvider(), connectivity, areaCenter = GeoPoint(4.6097, -74.0817), savedStateHandle = savedState)
 
     @Test
     fun `espera a conocer el área antes de buscar`() = runTest(dispatcher) {
@@ -194,6 +199,38 @@ class MapViewModelTest {
         val again = viewModel(savedState = savedState)
         advanceUntilIdle()
         assertEquals(null, again.state.value.focusTarget)
+    }
+
+    @Test
+    fun `sin conexión no busca zonas y cuenta lo guardado`() = runTest(dispatcher) {
+        connectivity.online = false
+        val saved = SavedPlaces(samplePois.take(3), Instant.parse("2026-09-24T13:00:00Z"), withDetails = emptySet())
+        val vm = viewModel(FakeOfflineRepository(connectivity, saved = saved))
+
+        vm.onAreaChange(city)
+        advanceUntilIdle()
+
+        val state = vm.state.value
+        assertTrue(state.offline)
+        assertEquals(3, state.savedCount)
+        assertFalse(state.loading)
+        assertTrue(state.pois.isEmpty())
+    }
+
+    @Test
+    fun `al volver la red busca otra vez el área visible`() = runTest(dispatcher) {
+        val vm = viewModel(FakeOfflineRepository(connectivity))
+        vm.onAreaChange(candelaria)
+        advanceUntilIdle()
+
+        connectivity.online = false
+        advanceUntilIdle()
+        assertTrue(vm.state.value.offline)
+
+        connectivity.online = true
+        advanceUntilIdle()
+        assertFalse(vm.state.value.offline)
+        assertEquals(samplePois.filter { it.location in candelaria }, vm.state.value.pois)
     }
 
     private class FailingAfterFirstRepository(private val delegate: FakePoiRepository = FakePoiRepository()) : PoiRepository by delegate {

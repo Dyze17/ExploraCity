@@ -58,6 +58,9 @@ class FakePoiRepository(
         return sampleDetails(poi).copy(voted = id in voted, visited = id in visited)
     }
 
+    /** El servidor no guarda nada para ver sin conexión: eso lo hace OfflinePoiRepository en el teléfono. */
+    override suspend fun savedPlaces(): SavedPlaces? = null
+
     override suspend fun setVote(id: String, voted: Boolean): Int {
         delay(actionLatency)
         val total = votes[id] ?: error("Lugar desconocido: $id")

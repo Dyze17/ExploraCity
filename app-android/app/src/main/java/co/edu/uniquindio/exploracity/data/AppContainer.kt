@@ -1,24 +1,45 @@
 package co.edu.uniquindio.exploracity.data
 
+import android.content.Context
+import co.edu.uniquindio.exploracity.data.connectivity.AndroidConnectivityObserver
+import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
+import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
- * Dependencias de la app (inyección manual). Hoy con repositorios en memoria; al llegar la API se cambian
- * aquí por los que usan data/remote (Ktor Client) y data/local (Room, DataStore) sin tocar la UI.
+ * Dependencias de la app (inyección manual). El «servidor» todavía es un repositorio en memoria
+ * (FakePoiRepository); lo guardado para ver sin conexión ya vive en Room (data/local). Al llegar la API se cambia
+ * aquí por el de data/remote (Ktor Client) sin tocar la UI.
  */
-class AppContainer {
+class AppContainer(context: Context) {
+    /** Trabajo que no pertenece a una pantalla: descargas para ver sin conexión y el estado de la red. */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     /** Temporal: llegará de la sesión (JWT en DataStore) cuando exista el inicio de sesión real. */
     val currentUser: Author = sampleCurrentUser
 
-    val poiRepository: PoiRepository = FakePoiRepository(currentUser = currentUser)
+    val connectivity: ConnectivityObserver = AndroidConnectivityObserver(context, appScope)
+
+    private val database = ExploraDatabase.build(context)
+
+    val poiRepository: PoiRepository = OfflinePoiRepository(
+        remote = FakePoiRepository(currentUser = currentUser),
+        dao = database.savedPlacesDao(),
+        connectivity = connectivity,
+        scope = appScope,
+    )
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 

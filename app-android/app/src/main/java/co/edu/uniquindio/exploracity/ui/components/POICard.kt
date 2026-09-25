@@ -60,6 +60,8 @@ import java.util.Locale
  * 48 votos, 12 comentarios».
  *
  * @param distance distancia ya formateada, p. ej. «1,2 km».
+ * @param saved 12.a: guardado para ver sin conexión. «Guardado» ocupa el lugar del estado junto al título, como en el
+ *   lienzo, y el estado pasa a la fila de la categoría.
  * @param photo contenido de la foto (imagen remota); vacío muestra el contenedor neutro.
  */
 @Composable
@@ -72,6 +74,7 @@ fun POICard(
     comments: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    saved: Boolean = false,
     photo: @Composable BoxScope.() -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -87,7 +90,7 @@ fun POICard(
         distance,
         votesText,
         commentsText,
-    )
+    ).let { if (saved) stringResource(R.string.poi_card_saved_description, it) else it }
     val shape = MaterialTheme.shapes.large
     val cardModifier = modifier
         .exploraShadow(ExploraElevation.Card, shape, explora.shadow)
@@ -108,6 +111,7 @@ fun POICard(
             Photo(Modifier.fillMaxWidth().height(128.dp), photo)
             Text(title, style = titleStyle, color = scheme.onSurface)
             StatusBadge(status, size = BadgeSize.SMALL)
+            if (saved) SavedBadge()
             CategoryTag(category)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Meta(R.drawable.ic_near_me, distance, explora.textSecondary)
@@ -128,13 +132,14 @@ fun POICard(
                     title = title,
                     titleStyle = titleStyle,
                     titleContent = { Text(title, style = titleStyle, color = scheme.onSurface) },
-                    badge = { StatusBadge(status, size = BadgeSize.SMALL) },
+                    badge = { if (saved) SavedBadge() else StatusBadge(status, size = BadgeSize.SMALL) },
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     itemVerticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (saved) StatusBadge(status, size = BadgeSize.SMALL)
                     CategoryTag(category)
                     Meta(R.drawable.ic_near_me, distance, scheme.onSurfaceVariant, gap = 3.dp)
                 }

@@ -1,7 +1,9 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
+import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.repository.CommentsPage
+import co.edu.uniquindio.exploracity.data.repository.FakeOfflineRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
@@ -46,7 +48,8 @@ class CommentsViewModelTest {
     private fun viewModel(
         repository: PoiRepository = FakePoiRepository(clock = clock),
         savedState: SavedStateHandle = savedState(),
-    ) = CommentsViewModel(repository, sampleCurrentUser, savedState, clock)
+        connectivity: FakeConnectivity = FakeConnectivity(),
+    ) = CommentsViewModel(repository, connectivity, sampleCurrentUser, savedState, clock)
 
     private val CommentsViewModel.loaded: CommentsContent.Loaded
         get() = state.value.content as? CommentsContent.Loaded ?: error("Los comentarios deberían estar cargados: ${state.value.content}")
@@ -249,6 +252,19 @@ class CommentsViewModelTest {
     fun `agregar comentario desde el detalle abre con el teclado listo`() = runTest(dispatcher) {
         assertTrue(viewModel(savedState = savedState(write = true)).startWriting)
         assertFalse(viewModel().startWriting)
+    }
+
+    @Test
+    fun `sin conexión lo dice y al volver la red carga solo`() = runTest(dispatcher) {
+        val connectivity = FakeConnectivity(online = false)
+        val repository = FakeOfflineRepository(connectivity, delegate = FakePoiRepository(clock = clock))
+        val vm = viewModel(repository, connectivity = connectivity)
+        advanceUntilIdle()
+        assertEquals(CommentsContent.Offline, vm.state.value.content)
+
+        connectivity.online = true
+        advanceUntilIdle()
+        assertEquals(12, vm.loaded.total)
     }
 
     private inner class FlakyRepository(

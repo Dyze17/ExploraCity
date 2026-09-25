@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
+import java.time.Instant
 
 /** Tamaño de página del feed (README: paginación de 20). */
 const val FEED_PAGE_SIZE = 20
@@ -27,6 +28,15 @@ data class FeedPage(val items: List<Poi>, val total: Int, val hasMore: Boolean)
 /** Área visible del mapa: [items] son los más cercanos (como máximo el límite) y [total], todos los del área. */
 data class MapArea(val items: List<Poi>, val total: Int)
 
+/** Máximo de lugares guardados para ver sin conexión (opción A de Daniel: lo último que cargó el feed). */
+const val SAVED_PLACES_LIMIT = 60
+
+/**
+ * Lo guardado para ver sin conexión (12.a): los lugares en el orden del feed, cuándo se guardaron y cuáles tienen
+ * también su detalle (los demás no alcanzaron a descargarlo).
+ */
+data class SavedPlaces(val items: List<Poi>, val savedAt: Instant, val withDetails: Set<String>)
+
 /** Tamaño de página de 14 · Comentarios: el diseño no la fija; se usa la del feed. */
 const val COMMENTS_PAGE_SIZE = 20
 
@@ -46,8 +56,14 @@ interface PoiRepository {
     /** Lugares de [query] dentro de [bounds], para los marcadores del mapa (8). Lanza excepción si falla la red. */
     suspend fun mapArea(query: FeedQuery, bounds: GeoBounds, limit: Int = MAP_MARKER_LIMIT): MapArea
 
-    /** 13 · Detalle; null si el lugar ya no existe. Lanza excepción si falla la red. */
+    /**
+     * 13 · Detalle; null si el lugar ya no existe. Sin red devuelve el guardado ([PoiDetails.savedAt]) o lanza
+     * OfflineException si no hay. Lanza excepción si falla la red.
+     */
     suspend fun poiDetails(id: String): PoiDetails?
+
+    /** 12.a · Lo guardado para ver sin conexión; null si no hay nada. */
+    suspend fun savedPlaces(): SavedPlaces?
 
     /** Voto «Es importante» de la persona; devuelve el total de votos resultante. Lanza excepción si falla la red. */
     suspend fun setVote(id: String, voted: Boolean): Int

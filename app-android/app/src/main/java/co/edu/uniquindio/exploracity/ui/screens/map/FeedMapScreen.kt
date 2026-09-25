@@ -27,8 +27,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -71,6 +71,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -95,6 +96,7 @@ import co.edu.uniquindio.exploracity.ui.components.FeedMode
 import co.edu.uniquindio.exploracity.ui.components.FiltersBottomSheet
 import co.edu.uniquindio.exploracity.ui.components.FiltersButton
 import co.edu.uniquindio.exploracity.ui.components.ListMapToggle
+import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
@@ -138,8 +140,8 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /** Zoom al abrir el mapa y al centrarlo en la persona. */
 private const val CITY_ZOOM = 13f
@@ -234,6 +236,11 @@ fun FeedMapScreen(
     locationDenied: Boolean = false,
     onLocationDeniedShown: () -> Unit = {},
 ) {
+    // 8.c: sin red no se dibuja el mapa; se ofrece la lista guardada. Al volver la red, el mapa reaparece donde estaba.
+    if (mapState.offline) {
+        MapOffline(mapState.savedCount, callbacks, modifier)
+        return
+    }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false)
@@ -431,6 +438,65 @@ private fun MapLayer(
                 zIndex = 3f,
                 onClick = { true },
             ) { UserPin() }
+        }
+    }
+}
+
+/**
+ * 8.c · Sin conexión: el aviso ámbar dice cuántos lugares hay guardados y una tarjeta explica que el mapa necesita
+ * internet, con la salida a la lista guardada (12.a).
+ */
+@Composable
+private fun MapOffline(savedCount: Int, callbacks: MapCallbacks, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val explora = MaterialTheme.exploraColors
+    Column(modifier.fillMaxSize().background(scheme.surfaceContainerHigh)) {
+        OfflineBanner(
+            title = stringResource(R.string.offline_title),
+            body = if (savedCount > 0) {
+                pluralStringResource(R.plurals.map_offline_body, savedCount, savedCount)
+            } else {
+                stringResource(R.string.map_offline_body_nothing_saved)
+            },
+            onRetry = callbacks.onRetry,
+            underStatusBar = true,
+        )
+        Box(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .exploraShadow(ExploraElevation.Card, MaterialTheme.shapes.extraLarge, explora.shadow)
+                    .background(scheme.surface, MaterialTheme.shapes.extraLarge)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(Modifier.size(56.dp).background(scheme.surfaceContainerHigh, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(painterResource(R.drawable.ic_map), null, tint = explora.iconSecondary, modifier = Modifier.size(28.dp))
+                }
+                Text(
+                    stringResource(R.string.map_offline_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = scheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    stringResource(if (savedCount > 0) R.string.map_offline_card_body else R.string.map_offline_card_body_nothing_saved),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = explora.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+                ExploraButton(
+                    stringResource(if (savedCount > 0) R.string.map_show_saved_list else R.string.map_go_to_list),
+                    onClick = callbacks.onOpenList,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    icon = R.drawable.ic_view_list,
+                )
+            }
         }
     }
 }

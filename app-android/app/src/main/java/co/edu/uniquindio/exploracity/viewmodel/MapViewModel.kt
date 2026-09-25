@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
+import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
@@ -20,6 +22,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -42,6 +45,10 @@ data class MapUiState(
     val userLocation: GeoPoint? = null,
     /** Abierto desde el detalle (13): la cámara debe centrarse aquí una vez. */
     val focusTarget: GeoPoint? = null,
+    /** 8.c: sin internet el mapa no carga zonas nuevas y ofrece la lista guardada. */
+    val offline: Boolean = false,
+    /** Cuántos lugares hay guardados para ver sin conexión (el aviso de 8.c los cuenta). */
+    val savedCount: Int = 0,
 ) {
     val selected: Poi? get() = pois.firstOrNull { it.id == selectedId }
 }
@@ -49,6 +56,7 @@ data class MapUiState(
 class MapViewModel(
     private val poiRepository: PoiRepository,
     private val locationProvider: LocationProvider,
+    private val connectivity: ConnectivityObserver,
     areaCenter: GeoPoint,
     private val savedStateHandle: SavedStateHandle,
     private val timeout: Duration = AREA_TIMEOUT,
@@ -68,6 +76,18 @@ class MapViewModel(
     val hasFocus: Boolean get() = focusPoiId != null
 
     init {
+        if (!connectivity.isOnline.value) goOffline()
+        viewModelScope.launch {
+            // Sin red no se consultan zonas; al volver, se busca otra vez el área visible (README 8.c).
+            connectivity.isOnline.drop(1).collect { online ->
+                if (online) {
+                    _state.update { it.copy(offline = false) }
+                    reload()
+                } else {
+                    goOffline()
+                }
+            }
+        }
         // Una sola vez: al volver al mapa (o si Android lo recrea) manda la cámara guardada.
         if (focusPoiId != null && savedStateHandle.get<Boolean>(FOCUS_SHOWN_KEY) != true) {
             viewModelScope.launch {
@@ -110,6 +130,7 @@ class MapViewModel(
     }
 
     private fun reload() {
+        if (!connectivity.isOnline.value) return goOffline()
         val bounds = area ?: return
         val query = criteria
         loadJob?.cancel()
@@ -119,6 +140,9 @@ class MapViewModel(
                 withTimeoutOrNull(timeout) { poiRepository.mapArea(query, bounds) }
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: OfflineException) {
+                // La red se fue justo mientras buscaba.
+                return@launch goOffline()
             } catch (e: Exception) {
                 null
             }
@@ -132,6 +156,15 @@ class MapViewModel(
                 state.copy(pois = result.items, totalInArea = result.total, loading = false, error = false, selectedId = selected)
             }
             savedStateHandle[SELECTED_KEY] = _state.value.selectedId
+        }
+    }
+
+    private fun goOffline() {
+        loadJob?.cancel()
+        _state.update { it.copy(offline = true, loading = false, error = false) }
+        loadJob = viewModelScope.launch {
+            val saved = runCatchingNonCancellation { poiRepository.savedPlaces() }?.items?.size ?: 0
+            _state.update { it.copy(savedCount = saved) }
         }
     }
 
@@ -151,7 +184,7 @@ class MapViewModel(
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                MapViewModel(container.poiRepository, container.locationProvider, container.areaCenter, createSavedStateHandle())
+                MapViewModel(container.poiRepository, container.locationProvider, container.connectivity, container.areaCenter, createSavedStateHandle())
             }
         }
     }

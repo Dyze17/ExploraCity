@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Saber si hay internet para pasar a lo guardado (12.a); Android la concede sin preguntar. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- «Cercanos» de la hoja de filtros (9); se pide al aplicar. Con las dos la persona elige precisa o aproximada. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
