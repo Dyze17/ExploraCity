@@ -8,9 +8,12 @@ import co.edu.uniquindio.exploracity.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
+import co.edu.uniquindio.exploracity.data.repository.FakeUserRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyUserRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.UserRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.data.sync.PendingSender
 import co.edu.uniquindio.exploracity.data.sync.WorkManagerScheduler
@@ -49,6 +52,8 @@ class AppContainer(context: Context) {
         scope = appScope,
         currentUser = currentUser,
     )
+
+    val userRepository: UserRepository = OnlineOnlyUserRepository(FakeUserRepository(server), connectivity)
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 

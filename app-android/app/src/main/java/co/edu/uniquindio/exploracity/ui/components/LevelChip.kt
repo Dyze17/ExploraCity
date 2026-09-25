@@ -61,22 +61,42 @@ val UserLevel.colors: ContainerColors
         }
     }
 
-/** LevelChip: nivel del autor con icono y nombre (nunca solo color), junto a su nombre en detalle y comentarios. */
+/**
+ * LevelChip: nivel del autor con icono y nombre (nunca solo color), junto a su nombre en detalle y comentarios. [large]
+ * es la cabecera del perfil (31), con el texto a 12 sp.
+ */
 @Composable
-fun LevelChip(level: UserLevel, modifier: Modifier = Modifier) {
+fun LevelChip(level: UserLevel, modifier: Modifier = Modifier, large: Boolean = false) {
     val colors = level.colors
     Row(
         modifier
             .background(colors.container, CircleShape)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = if (large) 11.dp else 8.dp, vertical = if (large) 5.dp else 3.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(painterResource(level.iconRes), contentDescription = null, tint = colors.content, modifier = Modifier.size(14.dp.scaledWithFont()))
+        Icon(
+            painterResource(level.iconRes),
+            contentDescription = null,
+            tint = colors.content,
+            modifier = Modifier.size((if (large) 16.dp else 14.dp).scaledWithFont()),
+        )
         Text(
             stringResource(level.labelRes),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.W700),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (large) 12.sp else 11.sp, fontWeight = FontWeight.W700),
             color = colors.content,
         )
+    }
+}
+
+/** Para el lector: «Aventurero, nivel 3 de 4»; el último, «Embajador Local, nivel máximo» (README 31). */
+@Composable
+fun UserLevel.spokenDescription(): String {
+    val label = stringResource(labelRes)
+    val levels = UserLevel.entries
+    return if (this == levels.last()) {
+        stringResource(R.string.level_description_max, label)
+    } else {
+        stringResource(R.string.level_description, label, ordinal + 1, levels.size)
     }
 }

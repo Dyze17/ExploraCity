@@ -142,6 +142,8 @@
     <string name="level_explorer">Explorador</string>
     <string name="level_adventurer">Aventurero</string>
     <string name="level_local_ambassador">Embajador Local</string>
+    <string name="level_description">%1$s, nivel %2$d de %3$d</string>
+    <string name="level_description_max">%1$s, nivel máximo</string>
 
     <!-- Horario: «Lunes a sábado, 7:00 a 19:00» -->
     <string name="hours_every_day">Todos los días</string>
@@ -293,6 +295,68 @@
         <item quantity="many">hace %d días</item>
         <item quantity="other">hace %d días</item>
     </plurals>
+
+    <!-- Perfil público (31) y reportar perfil (31A) -->
+    <string name="profile_title">Perfil</string>
+    <string name="profile_report">Reportar este perfil</string>
+    <string name="residency_resident">Residente</string>
+    <string name="residency_visitor">De visita</string>
+    <plurals name="profile_points">
+        <item quantity="one">%d punto</item>
+        <item quantity="many">%d puntos</item>
+        <item quantity="other">%d puntos</item>
+    </plurals>
+    <string name="profile_summary">%1$s · %2$s · %3$s</string>
+    <plurals name="profile_stat_verified">
+        <item quantity="one">Lugar verificado</item>
+        <item quantity="many">Lugares verificados</item>
+        <item quantity="other">Lugares verificados</item>
+    </plurals>
+    <plurals name="profile_stat_verified_spoken">
+        <item quantity="one">%d lugar verificado</item>
+        <item quantity="many">%d lugares verificados</item>
+        <item quantity="other">%d lugares verificados</item>
+    </plurals>
+    <plurals name="profile_stat_finalized">
+        <item quantity="one">Finalizado</item>
+        <item quantity="many">Finalizados</item>
+        <item quantity="other">Finalizados</item>
+    </plurals>
+    <plurals name="profile_stat_finalized_spoken">
+        <item quantity="one">%d lugar finalizado</item>
+        <item quantity="many">%d lugares finalizados</item>
+        <item quantity="other">%d lugares finalizados</item>
+    </plurals>
+    <plurals name="profile_stat_badges">
+        <item quantity="one">Insignia</item>
+        <item quantity="many">Insignias</item>
+        <item quantity="other">Insignias</item>
+    </plurals>
+    <plurals name="profile_stat_badges_spoken">
+        <item quantity="one">%d insignia</item>
+        <item quantity="many">%d insignias</item>
+        <item quantity="other">%d insignias</item>
+    </plurals>
+    <string name="profile_places">Sus lugares</string>
+    <string name="profile_no_places">Todavía no tiene lugares publicados.</string>
+    <string name="profile_loading">Cargando el perfil</string>
+    <string name="profile_error_title">No pudimos abrir este perfil</string>
+    <string name="profile_error_body">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
+    <string name="profile_not_found_title">Este perfil ya no está disponible</string>
+    <string name="profile_not_found_body">Puede que la persona haya eliminado su cuenta.</string>
+    <string name="profile_offline_body">Los perfiles necesitan internet. Se cargará solo cuando vuelva la conexión.</string>
+    <string name="report_title">¿Reportar a %1$s?</string>
+    <string name="report_body">Cuéntanos qué pasa. El reporte es anónimo: %1$s no sabrá quién lo hizo, y un moderador revisará el perfil.</string>
+    <string name="report_reasons">Motivo del reporte</string>
+    <string name="report_reason_impersonation">Suplanta a otra persona</string>
+    <string name="report_reason_inappropriate">Publica contenido inapropiado</string>
+    <string name="report_reason_spam">Hace publicidad o spam</string>
+    <string name="report_choose_reason">elige un motivo</string>
+    <string name="report_cancel">Cancelar</string>
+    <string name="report_confirm">Reportar</string>
+    <string name="report_sent">Gracias. Un moderador revisará este perfil.</string>
+    <string name="report_failed">No pudimos enviar el reporte. Intenta de nuevo.</string>
+    <string name="report_offline">Sin conexión: no pudimos enviar el reporte. Inténtalo cuando vuelva el internet.</string>
 
     <!-- Hoja de filtros (9) -->
     <string name="filters_title">Filtros</string>
