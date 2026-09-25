@@ -237,6 +237,17 @@
     <string name="visit_offline">Sin conexión: no pudimos marcar tu visita. Lo que escribiste sigue ahí.</string>
     <string name="comments_offline_body">Los comentarios necesitan internet. Se cargarán solos cuando vuelva la conexión.</string>
 
+    <!-- Cola de envío sin conexión (14.b, 13, 14): «Guardamos tu … y la enviaremos cuando vuelva el internet», como en 20 -->
+    <string name="detail_vote_queued">Guardamos tu voto y lo enviaremos cuando vuelva el internet.</string>
+    <string name="visit_queued">Guardamos tu visita y la enviaremos cuando vuelva el internet.</string>
+    <string name="comments_pending">Pendiente de envío</string>
+    <string name="comments_pending_spoken">Pendiente de envío: se publicará cuando vuelva el internet</string>
+    <plurals name="comments_offline_pending">
+        <item quantity="one">Tienes %d comentario pendiente de envío: se publicará solo en ese momento.</item>
+        <item quantity="many">Tienes %d comentarios pendientes de envío: se publicarán solos en ese momento.</item>
+        <item quantity="other">Tienes %d comentarios pendientes de envío: se publicarán solos en ese momento.</item>
+    </plurals>
+
     <!-- Comentarios (14) -->
     <string name="comments_title">Comentarios</string>
     <string name="comments_subtitle">%1$s · %2$d</string>

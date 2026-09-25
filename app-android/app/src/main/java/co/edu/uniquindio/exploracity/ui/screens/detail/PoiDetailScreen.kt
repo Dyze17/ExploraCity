@@ -268,8 +268,10 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
     val currentOnShown by rememberUpdatedState(onShown)
     val voteFailed = stringResource(R.string.detail_vote_failed)
     val voteOffline = stringResource(R.string.detail_vote_offline)
+    val voteQueued = stringResource(R.string.detail_vote_queued)
     val visitFailed = stringResource(R.string.visit_failed)
     val visitOffline = stringResource(R.string.visit_offline)
+    val visitQueued = stringResource(R.string.visit_queued)
     val visitSaved = stringResource(R.string.visit_saved)
     val points = (message as? DetailMessage.VisitSaved)?.points ?: 0
     val visitSavedPoints = pluralStringResource(R.plurals.visit_saved_points, points, points)
@@ -278,8 +280,10 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
             null -> return@LaunchedEffect
             DetailMessage.VoteFailed -> voteFailed
             DetailMessage.VoteOffline -> voteOffline
+            DetailMessage.VoteQueued -> voteQueued
             DetailMessage.VisitFailed -> visitFailed
             DetailMessage.VisitOffline -> visitOffline
+            DetailMessage.VisitQueued -> visitQueued
             is DetailMessage.VisitSaved -> if (message.points > 0) visitSavedPoints else visitSaved
         }
         // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.

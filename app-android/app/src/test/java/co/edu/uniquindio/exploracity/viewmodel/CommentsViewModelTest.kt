@@ -267,6 +267,42 @@ class CommentsViewModelTest {
         assertEquals(12, vm.loaded.total)
     }
 
+    @Test
+    fun `sin red el comentario queda pendiente y se publica solo cuando se envía la cola`() = runTest(dispatcher) {
+        val connectivity = FakeConnectivity()
+        val repository = FakeOfflineRepository(connectivity, delegate = FakePoiRepository(clock = clock))
+        val vm = viewModel(repository, connectivity = connectivity)
+        advanceUntilIdle()
+        connectivity.online = false
+        advanceUntilIdle()
+
+        vm.onSend("Sin señal en el patio.")
+        advanceUntilIdle()
+        assertEquals(SendStatus.PENDING, vm.state.value.own.single().status)
+        assertEquals(12, vm.loaded.total)
+
+        connectivity.online = true
+        repository.sendQueued()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.own.isEmpty())
+        assertEquals("Sin señal en el patio.", vm.loaded.comments.first().text)
+        assertEquals(13, vm.loaded.total)
+    }
+
+    @Test
+    fun `lo pendiente de otra visita aparece al abrir, también sin red`() = runTest(dispatcher) {
+        val connectivity = FakeConnectivity(online = false)
+        val repository = FakeOfflineRepository(connectivity, delegate = FakePoiRepository(clock = clock))
+        repository.addComment("cafe-las-acacias", "Escrito antes.")
+
+        val vm = viewModel(repository, connectivity = connectivity)
+        advanceUntilIdle()
+
+        assertEquals(CommentsContent.Offline, vm.state.value.content)
+        assertEquals(listOf("Escrito antes." to SendStatus.PENDING), vm.state.value.own.map { it.text to it.status })
+    }
+
     private inner class FlakyRepository(
         var failComments: Boolean = false,
         var failNextPages: Boolean = false,

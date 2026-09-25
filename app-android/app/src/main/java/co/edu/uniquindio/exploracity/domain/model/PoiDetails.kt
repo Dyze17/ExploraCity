@@ -64,5 +64,11 @@ data class VisitExperience(val recommends: Boolean? = null, val text: String = "
     }
 }
 
-/** Respuesta al marcar visitado: los puntos los decide el servidor (componente de Reputación); 0 si no hay. */
-data class VisitResult(val pointsAwarded: Int)
+/**
+ * Respuesta al marcar visitado: los puntos los decide el servidor (componente de Reputación); 0 si no hay. Con [queued]
+ * no había red: la visita quedó en la cola y se envía al volver (14.b: «se guarda y se envía luego»).
+ */
+data class VisitResult(val pointsAwarded: Int, val queued: Boolean = false)
+
+/** Voto «Es importante» resultante; con [queued] quedó en la cola hasta que vuelva la red. */
+data class VoteResult(val votes: Int, val queued: Boolean = false)

@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
+import co.edu.uniquindio.exploracity.domain.model.VoteResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -240,7 +241,7 @@ class PoiDetailViewModelTest {
     }
 
     @Test
-    fun `sin conexión se ve lo guardado y votar o marcar la visita avisan que falta la red`() = runTest(dispatcher) {
+    fun `sin conexión votar y marcar la visita quedan en la cola y se avisa`() = runTest(dispatcher) {
         connectivity.online = false
         val vm = viewModel(FakeOfflineRepository(connectivity, savedDetails = mapOf("cafe-las-acacias" to savedCafe)))
         advanceUntilIdle()
@@ -248,17 +249,18 @@ class PoiDetailViewModelTest {
 
         vm.onToggleVote()
         advanceUntilIdle()
-        assertFalse(vm.details.voted)
-        assertEquals(savedCafe.poi.votes, vm.details.poi.votes)
-        assertEquals(DetailMessage.VoteOffline, vm.state.value.message)
+        assertTrue(vm.details.voted)
+        assertEquals(savedCafe.poi.votes + 1, vm.details.poi.votes)
+        assertEquals(DetailMessage.VoteQueued, vm.state.value.message)
         vm.onMessageShown()
 
         vm.onOpenVisit()
         vm.onVisitDraftChange(VisitExperience(text = "Muy bueno"))
         vm.onConfirmVisit()
         advanceUntilIdle()
-        assertEquals(DetailMessage.VisitOffline, vm.state.value.message)
-        assertEquals("Muy bueno", vm.state.value.visitSheet?.draft?.text)
+        assertEquals(DetailMessage.VisitQueued, vm.state.value.message)
+        assertTrue(vm.details.visited)
+        assertNull(vm.state.value.visitSheet)
     }
 
     @Test
@@ -287,7 +289,7 @@ class PoiDetailViewModelTest {
             return delegate.poiDetails(id)
         }
 
-        override suspend fun setVote(id: String, voted: Boolean): Int {
+        override suspend fun setVote(id: String, voted: Boolean): VoteResult {
             if (failVote) throw IOException("sin red")
             return delegate.setVote(id, voted)
         }

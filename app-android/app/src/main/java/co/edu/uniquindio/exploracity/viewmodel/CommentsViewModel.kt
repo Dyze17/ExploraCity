@@ -55,7 +55,14 @@ sealed interface CommentsContent {
     data object Offline : CommentsContent
 }
 
-enum class SendStatus { SENDING, FAILED, SENT }
+enum class SendStatus {
+    SENDING,
+    FAILED,
+    SENT,
+
+    /** Sin red: espera en la cola de envío (Room) y se publica solo al volver, aunque se cierre la app. */
+    PENDING,
+}
 
 /**
  * Comentario escrito en esta pantalla (envío optimista): aparece al instante arriba de la lista con «Enviando…» y
@@ -69,6 +76,8 @@ data class OwnComment(
     val status: SendStatus,
     /** Id del servidor una vez publicado. */
     val sentId: String? = null,
+    /** Id en la cola de envío mientras espera la red ([SendStatus.PENDING]). */
+    val pendingId: String? = null,
 )
 
 data class CommentsUiState(
@@ -104,6 +113,10 @@ class CommentsViewModel(
 
     private var loadJob: Job? = null
 
+    /** Ids que alguna vez estuvieron en la cola: si uno deja de estar, es que se envió. */
+    private val everQueued = HashSet<String>()
+    private var queueSeen = false
+
     init {
         load()
         viewModelScope.launch {
@@ -113,6 +126,7 @@ class CommentsViewModel(
                 if (online && (content is CommentsContent.Offline || content is CommentsContent.Error)) load()
             }
         }
+        viewModelScope.launch { poiRepository.pendingComments(poiId).collect(::onQueueChanged) }
     }
 
     fun onRetry() = load()
@@ -163,6 +177,7 @@ class CommentsViewModel(
         saveUnsent()
         viewModelScope.launch {
             val sent = runCatchingNonCancellation { poiRepository.addComment(poiId, own.text) }
+            val published = sent != null && !sent.pending
             _state.update { state ->
                 val content = state.content
                 state.copy(
@@ -170,13 +185,49 @@ class CommentsViewModel(
                         when {
                             c.localId != own.localId -> c
                             sent == null -> c.copy(status = SendStatus.FAILED)
+                            sent.pending -> c.copy(status = SendStatus.PENDING, pendingId = sent.id)
                             else -> c.copy(status = SendStatus.SENT, createdAt = sent.createdAt, sentId = sent.id)
                         }
                     },
-                    content = if (sent != null && content is CommentsContent.Loaded) content.copy(total = content.total + 1) else content,
+                    content = if (published && content is CommentsContent.Loaded) content.copy(total = content.total + 1) else content,
                 )
             }
             saveUnsent()
+        }
+    }
+
+    /**
+     * La cola de envío cambió. Al abrir la pantalla, lo que espera en ella aparece como «Pendiente de envío» (aunque se
+     * haya escrito en otra visita); después, lo que sale de la cola ya se publicó y se trae del servidor.
+     */
+    private fun onQueueChanged(queued: List<Comment>) {
+        val ids = queued.mapTo(HashSet()) { it.id }
+        everQueued += ids
+        val state = _state.value
+        val published = state.own.filter { it.status == SendStatus.PENDING && it.pendingId in everQueued && it.pendingId !in ids }
+        val restored = if (queueSeen) {
+            emptyList()
+        } else {
+            queued.filter { q -> state.own.none { it.pendingId == q.id } }
+                .map { OwnComment(it.id, it.text, it.createdAt, SendStatus.PENDING, pendingId = it.id) }
+        }
+        queueSeen = true
+        if (published.isEmpty() && restored.isEmpty()) return
+        _state.update { it.copy(own = restored + it.own.filterNot { own -> own in published }) }
+        if (published.isNotEmpty()) refreshNewest()
+    }
+
+    /** Trae lo más reciente sin la silueta y lo pone arriba de lo cargado (p. ej. un pendiente que ya se publicó). */
+    private fun refreshNewest() {
+        if (_state.value.content !is CommentsContent.Loaded) return
+        viewModelScope.launch {
+            val page = runCatchingNonCancellation { poiRepository.comments(poiId) } ?: return@launch
+            _state.update { state ->
+                val current = state.content as? CommentsContent.Loaded ?: return@update state
+                val known = current.comments.mapTo(HashSet()) { it.id }
+                val fresh = page.items.filterNot { it.id in known }
+                state.copy(content = current.copy(comments = fresh + current.comments, total = page.total))
+            }
         }
     }
 
@@ -221,8 +272,9 @@ class CommentsViewModel(
         .orEmpty()
         .map { OwnComment(it.localId, it.text, Instant.ofEpochMilli(it.createdAtMillis), SendStatus.FAILED) }
 
+    /** Lo que está en la cola de envío no se guarda aquí: ya vive en Room. */
     private fun saveUnsent() {
-        val unsent = _state.value.own.filter { it.status != SendStatus.SENT }
+        val unsent = _state.value.own.filter { it.status == SendStatus.SENDING || it.status == SendStatus.FAILED }
         savedStateHandle[UNSENT_KEY] = Json.encodeToString(unsent.map { SavedOwnComment(it.localId, it.text, it.createdAt.toEpochMilli()) })
     }
 

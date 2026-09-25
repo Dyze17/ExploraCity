@@ -50,8 +50,11 @@ data class VisitSheetState(val draft: VisitExperience = VisitExperience(), val s
 sealed interface DetailMessage {
     data object VoteFailed : DetailMessage
 
-    /** Votar necesita internet (la cola de envío llega en la tarea siguiente). */
+    /** Sin red y sin el lugar guardado: no hay dónde dejar el voto para enviarlo después. */
     data object VoteOffline : DetailMessage
+
+    /** Sin red: el voto quedó en la cola de envío. */
+    data object VoteQueued : DetailMessage
 
     /** Opción A de Daniel: los puntos los decide el servidor; con 0 el aviso no los menciona. */
     data class VisitSaved(val points: Int) : DetailMessage
@@ -59,6 +62,9 @@ sealed interface DetailMessage {
     data object VisitFailed : DetailMessage
 
     data object VisitOffline : DetailMessage
+
+    /** Sin red: la visita quedó en la cola de envío (14.b: «se guarda y se envía luego»). */
+    data object VisitQueued : DetailMessage
 }
 
 data class PoiDetailUiState(
@@ -127,7 +133,10 @@ class PoiDetailViewModel(
         }
     }
 
-    /** «Es importante»: cambia al instante (relleno + «Ya votaste») y se revierte si el servidor falla. */
+    /**
+     * «Es importante»: cambia al instante (relleno + «Ya votaste») y se revierte si el servidor falla. Sin red queda en
+     * la cola de envío y se avisa.
+     */
     fun onToggleVote() {
         val state = _state.value
         val details = state.details ?: return
@@ -137,16 +146,20 @@ class PoiDetailViewModel(
         _state.update { it.copy(content = DetailContent.Loaded(optimistic), voting = true) }
         viewModelScope.launch {
             val result = catchingNonCancellation { poiRepository.setVote(poiId, voted) }
-            val total = result.getOrNull()
+            val vote = result.getOrNull()
             _state.update { current ->
                 val latest = current.details ?: return@update current.copy(voting = false)
-                if (total == null) {
+                if (vote == null) {
                     // Solo se deshace el voto: el resto del detalle pudo cambiar mientras tanto (p. ej. «Visitado»).
                     val reverted = latest.copy(voted = details.voted, poi = latest.poi.copy(votes = details.poi.votes))
                     val message = if (result.exceptionOrNull() is OfflineException) DetailMessage.VoteOffline else DetailMessage.VoteFailed
                     current.copy(content = DetailContent.Loaded(reverted), voting = false, message = message)
                 } else {
-                    current.copy(content = DetailContent.Loaded(latest.copy(poi = latest.poi.copy(votes = total))), voting = false)
+                    current.copy(
+                        content = DetailContent.Loaded(latest.copy(poi = latest.poi.copy(votes = vote.votes))),
+                        voting = false,
+                        message = if (vote.queued) DetailMessage.VoteQueued else current.message,
+                    )
                 }
             }
         }
@@ -192,7 +205,7 @@ class PoiDetailViewModel(
                 current.copy(
                     content = details?.let { DetailContent.Loaded(it.copy(visited = true)) } ?: current.content,
                     visitSheet = null,
-                    message = DetailMessage.VisitSaved(result.pointsAwarded),
+                    message = if (result.queued) DetailMessage.VisitQueued else DetailMessage.VisitSaved(result.pointsAwarded),
                 )
             }
         }

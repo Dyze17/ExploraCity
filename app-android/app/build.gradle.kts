@@ -86,6 +86,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.work.runtime)
 
     implementation(libs.maps.compose)
 
@@ -97,6 +98,7 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.work.testing)
     // compose-ui-test trae un Espresso anterior a SDK 35 (usa InputManager.getInstance, ya retirado).
     testImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.ext.junit)

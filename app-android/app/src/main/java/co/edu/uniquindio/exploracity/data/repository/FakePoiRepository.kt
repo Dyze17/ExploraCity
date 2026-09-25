@@ -24,7 +24,10 @@ import co.edu.uniquindio.exploracity.domain.model.PublicationStatus.FINALIZED
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus.VERIFIED
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
+import co.edu.uniquindio.exploracity.domain.model.VoteResult
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import java.text.Normalizer
 import java.time.Clock
 import java.util.Locale
@@ -61,12 +64,12 @@ class FakePoiRepository(
     /** El servidor no guarda nada para ver sin conexión: eso lo hace OfflinePoiRepository en el teléfono. */
     override suspend fun savedPlaces(): SavedPlaces? = null
 
-    override suspend fun setVote(id: String, voted: Boolean): Int {
+    override suspend fun setVote(id: String, voted: Boolean): VoteResult {
         delay(actionLatency)
         val total = votes[id] ?: error("Lugar desconocido: $id")
         val changed = if (voted) this.voted.add(id) else this.voted.remove(id)
         if (changed) votes[id] = total + if (voted) 1 else -1
-        return votes.getValue(id)
+        return VoteResult(votes.getValue(id))
     }
 
     /** Opción A de Daniel (24/09/2026): los puntos por visitar los decide el backend; aquí no hay. */
@@ -94,6 +97,9 @@ class FakePoiRepository(
         commentsOf(poi).add(0, comment)
         return comment
     }
+
+    /** El servidor no tiene cola: lo pendiente vive en el teléfono (OfflinePoiRepository). */
+    override fun pendingComments(poiId: String): Flow<List<Comment>> = flowOf(emptyList())
 
     private fun commentsOf(poi: Poi): MutableList<Comment> = comments.getOrPut(poi.id) { sampleComments(poi, clock.instant()).toMutableList() }
 
