@@ -243,9 +243,9 @@
     <string name="comments_pending">Pendiente de envío</string>
     <string name="comments_pending_spoken">Pendiente de envío: se publicará cuando vuelva el internet</string>
     <plurals name="comments_offline_pending">
-        <item quantity="one">Tienes %d comentario pendiente de envío: se publicará solo cuando vuelva la conexión.</item>
-        <item quantity="many">Tienes %d comentarios pendientes de envío: se publicarán solos cuando vuelva la conexión.</item>
-        <item quantity="other">Tienes %d comentarios pendientes de envío: se publicarán solos cuando vuelva la conexión.</item>
+        <item quantity="one">Tienes %d comentario pendiente de envío: se publicará solo en ese momento.</item>
+        <item quantity="many">Tienes %d comentarios pendientes de envío: se publicarán solos en ese momento.</item>
+        <item quantity="other">Tienes %d comentarios pendientes de envío: se publicarán solos en ese momento.</item>
     </plurals>
 
     <!-- Comentarios (14) -->
