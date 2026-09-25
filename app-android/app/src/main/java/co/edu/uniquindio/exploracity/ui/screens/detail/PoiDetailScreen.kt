@@ -75,6 +75,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
@@ -130,11 +132,13 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 fun PoiDetailRoute(
     onBack: () -> Unit,
     onOpenComments: (String) -> Unit,
+    onAddComment: (String) -> Unit,
     onOpenAuthor: (String) -> Unit,
     onOpenMap: (String) -> Unit,
     viewModel: PoiDetailViewModel = viewModel(factory = PoiDetailViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResumed() }
     val context = LocalContext.current
     val shareChooser = stringResource(R.string.detail_share_chooser)
     val poiId = viewModel.poiId
@@ -150,6 +154,7 @@ fun PoiDetailRoute(
             onConfirmVisit = viewModel::onConfirmVisit,
             onDismissVisit = viewModel::onDismissVisit,
             onOpenComments = { onOpenComments(poiId) },
+            onAddComment = { onAddComment(poiId) },
             onOpenAuthor = onOpenAuthor,
             onOpenMap = { onOpenMap(poiId) },
             onMessageShown = viewModel::onMessageShown,
@@ -167,6 +172,7 @@ class DetailCallbacks(
     val onConfirmVisit: () -> Unit = {},
     val onDismissVisit: () -> Unit = {},
     val onOpenComments: () -> Unit = {},
+    val onAddComment: () -> Unit = {},
     val onOpenAuthor: (String) -> Unit = {},
     val onOpenMap: () -> Unit = {},
     val onMessageShown: () -> Unit = {},
@@ -269,7 +275,7 @@ private fun DetailLoaded(details: PoiDetails, voting: Boolean, callbacks: Detail
             Gallery(details)
             DetailBody(details, voting, callbacks)
         }
-        CommentsBar(details.poi.comments, callbacks.onOpenComments)
+        CommentsBar(details.poi.comments, callbacks.onOpenComments, callbacks.onAddComment)
     }
 }
 
@@ -661,9 +667,9 @@ private fun ActionButton(
     }
 }
 
-/** Barra fija: «Ver 12 comentarios» y el botón de comentar; los dos llevan a 14. */
+/** Barra fija: «Ver 12 comentarios» y el botón de comentar; los dos llevan a 14, el segundo con el teclado listo. */
 @Composable
-private fun CommentsBar(comments: Int, onOpenComments: () -> Unit) {
+private fun CommentsBar(comments: Int, onOpenComments: () -> Unit, onAddComment: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
     Column(Modifier.fillMaxWidth().background(scheme.surface)) {
@@ -699,7 +705,7 @@ private fun CommentsBar(comments: Int, onOpenComments: () -> Unit) {
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(scheme.primary)
-                    .clickable(role = Role.Button, onClick = onOpenComments)
+                    .clickable(role = Role.Button, onClick = onAddComment)
                     .semantics { contentDescription = add },
                 contentAlignment = Alignment.Center,
             ) {

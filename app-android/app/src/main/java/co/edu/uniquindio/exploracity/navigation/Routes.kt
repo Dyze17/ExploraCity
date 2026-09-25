@@ -40,7 +40,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class PoiDetail(val poiId: String) // 13
 
-@Serializable data class Comments(val poiId: String) // 14
+/** 14. Con [write] abre con el teclado listo («Agregar comentario» del detalle). */
+@Serializable data class Comments(val poiId: String, val write: Boolean = false) // 14
 
 @Serializable data class PublicProfile(val userId: String) // 31
 

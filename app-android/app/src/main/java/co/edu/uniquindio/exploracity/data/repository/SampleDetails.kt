@@ -18,7 +18,7 @@ import java.time.LocalTime
 // Temporal hasta que exista la API: autores y detalles de los lugares de prueba. Café Las Acacias trae los textos
 // del lienzo 13.a; el resto se completa a partir de su resumen.
 
-private val authors = listOf(
+internal val sampleAuthors = listOf(
     Author("camilo-r", "Camilo R.", points = 320),
     Author("maria-paula", "María Paula", points = 180),
     Author("juan-david", "Juan David", points = 40),
@@ -71,7 +71,7 @@ fun sampleDetails(poi: Poi): PoiDetails {
         address = extra?.address ?: "Bogotá",
         // Sin dato de «abierto ahora» se asume que el autor no dio horario exacto (casilla del paso 4).
         hours = extra?.hours ?: poi.openNow?.let { OpeningHours(mondayToSaturday, LocalTime.of(9, 0), LocalTime.of(18, 0)) },
-        author = authors[index % authors.size],
+        author = sampleAuthors[index % sampleAuthors.size],
         voted = false,
         visited = false,
     )
