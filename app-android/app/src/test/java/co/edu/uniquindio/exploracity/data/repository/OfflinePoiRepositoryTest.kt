@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -219,6 +220,27 @@ class OfflinePoiRepositoryTest {
         assertEquals(sampleCurrentUser, comment.author)
         assertEquals(listOf(comment), repository.pendingComments(cafe).first())
         assertTrue(repository.pendingComments("museo-del-oro").first().isEmpty())
+    }
+
+    @Test
+    fun `al volver la red, lo que sigue en la cola se ve aunque el servidor aún no lo tenga`() = runTest(dispatcher) {
+        val server = FakePoiRepository(clock = clock)
+        val repository = repository(server)
+        repository.feedPage(FeedQuery(), 0)
+        advanceUntilIdle()
+        val before = requireNotNull(repository.poiDetails(cafe)).poi.votes
+        connectivity.online = false
+        repository.setVote(cafe, voted = true)
+        repository.markVisited(cafe, VisitExperience())
+
+        connectivity.online = true
+        val details = requireNotNull(repository.poiDetails(cafe))
+
+        assertTrue(details.voted)
+        assertEquals(before + 1, details.poi.votes)
+        assertTrue(details.visited)
+        // La cola no se ha enviado: el servidor todavía no tiene el voto.
+        assertFalse(requireNotNull(server.poiDetails(cafe)).voted)
     }
 
     private class FlakyRemote(private val delegate: PoiRepository) : PoiRepository by delegate {

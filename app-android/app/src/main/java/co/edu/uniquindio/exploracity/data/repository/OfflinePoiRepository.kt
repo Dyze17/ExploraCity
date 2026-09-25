@@ -95,7 +95,7 @@ class OfflinePoiRepository(
                 } catch (e: Exception) {
                     null
                 } ?: return@withPermit
-                saveDetails(details)
+                saveDetails(withPending(details))
             }
         }
     }
@@ -117,9 +117,24 @@ class OfflinePoiRepository(
         } catch (e: IOException) {
             // Hay red pero el servidor no respondió: mejor lo guardado que un error.
             return saved(id) ?: throw e
-        }
+        }?.let { withPending(it) }
         details?.let { saveDetails(it) }
         return details
+    }
+
+    /**
+     * Lo que sigue en la cola se ve aunque el servidor todavía no lo tenga. Al volver la red, el detalle se recarga antes
+     * de que WorkManager envíe la cola: sin esto, el voto «desaparecía» unos segundos (visto en el S20+).
+     */
+    private suspend fun withPending(details: PoiDetails): PoiDetails {
+        val id = details.poi.id
+        val vote = pending.find(id, PendingType.VOTE).lastOrNull()?.payloadAs<QueuedVote>()?.voted
+        var result = details
+        if (vote != null && vote != details.voted) {
+            result = result.copy(voted = vote, poi = result.poi.copy(votes = result.poi.votes + if (vote) 1 else -1))
+        }
+        if (pending.find(id, PendingType.VISIT).isNotEmpty()) result = result.copy(visited = true)
+        return result
     }
 
     private suspend fun saved(id: String): PoiDetails? {
