@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.util
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -43,3 +44,9 @@ private val dayMonthYear = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", 
 
 /** «12 de marzo»; de otro año, «12 de marzo de 2025». */
 fun formatDate(date: LocalDate, withYear: Boolean): String = (if (withYear) dayMonthYear else dayMonth).format(date)
+
+private val monthOnly = DateTimeFormatter.ofPattern("MMMM", spanishColombia)
+private val monthYear = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", spanishColombia)
+
+/** «marzo»; de otro año, «marzo de 2025» (26: «Residente · Bogotá · desde marzo»). */
+fun formatMonth(month: YearMonth, withYear: Boolean): String = (if (withYear) monthYear else monthOnly).format(month)

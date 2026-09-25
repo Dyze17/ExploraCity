@@ -22,5 +22,5 @@ internal val sampleProfiles: Map<String, ProfileSeed> = listOf(
     seed(authorsById.getValue("maria-paula"), Residency.RESIDENT, "Ilustradora. Busco cafés con buena luz para dibujar.", badges = 4),
     seed(authorsById.getValue("juan-david"), Residency.VISITOR, bio = null, badges = 1),
     seed(authorsById.getValue("laura-g"), Residency.RESIDENT, "Bióloga. Si hay un sendero o un humedal cerca, ahí estoy.", badges = 12),
-    seed(sampleCurrentUser, Residency.RESIDENT, bio = null, badges = 2),
+    seed(sampleCurrentUser, Residency.RESIDENT, bio = null, badges = sampleBadges.count { it.unlocked }),
 ).associateBy { it.author.id }

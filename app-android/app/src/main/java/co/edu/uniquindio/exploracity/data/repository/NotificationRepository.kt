@@ -33,7 +33,7 @@ interface NotificationRepository {
 
 /**
  * Temporal hasta que exista la API: un aviso de cada tipo para Ana (la persona de la sesión), sobre sus lugares
- * (currentUserPlaces). El comentario es el más reciente que tiene de verdad Quinta de Bolívar.
+ * (currentUserPlaces). El comentario es el más reciente que tiene de verdad Sendero La Vieja, el de Laura (25.a).
  */
 class FakeNotificationRepository(
     private val clock: Clock = Clock.systemUTC(),
@@ -69,7 +69,8 @@ class FakeNotificationRepository(
 private fun sampleNotifications(now: Instant): List<Notification> {
     fun ago(duration: Duration) = now - duration.toJavaDuration()
     val quinta = samplePois.first { it.id == "quinta-de-bolivar" }
-    val latestComment = sampleComments(quinta, now).first()
+    val sendero = samplePois.first { it.id == "sendero-la-vieja" }
+    val latestComment = sampleComments(sendero, now).first()
     return listOf(
         Notification.Verified("n-verificada", ago(20.minutes), read = false, quinta.id, quinta.title, points = 15),
         Notification.DuplicateRejected(
@@ -81,7 +82,8 @@ private fun sampleNotifications(now: Instant): List<Notification> {
             existingPoiId = "la-puerta-falsa",
             existingTitle = "La Puerta Falsa",
         ),
-        Notification.Achievement("n-logro", ago(1.hours), read = false, "3 lugares verificados", nextBadge = "Explorador constante", remaining = 7),
+        // 25.a la llama «Explorador constante», pero 26 y 27 la nombran «10 verificadas» (y «Explorador» es un nivel).
+        Notification.Achievement("n-logro", ago(1.hours), read = false, "3 lugares verificados", nextBadge = "10 verificadas", remaining = 7),
         Notification.Rejected(
             "n-rechazo",
             ago(3.hours),
@@ -94,8 +96,8 @@ private fun sampleNotifications(now: Instant): List<Notification> {
             "n-comentario",
             latestComment.createdAt,
             read = true,
-            poiId = quinta.id,
-            poiTitle = quinta.title,
+            poiId = sendero.id,
+            poiTitle = sendero.title,
             authorName = latestComment.author.name,
             excerpt = latestComment.text,
         ),

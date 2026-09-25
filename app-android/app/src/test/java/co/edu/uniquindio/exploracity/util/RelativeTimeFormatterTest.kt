@@ -5,6 +5,7 @@ import org.junit.Test
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
 
@@ -49,5 +50,11 @@ class RelativeTimeFormatterTest {
     fun `fechas en español`() {
         assertEquals("10 de agosto", formatDate(LocalDate.of(2026, 8, 10), withYear = false))
         assertEquals("12 de marzo de 2025", formatDate(LocalDate.of(2025, 3, 12), withYear = true))
+    }
+
+    @Test
+    fun `el mes del perfil, con año solo si es otro (26 · desde marzo)`() {
+        assertEquals("marzo", formatMonth(YearMonth.of(2026, 3), withYear = false))
+        assertEquals("diciembre de 2025", formatMonth(YearMonth.of(2025, 12), withYear = true))
     }
 }

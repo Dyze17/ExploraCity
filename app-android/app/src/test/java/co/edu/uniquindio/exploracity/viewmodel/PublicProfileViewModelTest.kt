@@ -2,9 +2,10 @@ package co.edu.uniquindio.exploracity.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
+import co.edu.uniquindio.exploracity.data.local.FakeProfileDao
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeUserRepository
-import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyUserRepository
+import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
 import co.edu.uniquindio.exploracity.data.repository.UserRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
@@ -43,7 +44,7 @@ class PublicProfileViewModelTest {
     private fun savedState(userId: String = "camilo-r") = SavedStateHandle(mapOf(PublicProfileViewModel.USER_ID_KEY to userId))
 
     private fun viewModel(
-        users: UserRepository = OnlineOnlyUserRepository(server, connectivity),
+        users: UserRepository = OfflineUserRepository(server, FakeProfileDao(), connectivity),
         savedState: SavedStateHandle = savedState(),
     ) = PublicProfileViewModel(users, connectivity, sampleCurrentUser, savedState)
 

@@ -30,6 +30,12 @@ enum class UserLevel(val minPoints: Int) {
     LOCAL_AMBASSADOR(500),
     ;
 
+    /** El nivel siguiente; null en el máximo. */
+    val next: UserLevel? get() = entries.getOrNull(ordinal + 1)
+
+    /** Último punto del nivel («250 a 499 puntos»); null en el máximo («Desde 500 puntos»). */
+    val maxPoints: Int? get() = next?.let { it.minPoints - 1 }
+
     companion object {
         fun fromPoints(points: Int): UserLevel = entries.last { points >= it.minPoints }
     }
