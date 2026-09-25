@@ -10,3 +10,12 @@ internal suspend fun <T> runCatchingNonCancellation(block: suspend () -> T): T? 
 } catch (e: Exception) {
     null
 }
+
+/** Como [runCatchingNonCancellation], pero conserva el fallo: sirve para distinguir la falta de red de otros errores. */
+internal suspend fun <T> catchingNonCancellation(block: suspend () -> T): Result<T> = try {
+    Result.success(block())
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    Result.failure(e)
+}

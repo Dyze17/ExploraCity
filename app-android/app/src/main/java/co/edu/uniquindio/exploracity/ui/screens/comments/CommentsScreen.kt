@@ -46,7 +46,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -92,25 +91,21 @@ import co.edu.uniquindio.exploracity.ui.components.LoadMoreFailedRow
 import co.edu.uniquindio.exploracity.ui.components.LoadingMoreRow
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.labelRes
+import co.edu.uniquindio.exploracity.ui.components.relativeTimeText
+import co.edu.uniquindio.exploracity.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
-import co.edu.uniquindio.exploracity.util.RelativeTime
-import co.edu.uniquindio.exploracity.util.formatDate
-import co.edu.uniquindio.exploracity.util.relativeTime
 import co.edu.uniquindio.exploracity.viewmodel.CommentsContent
 import co.edu.uniquindio.exploracity.viewmodel.CommentsUiState
 import co.edu.uniquindio.exploracity.viewmodel.CommentsViewModel
 import co.edu.uniquindio.exploracity.viewmodel.OwnComment
 import co.edu.uniquindio.exploracity.viewmodel.SendStatus
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import java.time.Instant
-import java.time.ZoneId
-import kotlin.time.Duration.Companion.seconds
 
 /** 14 · Comentarios, conectado a su ViewModel. */
 @Composable
@@ -166,6 +161,16 @@ fun CommentsScreen(state: CommentsUiState, callbacks: CommentsCallbacks, modifie
                         icon = R.drawable.ic_sync_problem,
                         title = stringResource(R.string.comments_error_title),
                         body = stringResource(R.string.comments_error_body),
+                        tone = EmptyStateTone.WARNING,
+                    ) {
+                        ExploraButton(stringResource(R.string.action_retry), onClick = callbacks.onRetry, modifier = Modifier.fillMaxWidth(), icon = R.drawable.ic_refresh)
+                    }
+                }
+                CommentsContent.Offline -> Centered(aboveNavigationBar = true) {
+                    EmptyState(
+                        icon = R.drawable.ic_cloud_off,
+                        title = stringResource(R.string.offline_title),
+                        body = stringResource(R.string.comments_offline_body),
                         tone = EmptyStateTone.WARNING,
                     ) {
                         ExploraButton(stringResource(R.string.action_retry), onClick = callbacks.onRetry, modifier = Modifier.fillMaxWidth(), icon = R.drawable.ic_refresh)
@@ -249,29 +254,11 @@ private fun CommentList(content: CommentsContent.Loaded, state: CommentsUiState,
     }
 }
 
-/** «hace 2 días» se actualiza solo mientras la pantalla está abierta. */
-@Composable
-private fun rememberNow() = produceState(Instant.now()) {
-    while (true) {
-        delay(30.seconds)
-        value = Instant.now()
-    }
-}
-
-@Composable
-private fun timeText(createdAt: Instant, now: Instant): String = when (val time = relativeTime(createdAt, now, ZoneId.systemDefault())) {
-    RelativeTime.JustNow -> stringResource(R.string.time_just_now)
-    is RelativeTime.Minutes -> pluralStringResource(R.plurals.time_minutes_ago, time.count, time.count)
-    is RelativeTime.Hours -> pluralStringResource(R.plurals.time_hours_ago, time.count, time.count)
-    is RelativeTime.Days -> pluralStringResource(R.plurals.time_days_ago, time.count, time.count)
-    is RelativeTime.On -> formatDate(time.date, withYear = !time.sameYear)
-}
-
 /** Comentario publicado: un solo nodo para el lector («María Paula, nivel Explorador, hace 2 días. El pan…»). */
 @Composable
 private fun CommentItem(comment: Comment, now: Instant) {
     val author = comment.author
-    val time = timeText(comment.createdAt, now)
+    val time = relativeTimeText(comment.createdAt, now)
     val description = if (comment.mine) {
         stringResource(R.string.comments_mine_description, time, comment.text)
     } else {
@@ -298,7 +285,7 @@ private fun OwnCommentItem(own: OwnComment, user: Author, now: Instant, onRetry:
             when (own.status) {
                 SendStatus.SENDING -> StatusLabel(R.drawable.ic_schedule, stringResource(R.string.comments_sending), explora.warningAccent)
                 SendStatus.FAILED -> StatusLabel(R.drawable.ic_error, stringResource(R.string.comments_failed), MaterialTheme.colorScheme.error)
-                SendStatus.SENT -> StatusLabel(null, timeText(own.createdAt, now), explora.textPlaceholder, spoken = stringResource(R.string.comments_sent))
+                SendStatus.SENT -> StatusLabel(null, relativeTimeText(own.createdAt, now), explora.textPlaceholder, spoken = stringResource(R.string.comments_sent))
             }
         },
     ) {

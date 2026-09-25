@@ -125,3 +125,17 @@ fun CategoryTag(category: Category, modifier: Modifier = Modifier, size: BadgeSi
         weight = FontWeight.W600,
     )
 }
+
+/** 12.a «Guardado»: el lugar se puede abrir sin conexión (su detalle está guardado en el teléfono). */
+@Composable
+fun SavedBadge(modifier: Modifier = Modifier, size: BadgeSize = BadgeSize.SMALL) {
+    IconLabel(
+        label = stringResource(R.string.saved_badge),
+        icon = R.drawable.ic_download_done,
+        container = MaterialTheme.colorScheme.surfaceContainerHighest,
+        content = MaterialTheme.exploraColors.iconSecondary,
+        size = size,
+        modifier = modifier,
+        weight = FontWeight.W700,
+    )
+}

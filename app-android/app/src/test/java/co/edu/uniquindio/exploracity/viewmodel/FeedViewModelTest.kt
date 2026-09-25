@@ -1,12 +1,15 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
+import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
+import co.edu.uniquindio.exploracity.data.repository.FakeOfflineRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FeedPage
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.SavedPlaces
 import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
@@ -27,12 +30,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
+    private val connectivity = FakeConnectivity()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -41,7 +46,7 @@ class FeedViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(repository: PoiRepository = FakePoiRepository(), moderator: Boolean = false) =
-        FeedViewModel(repository, FakeModerationRepository(), areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
+        FeedViewModel(repository, FakeModerationRepository(), connectivity, areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
 
     private val FeedViewModel.loaded get() = state.value.content as FeedContent.Loaded
 
@@ -127,7 +132,7 @@ class FeedViewModelTest {
         val repository = FailingOnceRepository()
         val vm = viewModel(repository)
         advanceUntilIdle()
-        assertEquals(FeedContent.Error, vm.state.value.content)
+        assertEquals(FeedContent.Error(), vm.state.value.content)
 
         vm.onRetry()
         advanceUntilIdle()
@@ -142,7 +147,7 @@ class FeedViewModelTest {
         assertEquals(FeedContent.Loading, vm.state.value.content)
 
         advanceTimeBy(0.2.seconds)
-        assertEquals(FeedContent.Error, vm.state.value.content)
+        assertEquals(FeedContent.Error(), vm.state.value.content)
     }
 
     @Test
@@ -151,6 +156,63 @@ class FeedViewModelTest {
         advanceUntilIdle()
 
         assertEquals(ModerationSummary(pending = 7, oldestWaitingDays = 3), vm.state.value.moderation)
+    }
+
+    private val saved = SavedPlaces(samplePois.take(3), Instant.parse("2026-09-24T13:00:00Z"), withDetails = setOf("cafe-las-acacias"))
+
+    @Test
+    fun `sin conexión muestra lo guardado sin pedir nada al servidor`() = runTest(dispatcher) {
+        connectivity.online = false
+        val repository = FakeOfflineRepository(connectivity, saved = saved)
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        assertEquals(FeedContent.Saved(saved, SavedReason.OFFLINE), vm.state.value.content)
+        assertEquals(0, repository.feedCalls)
+    }
+
+    @Test
+    fun `sin conexión y sin nada guardado lo dice`() = runTest(dispatcher) {
+        connectivity.online = false
+        val vm = viewModel(FakeOfflineRepository(connectivity))
+        advanceUntilIdle()
+
+        assertEquals(FeedContent.Saved(null, SavedReason.OFFLINE), vm.state.value.content)
+    }
+
+    @Test
+    fun `al perder la red pasa a lo guardado y al volver recarga sola`() = runTest(dispatcher) {
+        val vm = viewModel(FakeOfflineRepository(connectivity, saved = saved))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.content is FeedContent.Loaded)
+
+        connectivity.online = false
+        advanceUntilIdle()
+        assertEquals(FeedContent.Saved(saved, SavedReason.OFFLINE), vm.state.value.content)
+
+        connectivity.online = true
+        advanceUntilIdle()
+        assertEquals(20, vm.loaded.items.size)
+    }
+
+    @Test
+    fun `si el servidor no responde se ofrece ver lo guardado`() = runTest(dispatcher) {
+        val repository = FakeOfflineRepository(connectivity, saved = saved).apply { serverDown = true }
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        assertEquals(FeedContent.Error(hasSaved = true), vm.state.value.content)
+
+        vm.onShowSaved()
+        advanceUntilIdle()
+        assertEquals(FeedContent.Saved(saved, SavedReason.SERVER_ERROR), vm.state.value.content)
+    }
+
+    @Test
+    fun `sin nada guardado el error no ofrece verlo`() = runTest(dispatcher) {
+        val vm = viewModel(FakeOfflineRepository(connectivity).apply { serverDown = true })
+        advanceUntilIdle()
+
+        assertEquals(FeedContent.Error(hasSaved = false), vm.state.value.content)
     }
 
     private class FailingOnceRepository(private val delegate: FakePoiRepository = FakePoiRepository()) : PoiRepository by delegate {
@@ -337,7 +399,7 @@ class FeedViewModelTest {
     fun `si el sistema cierra la app con la hoja abierta, el borrador sigue ahí para aplicarlo`() = runTest(dispatcher) {
         // Pasa al negar el permiso de ubicación: Android mata el proceso y el resultado llega a uno nuevo.
         val savedState = SavedStateHandle()
-        val before = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        val before = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
         advanceUntilIdle()
         before.onQueryChange("parque")
         before.onToggleCategory(Category.ENTERTAINMENT)
@@ -346,7 +408,7 @@ class FeedViewModelTest {
         before.onDraftChange(draft)
         advanceUntilIdle()
 
-        val after = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        val after = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
         advanceUntilIdle()
 
         assertEquals("parque", after.state.value.query)

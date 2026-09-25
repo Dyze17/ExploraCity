@@ -1,8 +1,12 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
+import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
+import co.edu.uniquindio.exploracity.data.repository.FakeOfflineRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.sampleDetails
+import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
@@ -12,6 +16,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -23,12 +28,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PoiDetailViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
+    private val connectivity = FakeConnectivity()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -40,7 +47,7 @@ class PoiDetailViewModelTest {
         repository: PoiRepository = FakePoiRepository(),
         poiId: String = "cafe-las-acacias",
         savedState: SavedStateHandle = SavedStateHandle(mapOf(PoiDetailViewModel.POI_ID_KEY to poiId)),
-    ) = PoiDetailViewModel(repository, savedState)
+    ) = PoiDetailViewModel(repository, connectivity, savedState)
 
     private val PoiDetailViewModel.details: PoiDetails get() = requireNotNull(state.value.details) { "El detalle debería estar cargado" }
 
@@ -214,6 +221,57 @@ class PoiDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(before + 1, vm.details.poi.comments)
+    }
+
+    private val savedCafe = sampleDetails(samplePois.first()).copy(savedAt = Instant.parse("2026-09-24T13:00:00Z"))
+
+    @Test
+    fun `sin conexión y sin guardar lo dice, y al volver la red carga solo`() = runTest(dispatcher) {
+        connectivity.online = false
+        val vm = viewModel(FakeOfflineRepository(connectivity))
+        advanceUntilIdle()
+        assertEquals(DetailContent.Offline, vm.state.value.content)
+        assertTrue(vm.state.value.offline)
+
+        connectivity.online = true
+        advanceUntilIdle()
+        assertEquals("Café Las Acacias", vm.details.poi.title)
+        assertFalse(vm.state.value.offline)
+    }
+
+    @Test
+    fun `sin conexión se ve lo guardado y votar o marcar la visita avisan que falta la red`() = runTest(dispatcher) {
+        connectivity.online = false
+        val vm = viewModel(FakeOfflineRepository(connectivity, savedDetails = mapOf("cafe-las-acacias" to savedCafe)))
+        advanceUntilIdle()
+        assertEquals(savedCafe, vm.details)
+
+        vm.onToggleVote()
+        advanceUntilIdle()
+        assertFalse(vm.details.voted)
+        assertEquals(savedCafe.poi.votes, vm.details.poi.votes)
+        assertEquals(DetailMessage.VoteOffline, vm.state.value.message)
+        vm.onMessageShown()
+
+        vm.onOpenVisit()
+        vm.onVisitDraftChange(VisitExperience(text = "Muy bueno"))
+        vm.onConfirmVisit()
+        advanceUntilIdle()
+        assertEquals(DetailMessage.VisitOffline, vm.state.value.message)
+        assertEquals("Muy bueno", vm.state.value.visitSheet?.draft?.text)
+    }
+
+    @Test
+    fun `al volver la red lo guardado se pone al día sin la silueta`() = runTest(dispatcher) {
+        connectivity.online = false
+        val vm = viewModel(FakeOfflineRepository(connectivity, savedDetails = mapOf("cafe-las-acacias" to savedCafe)))
+        advanceUntilIdle()
+
+        connectivity.online = true
+        runCurrent()
+        assertEquals(savedCafe, vm.details)
+        advanceUntilIdle()
+        assertNull(vm.details.savedAt)
     }
 
     private class FailingRepository(

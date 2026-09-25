@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalTime
 
 /** Rango de precio tal como se captura en el paso 4 de publicación (18). */
@@ -51,6 +52,8 @@ data class PoiDetails(
     val author: Author,
     val voted: Boolean,
     val visited: Boolean,
+    /** Cuándo se guardó, si viene de lo guardado para ver sin conexión (12.a); null si llegó del servidor. */
+    val savedAt: Instant? = null,
 )
 
 /** 14.b · Todo opcional salvo la marca de visitado. */

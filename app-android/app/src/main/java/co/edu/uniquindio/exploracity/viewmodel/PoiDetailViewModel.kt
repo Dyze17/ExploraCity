@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
+import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
@@ -17,6 +19,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -35,6 +38,9 @@ sealed interface DetailContent {
     data object NotFound : DetailContent
 
     data object Error : DetailContent
+
+    /** Sin internet y el lugar no está entre los guardados para ver sin conexión. */
+    data object Offline : DetailContent
 }
 
 /** 14.b abierta: [draft] es lo que la persona lleva escrito; [sending] mientras se guarda. */
@@ -44,10 +50,15 @@ data class VisitSheetState(val draft: VisitExperience = VisitExperience(), val s
 sealed interface DetailMessage {
     data object VoteFailed : DetailMessage
 
+    /** Votar necesita internet (la cola de envío llega en la tarea siguiente). */
+    data object VoteOffline : DetailMessage
+
     /** Opción A de Daniel: los puntos los decide el servidor; con 0 el aviso no los menciona. */
     data class VisitSaved(val points: Int) : DetailMessage
 
     data object VisitFailed : DetailMessage
+
+    data object VisitOffline : DetailMessage
 }
 
 data class PoiDetailUiState(
@@ -56,6 +67,8 @@ data class PoiDetailUiState(
     val voting: Boolean = false,
     val visitSheet: VisitSheetState? = null,
     val message: DetailMessage? = null,
+    /** Sin internet: el detalle, si se ve, es el guardado (12.a). */
+    val offline: Boolean = false,
 ) {
     val details: PoiDetails? get() = (content as? DetailContent.Loaded)?.details
 }
@@ -66,6 +79,7 @@ private data class SavedVisitDraft(val recommends: Boolean?, val text: String, v
 
 class PoiDetailViewModel(
     private val poiRepository: PoiRepository,
+    private val connectivity: ConnectivityObserver,
     private val savedStateHandle: SavedStateHandle,
     private val timeout: Duration = LOAD_TIMEOUT,
 ) : ViewModel() {
@@ -73,13 +87,26 @@ class PoiDetailViewModel(
     /** Argumento de la ruta PoiDetail(poiId). */
     val poiId: String = checkNotNull(savedStateHandle[POI_ID_KEY]) { "Falta el id del lugar" }
 
-    private val _state = MutableStateFlow(PoiDetailUiState(visitSheet = restoredDraft()?.let { VisitSheetState(it) }))
+    private val _state = MutableStateFlow(
+        PoiDetailUiState(visitSheet = restoredDraft()?.let { VisitSheetState(it) }, offline = !connectivity.isOnline.value),
+    )
     val state: StateFlow<PoiDetailUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
 
     init {
         load()
+        viewModelScope.launch {
+            // Al volver la red: lo que no se pudo abrir se carga, y lo guardado se pone al día sin la silueta.
+            connectivity.isOnline.drop(1).collect { online ->
+                _state.update { it.copy(offline = !online) }
+                if (!online) return@collect
+                when {
+                    _state.value.content is DetailContent.Offline -> load()
+                    _state.value.details?.savedAt != null -> onResumed()
+                }
+            }
+        }
     }
 
     fun onRetry() = load()
@@ -109,13 +136,15 @@ class PoiDetailViewModel(
         val optimistic = details.copy(voted = voted, poi = details.poi.copy(votes = details.poi.votes + if (voted) 1 else -1))
         _state.update { it.copy(content = DetailContent.Loaded(optimistic), voting = true) }
         viewModelScope.launch {
-            val total = runCatchingNonCancellation { poiRepository.setVote(poiId, voted) }
+            val result = catchingNonCancellation { poiRepository.setVote(poiId, voted) }
+            val total = result.getOrNull()
             _state.update { current ->
                 val latest = current.details ?: return@update current.copy(voting = false)
                 if (total == null) {
                     // Solo se deshace el voto: el resto del detalle pudo cambiar mientras tanto (p. ej. «Visitado»).
                     val reverted = latest.copy(voted = details.voted, poi = latest.poi.copy(votes = details.poi.votes))
-                    current.copy(content = DetailContent.Loaded(reverted), voting = false, message = DetailMessage.VoteFailed)
+                    val message = if (result.exceptionOrNull() is OfflineException) DetailMessage.VoteOffline else DetailMessage.VoteFailed
+                    current.copy(content = DetailContent.Loaded(reverted), voting = false, message = message)
                 } else {
                     current.copy(content = DetailContent.Loaded(latest.copy(poi = latest.poi.copy(votes = total))), voting = false)
                 }
@@ -150,9 +179,11 @@ class PoiDetailViewModel(
         _state.update { it.copy(visitSheet = sheet.copy(sending = true)) }
         viewModelScope.launch {
             val experience = sheet.draft.copy(text = sheet.draft.text.trim())
-            val result = runCatchingNonCancellation { poiRepository.markVisited(poiId, experience) }
+            val attempt = catchingNonCancellation { poiRepository.markVisited(poiId, experience) }
+            val result = attempt.getOrNull()
             if (result == null) {
-                _state.update { it.copy(visitSheet = it.visitSheet?.copy(sending = false), message = DetailMessage.VisitFailed) }
+                val message = if (attempt.exceptionOrNull() is OfflineException) DetailMessage.VisitOffline else DetailMessage.VisitFailed
+                _state.update { it.copy(visitSheet = it.visitSheet?.copy(sending = false), message = message) }
                 return@launch
             }
             saveDraft(null)
@@ -183,6 +214,8 @@ class PoiDetailViewModel(
                 }
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: OfflineException) {
+                DetailContent.Offline
             } catch (e: Exception) {
                 DetailContent.Error
             }
@@ -210,7 +243,7 @@ class PoiDetailViewModel(
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                PoiDetailViewModel(container.poiRepository, createSavedStateHandle())
+                PoiDetailViewModel(container.poiRepository, container.connectivity, createSavedStateHandle())
             }
         }
     }

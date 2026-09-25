@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
+import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.repository.CommentsPage
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.domain.model.Author
@@ -18,6 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -47,6 +50,9 @@ sealed interface CommentsContent {
     data object NotFound : CommentsContent
 
     data object Error : CommentsContent
+
+    /** Sin internet: los comentarios no se guardan para ver sin conexión. */
+    data object Offline : CommentsContent
 }
 
 enum class SendStatus { SENDING, FAILED, SENT }
@@ -80,6 +86,7 @@ private data class SavedOwnComment(val localId: String, val text: String, val cr
 
 class CommentsViewModel(
     private val poiRepository: PoiRepository,
+    private val connectivity: ConnectivityObserver,
     currentUser: Author,
     private val savedStateHandle: SavedStateHandle,
     private val clock: Clock = Clock.systemUTC(),
@@ -99,6 +106,13 @@ class CommentsViewModel(
 
     init {
         load()
+        viewModelScope.launch {
+            // Al volver la red se cargan solos si no se pudieron traer.
+            connectivity.isOnline.drop(1).collect { online ->
+                val content = _state.value.content
+                if (online && (content is CommentsContent.Offline || content is CommentsContent.Error)) load()
+            }
+        }
     }
 
     fun onRetry() = load()
@@ -183,6 +197,8 @@ class CommentsViewModel(
                 }
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: OfflineException) {
+                CommentsContent.Offline
             } catch (e: Exception) {
                 CommentsContent.Error
             }
@@ -221,7 +237,7 @@ class CommentsViewModel(
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                CommentsViewModel(container.poiRepository, container.currentUser, createSavedStateHandle())
+                CommentsViewModel(container.poiRepository, container.connectivity, container.currentUser, createSavedStateHandle())
             }
         }
     }

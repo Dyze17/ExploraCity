@@ -9,11 +9,14 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
+import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.repository.FeedPage
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.SavedPlaces
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -53,8 +57,19 @@ sealed interface FeedContent {
     /** 10.b: la zona no tiene publicaciones. */
     data object EmptyArea : FeedContent
 
-    /** 12.b: fallo o más de 8 s cargando. */
-    data object Error : FeedContent
+    /** 12.b: fallo o más de 8 s cargando. Con [hasSaved] se ofrece «Ver mis lugares guardados». */
+    data class Error(val hasSaved: Boolean = false) : FeedContent
+
+    /** 12.a: lo guardado para ver sin conexión; [places] null si no hay nada guardado. */
+    data class Saved(val places: SavedPlaces?, val reason: SavedReason) : FeedContent
+}
+
+enum class SavedReason {
+    /** El teléfono no tiene internet. */
+    OFFLINE,
+
+    /** Hay red pero el servidor no respondió, y la persona pidió ver lo guardado (12.b). */
+    SERVER_ERROR,
 }
 
 /**
@@ -100,6 +115,7 @@ private data class SavedFeed(
 class FeedViewModel(
     private val poiRepository: PoiRepository,
     private val moderationRepository: ModerationRepository,
+    private val connectivity: ConnectivityObserver,
     areaName: String,
     isModerator: Boolean,
     private val savedStateHandle: SavedStateHandle,
@@ -121,6 +137,10 @@ class FeedViewModel(
                 .collect { savedStateHandle[SAVED_FEED_KEY] = Json.encodeToString(it) }
         }
         reload()
+        viewModelScope.launch {
+            // Al perder la red se pasa a lo guardado; al volver se recarga sola (README 8.c).
+            connectivity.isOnline.drop(1).collect { online -> if (online) reload() else showSaved(SavedReason.OFFLINE) }
+        }
         if (_state.value.filterSheet != null) recount(debounce = false)
         if (isModerator) {
             viewModelScope.launch {
@@ -202,6 +222,9 @@ class FeedViewModel(
 
     fun onRetry() = reload()
 
+    /** 12.b «Ver mis lugares guardados». */
+    fun onShowSaved() = showSaved(SavedReason.SERVER_ERROR)
+
     fun onLoadMore() {
         val content = _state.value.content as? FeedContent.Loaded ?: return
         if (!content.canLoadMore || content.loadingMore) return
@@ -260,21 +283,44 @@ class FeedViewModel(
     }
 
     private fun reload() {
-        loadJob?.cancel()
         nextPage = 0
+        if (!connectivity.isOnline.value) {
+            showSaved(SavedReason.OFFLINE)
+            return
+        }
+        loadJob?.cancel()
         _state.update { it.copy(content = FeedContent.Loading) }
         val query = currentQuery()
         loadJob = viewModelScope.launch {
-            val page = runCatchingNonCancellation { withTimeoutOrNull(firstPageTimeout) { poiRepository.feedPage(query, 0) } }
-            if (page != null) nextPage = 1
-            _state.update { it.copy(content = page.toContent(query)) }
+            val result = catchingNonCancellation { withTimeoutOrNull(firstPageTimeout) { poiRepository.feedPage(query, 0) } }
+            val page = result.getOrNull()
+            val content = when {
+                // La red se fue justo mientras cargaba.
+                result.exceptionOrNull() is OfflineException -> FeedContent.Saved(savedPlaces(), SavedReason.OFFLINE)
+                page == null -> FeedContent.Error(hasSaved = savedPlaces() != null)
+                else -> {
+                    nextPage = 1
+                    page.toContent(query)
+                }
+            }
+            _state.update { it.copy(content = content) }
         }
     }
 
+    /** Lo guardado se lee del teléfono: es inmediato, así que no pasa por la silueta de carga. */
+    private fun showSaved(reason: SavedReason) {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            val saved = savedPlaces()
+            _state.update { it.copy(content = FeedContent.Saved(saved, reason)) }
+        }
+    }
+
+    private suspend fun savedPlaces(): SavedPlaces? = runCatchingNonCancellation { poiRepository.savedPlaces() }
+
     private fun currentQuery() = _state.value.let { FeedQuery(filters = it.filters, text = it.query.trim()) }
 
-    private fun FeedPage?.toContent(query: FeedQuery): FeedContent = when {
-        this == null -> FeedContent.Error
+    private fun FeedPage.toContent(query: FeedQuery): FeedContent = when {
         total == 0 && query.hasCriteria -> FeedContent.NoResults(query)
         total == 0 -> FeedContent.EmptyArea
         else -> FeedContent.Loaded(items = items, total = total, canLoadMore = hasMore)
@@ -296,6 +342,7 @@ class FeedViewModel(
                 FeedViewModel(
                     container.poiRepository,
                     container.moderationRepository,
+                    container.connectivity,
                     container.areaName,
                     isModerator,
                     savedStateHandle = createSavedStateHandle(),

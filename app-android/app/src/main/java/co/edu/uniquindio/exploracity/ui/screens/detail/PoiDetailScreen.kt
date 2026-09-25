@@ -89,11 +89,15 @@ import co.edu.uniquindio.exploracity.ui.components.CategoryTag
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
+import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.LevelChip
+import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.labelRes
+import co.edu.uniquindio.exploracity.ui.components.relativeTimeText
+import co.edu.uniquindio.exploracity.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.components.spokenRes
@@ -126,6 +130,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
+import java.time.Instant
 
 /** 13 · Detalle del POI, conectado a su ViewModel. */
 @Composable
@@ -195,7 +200,7 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         when (val content = state.content) {
             DetailContent.Loading -> DetailSkeleton()
-            is DetailContent.Loaded -> DetailLoaded(content.details, state.voting, callbacks, scrollState)
+            is DetailContent.Loaded -> DetailLoaded(content.details, state, callbacks, scrollState)
             DetailContent.Error -> Centered {
                 EmptyState(
                     icon = R.drawable.ic_sync_problem,
@@ -204,6 +209,17 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
                     tone = EmptyStateTone.WARNING,
                 ) {
                     ExploraButton(stringResource(R.string.action_retry), onClick = callbacks.onRetry, modifier = Modifier.fillMaxWidth(), icon = R.drawable.ic_refresh)
+                }
+            }
+            DetailContent.Offline -> Centered {
+                EmptyState(
+                    icon = R.drawable.ic_cloud_off,
+                    title = stringResource(R.string.offline_title),
+                    body = stringResource(R.string.detail_offline_body),
+                    tone = EmptyStateTone.WARNING,
+                ) {
+                    ExploraButton(stringResource(R.string.action_retry), onClick = callbacks.onRetry, modifier = Modifier.fillMaxWidth(), icon = R.drawable.ic_refresh)
+                    ExploraButton(stringResource(R.string.navigate_back), onClick = callbacks.onBack, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
                 }
             }
             DetailContent.NotFound -> Centered {
@@ -251,7 +267,9 @@ private fun Centered(content: @Composable () -> Unit) {
 private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHostState, onShown: () -> Unit) {
     val currentOnShown by rememberUpdatedState(onShown)
     val voteFailed = stringResource(R.string.detail_vote_failed)
+    val voteOffline = stringResource(R.string.detail_vote_offline)
     val visitFailed = stringResource(R.string.visit_failed)
+    val visitOffline = stringResource(R.string.visit_offline)
     val visitSaved = stringResource(R.string.visit_saved)
     val points = (message as? DetailMessage.VisitSaved)?.points ?: 0
     val visitSavedPoints = pluralStringResource(R.plurals.visit_saved_points, points, points)
@@ -259,7 +277,9 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
         val text = when (message) {
             null -> return@LaunchedEffect
             DetailMessage.VoteFailed -> voteFailed
+            DetailMessage.VoteOffline -> voteOffline
             DetailMessage.VisitFailed -> visitFailed
+            DetailMessage.VisitOffline -> visitOffline
             is DetailMessage.VisitSaved -> if (message.points > 0) visitSavedPoints else visitSaved
         }
         // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
@@ -269,14 +289,29 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
 }
 
 @Composable
-private fun DetailLoaded(details: PoiDetails, voting: Boolean, callbacks: DetailCallbacks, scrollState: ScrollState) {
+private fun DetailLoaded(details: PoiDetails, state: PoiDetailUiState, callbacks: DetailCallbacks, scrollState: ScrollState) {
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(scrollState)) {
             Gallery(details)
-            DetailBody(details, voting, callbacks)
+            details.savedAt?.let { savedAt -> SavedBanner(savedAt, state.offline, callbacks.onRetry) }
+            DetailBody(details, state.voting, callbacks)
         }
         CommentsBar(details.poi.comments, callbacks.onOpenComments, callbacks.onAddComment)
     }
+}
+
+/**
+ * Se está viendo lo guardado (12.a): sin red, o con red pero sin respuesta del servidor. Dice de cuándo es; votar y
+ * marcar la visita avisan si necesitan internet.
+ */
+@Composable
+private fun SavedBanner(savedAt: Instant, offline: Boolean, onRetry: () -> Unit) {
+    val now by rememberNow()
+    OfflineBanner(
+        title = stringResource(if (offline) R.string.offline_title else R.string.detail_not_updated_title),
+        body = stringResource(R.string.detail_saved_body, relativeTimeText(savedAt, now)),
+        onRetry = onRetry,
+    )
 }
 
 /** Galería (HorizontalPager): cada foto dice qué muestra y su posición («Patio interior del café. Foto 1 de 3»). */
