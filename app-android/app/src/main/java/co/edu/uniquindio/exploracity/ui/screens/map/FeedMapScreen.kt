@@ -461,8 +461,14 @@ private fun MapOffline(savedCount: Int, callbacks: MapCallbacks, modifier: Modif
             onRetry = callbacks.onRetry,
             underStatusBar = true,
         )
+        // El mapa va sin barra inferior: con fuente grande la tarjeta se desplaza y no debe quedar bajo la de gestos.
         Box(
-            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(

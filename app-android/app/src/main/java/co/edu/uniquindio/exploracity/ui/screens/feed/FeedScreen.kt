@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -163,10 +164,12 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
         // Al cambiar los filtros los chips activos vuelven a la vista (README 9: «con los chips activos visibles»).
         LaunchedEffect(state.filters) { collapsing.expand() }
         val saved = state.content as? FeedContent.Saved
+        // 12.a: el aviso va arriba del todo y no se esconde al desplazar; sin nada guardado lo dice el vacío. Con fuente
+        // grande, fijo junto a la cabecera dejaba ver solo media tarjeta (S20+ al 200 %): ahí se desplaza con la lista.
+        val pinnedBanner = saved?.places != null && LocalDensity.current.fontScale <= FontScaleThresholds.StackRows
         Column(Modifier.fillMaxSize().nestedScroll(collapsing.connection)) {
-            // 12.a: el aviso va arriba del todo y no se esconde al desplazar; sin nada guardado lo dice el vacío.
-            saved?.places?.let { places -> SavedPlacesBanner(places, saved.reason, callbacks.onRetry) }
-            PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = saved?.places == null)
+            if (pinnedBanner) SavedPlacesBanner(saved.places, saved.reason, callbacks.onRetry, underStatusBar = true)
+            PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = !pinnedBanner)
             // Sin conexión no se busca ni se filtra: lo guardado se muestra tal cual.
             if (saved == null) CollapsibleFilters(state, isModerator, callbacks, collapsing)
             when (val content = state.content) {
@@ -235,7 +238,11 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                 is FeedContent.Saved -> {
                     val places = content.places
                     if (places != null) {
-                        SavedList(places, callbacks.onOpenPoi)
+                        SavedList(
+                            places,
+                            callbacks.onOpenPoi,
+                            banner = if (pinnedBanner) null else { { SavedPlacesBanner(places, content.reason, callbacks.onRetry) } },
+                        )
                     } else {
                         Scrollable {
                             EmptyState(
@@ -291,14 +298,14 @@ private fun Scrollable(content: @Composable () -> Unit) {
  * publicación (15–20) aún no existe y el aviso prometería algo que la app no hace.
  */
 @Composable
-private fun SavedPlacesBanner(places: SavedPlaces, reason: SavedReason, onRetry: () -> Unit) {
+private fun SavedPlacesBanner(places: SavedPlaces, reason: SavedReason, onRetry: () -> Unit, underStatusBar: Boolean = false) {
     val now by rememberNow()
     val count = places.items.size
     OfflineBanner(
         title = stringResource(if (reason == SavedReason.OFFLINE) R.string.offline_title else R.string.feed_not_updated_title),
         body = pluralStringResource(R.plurals.feed_saved_body, count, count, relativeTimeText(places.savedAt, now)),
         onRetry = onRetry,
-        underStatusBar = true,
+        underStatusBar = underStatusBar,
     )
 }
 
@@ -307,12 +314,13 @@ private fun SavedPlacesBanner(places: SavedPlaces, reason: SavedReason, onRetry:
  * guardó, y al final se explica que los votos y comentarios nuevos llegan con la conexión.
  */
 @Composable
-private fun SavedList(places: SavedPlaces, onOpenPoi: (String) -> Unit) {
+private fun SavedList(places: SavedPlaces, onOpenPoi: (String) -> Unit, banner: (@Composable () -> Unit)?) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (banner != null) item(key = "banner") { Box(Modifier.fullBleed(16.dp)) { banner() } }
         item(key = "search") {
             ExploraSearchBar(value = "", onValueChange = {}, placeholder = stringResource(R.string.feed_search_offline), enabled = false)
         }
@@ -338,6 +346,14 @@ private fun SavedList(places: SavedPlaces, onOpenPoi: (String) -> Unit) {
         }
         item(key = "note") { SavedNote() }
     }
+}
+
+/** Ocupa también el margen lateral de la lista: el aviso va de borde a borde, como cuando está fijo arriba. */
+private fun Modifier.fullBleed(margin: Dp) = layout { measurable, constraints ->
+    val extra = (margin * 2).roundToPx()
+    val width = constraints.maxWidth + extra
+    val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
 }
 
 @Composable
