@@ -358,6 +358,48 @@
     <string name="report_failed">No pudimos enviar el reporte. Intenta de nuevo.</string>
     <string name="report_offline">Sin conexión: no pudimos enviar el reporte. Inténtalo cuando vuelva el internet.</string>
 
+    <!-- Notificaciones (25) -->
+    <string name="notifications_title">Notificaciones</string>
+    <string name="notifications_mark_all">Marcar leídas</string>
+    <string name="notifications_all_read">Marcamos todo como leído.</string>
+    <string name="notifications_unread_header">Sin leer · %1$d</string>
+    <plurals name="notifications_unread_header_spoken">
+        <item quantity="one">%d aviso sin leer</item>
+        <item quantity="many">%d avisos sin leer</item>
+        <item quantity="other">%d avisos sin leer</item>
+    </plurals>
+    <string name="notifications_earlier">Anteriores</string>
+    <string name="notification_verified">%1$s quedó verificada. Ya está visible para todos.</string>
+    <string name="notification_finalized">%1$s pasó a finalizada. Gracias por el aporte.</string>
+    <string name="notification_commented">%1$s comentó en %2$s: «%3$s»</string>
+    <string name="notification_rejected">%1$s fue rechazada: %2$s.</string>
+    <string name="notification_duplicate">Tu publicación «%1$s» ya existía como «%2$s»</string>
+    <string name="notification_duplicate_hint">Puedes comentarla o marcarla como visitada.</string>
+    <string name="notification_achievement">Nuevo logro: %1$s.</string>
+    <plurals name="notification_achievement_next">
+        <item quantity="one">Te falta %1$d para la insignia de %2$s.</item>
+        <item quantity="many">Te faltan %1$d para la insignia de %2$s.</item>
+        <item quantity="other">Te faltan %1$d para la insignia de %2$s.</item>
+    </plurals>
+    <plurals name="notification_points">
+        <item quantity="one">+%d punto</item>
+        <item quantity="many">+%d puntos</item>
+        <item quantity="other">+%d puntos</item>
+    </plurals>
+    <string name="notification_meta">%1$s · %2$s</string>
+    <string name="notification_unread_description">Sin leer: %1$s</string>
+    <string name="notification_fix">Ver el motivo y corregir</string>
+    <string name="notification_go_existing">Ir al lugar existente</string>
+    <string name="notifications_loading">Cargando avisos</string>
+    <string name="notifications_error_title">No pudimos traer tus avisos</string>
+    <string name="notifications_error_body">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
+    <string name="notifications_empty_title">Todo tranquilo por aquí</string>
+    <string name="notifications_empty_body">Cuando alguien comente tus lugares, se verifique una publicación o ganes una insignia, te lo contamos en esta pantalla.</string>
+    <string name="notifications_explore">Ir a explorar</string>
+    <string name="notifications_offline_body">Todavía no hay avisos guardados para ver sin conexión. Se cargarán solos cuando vuelva la conexión.</string>
+    <string name="notifications_not_updated_title">No pudimos actualizar los avisos</string>
+    <string name="notifications_saved_body">Estás viendo los avisos guardados %1$s.</string>
+
     <!-- Hoja de filtros (9) -->
     <string name="filters_title">Filtros</string>
     <string name="filters_close">Cerrar filtros</string>

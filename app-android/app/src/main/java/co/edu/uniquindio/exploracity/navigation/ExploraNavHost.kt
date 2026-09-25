@@ -21,6 +21,7 @@ import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
 import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
+import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 
@@ -227,14 +228,12 @@ private fun NavGraphBuilder.publishGraph(nav: NavController) {
 private fun NavGraphBuilder.notificationsGraph(nav: NavController) {
     navigation<NotificationsGraph>(startDestination = Notifications) {
         composable<Notifications> {
-            PlaceholderScreen(
-                "25", "Avisos",
-                listOf(
-                    link("«Mirador del Alto» fue rechazada") { nav.navigate(RejectedPublication("mirador-del-alto")) },
-                    link("«Café Las Acacias» quedó verificada") { nav.navigate(PoiDetail("cafe-las-acacias")) },
-                    link("Laura comentó en Sendero La Vieja") { nav.navigate(Comments("sendero-la-vieja")) },
-                    link("Nuevo logro") { nav.navigate(Badges) },
-                ),
+            NotificationsRoute(
+                onOpenPoi = { nav.navigate(PoiDetail(it)) },
+                onOpenComments = { nav.navigate(Comments(it)) },
+                onOpenPublication = { nav.navigate(RejectedPublication(it)) },
+                onOpenBadges = { nav.navigate(Badges) },
+                onExplore = { nav.navigateToTab(TopLevelDestination.EXPLORE) },
             )
         }
     }
