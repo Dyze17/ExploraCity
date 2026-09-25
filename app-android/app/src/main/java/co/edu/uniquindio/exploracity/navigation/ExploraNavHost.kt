@@ -21,6 +21,7 @@ import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
 import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
+import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 
 /**
@@ -196,11 +197,7 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
         }
         composable<Comments> { CommentsRoute(onBack = nav.back()) }
         composable<PublicProfile> {
-            PlaceholderScreen(
-                "31", "Perfil público",
-                listOf(link("Café Las Acacias") { nav.navigate(PoiDetail("cafe-las-acacias")) }),
-                onBack = nav.back(),
-            )
+            PublicProfileRoute(onBack = nav.back(), onOpenPoi = { nav.navigate(PoiDetail(it)) })
         }
     }
 }
