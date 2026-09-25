@@ -40,7 +40,8 @@ import kotlinx.serialization.Serializable
 /** 8. Con [focusPoiId] abre centrado en ese lugar y con él seleccionado (mapa pequeño del detalle, 13). */
 @Serializable data class FeedMap(val focusPoiId: String? = null) // 8
 
-@Serializable data class PoiDetail(val poiId: String) // 13
+/** 13. Con [focusComment] el foco inicial va al botón de comentar (desde «Ir al lugar existente», 24). */
+@Serializable data class PoiDetail(val poiId: String, val focusComment: Boolean = false) // 13
 
 /** 14. Con [write] abre con el teclado listo («Agregar comentario» del detalle). */
 @Serializable data class Comments(val poiId: String, val write: Boolean = false) // 14
@@ -49,7 +50,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object PublishGraph
 
-@Serializable data object PublishForm // 15–19 y 21: los 5 pasos comparten destino y borrador
+/**
+ * 15–19 y 21: los 5 pasos comparten destino y borrador. Con [resubmitId] corrige esa publicación rechazada y abre
+ * en [step], el paso relevante (24 · «Corregir y reenviar»).
+ */
+@Serializable data class PublishForm(val resubmitId: String? = null, val step: Int = 1)
 
 @Serializable data object PublishSent // 20
 

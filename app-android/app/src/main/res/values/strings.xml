@@ -358,6 +358,41 @@
     <string name="report_failed">No pudimos enviar el reporte. Intenta de nuevo.</string>
     <string name="report_offline">Sin conexión: no pudimos enviar el reporte. Inténtalo cuando vuelva el internet.</string>
 
+    <!-- Publicación rechazada (24) y eliminar publicación (23) -->
+    <string name="rejected_title">Publicación rechazada</string>
+    <string name="rejected_status">Rechazada el %1$s</string>
+    <string name="rejected_reason_title">Motivo del moderador</string>
+    <string name="rejected_reviewed_by">Revisada por %1$s · Equipo de moderación</string>
+    <string name="rejected_fixes_title">Qué revisar antes de reenviar</string>
+    <string name="rejected_no_resubmit">Esta publicación no se puede corregir y reenviar.</string>
+    <string name="rejected_submitted">Enviada el %1$s</string>
+    <string name="rejected_resubmit">Corregir y reenviar</string>
+    <string name="rejected_delete">Eliminar publicación</string>
+    <string name="rejected_duplicate_label">Motivo</string>
+    <string name="rejected_duplicate_title">Este lugar ya existía en ExploraCity</string>
+    <string name="rejected_duplicate_body">Ya está publicado como «%1$s», a %2$s. Puedes comentarlo o marcarlo como visitado para compartir tu experiencia.</string>
+    <string name="rejected_duplicate_body_unknown">Ya estaba publicado en ExploraCity. Puedes buscarlo en Explorar para comentarlo o marcarlo como visitado.</string>
+    <string name="rejected_original_meta">a %1$s · %2$s</string>
+    <string name="rejected_original_spoken">%1$s, %2$s, %3$s, a %4$s, %5$s</string>
+    <string name="rejected_go_existing">Ir al lugar existente</string>
+    <string name="rejected_back_to_mine">Volver a mis publicaciones</string>
+    <string name="rejected_loading">Cargando la publicación</string>
+    <string name="rejected_error_title">No pudimos abrir esta publicación</string>
+    <string name="rejected_not_found_title">Esta publicación ya no está</string>
+    <string name="rejected_not_found_body">Puede que la hayas eliminado.</string>
+    <string name="rejected_offline_body">Ver una publicación necesita internet. Se cargará sola cuando vuelva la conexión.</string>
+    <string name="delete_publication_title">¿Eliminar «%1$s»?</string>
+    <plurals name="delete_publication_body">
+        <item quantity="one">Se borran la publicación y su foto. Esta acción no se puede deshacer.</item>
+        <item quantity="many">Se borran la publicación y sus %d fotos. Esta acción no se puede deshacer.</item>
+        <item quantity="other">Se borran la publicación y sus %d fotos. Esta acción no se puede deshacer.</item>
+    </plurals>
+    <string name="delete_publication_cancel">Cancelar</string>
+    <string name="delete_publication_confirm">Sí, eliminar</string>
+    <string name="delete_publication_failed">No pudimos eliminarla. Intenta de nuevo en un momento.</string>
+    <string name="delete_publication_offline">Sin conexión. Para eliminarla necesitas internet.</string>
+    <string name="publication_deleted">Publicación eliminada</string>
+
     <!-- Perfil propio (26) -->
     <string name="own_profile_title">Mi perfil</string>
     <string name="own_profile_settings">Ajustes</string>

@@ -2,9 +2,11 @@ package co.edu.uniquindio.exploracity.navigation
 
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -14,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
+import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
@@ -28,6 +31,7 @@ import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.OwnProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
+import co.edu.uniquindio.exploracity.ui.screens.publication.RejectedPublicationRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 
 /**
@@ -68,6 +72,21 @@ fun NavController.navigateToTab(tab: TopLevelDestination) {
 }
 
 private fun NavController.back(): () -> Unit = { popBackStack() }
+
+/** Marca en la entrada de 22 para avisar «Publicación eliminada» una vez (23 y 24). */
+private const val PUBLICATION_DELETED_KEY = "publicacion_eliminada"
+
+/**
+ * Vuelve a Mis publicaciones (22) si ya estaba en la pila, con su filtro; si no, la abre en lugar de la pantalla
+ * actual, así «atrás» no regresa a una publicación que ya se eliminó.
+ */
+private fun NavController.openMyPublications(deleted: Boolean = false) {
+    if (!popBackStack<MyPublications>(inclusive = false)) {
+        val current = currentBackStackEntry?.destination?.id
+        navigate(MyPublications()) { if (current != null) popUpTo(current) { inclusive = true } }
+    }
+    if (deleted) currentBackStackEntry?.savedStateHandle?.set(PUBLICATION_DELETED_KEY, true)
+}
 
 private fun PublicationStatus?.toFilter(): PublicationFilter = when (this) {
     null -> PublicationFilter.ALL
@@ -208,8 +227,9 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
                 onOpenPoi = { nav.navigate(PoiDetail(it)) },
             )
         }
-        composable<PoiDetail> {
+        composable<PoiDetail> { entry ->
             PoiDetailRoute(
+                focusComment = entry.toRoute<PoiDetail>().focusComment,
                 onBack = nav.back(),
                 onOpenComments = { nav.navigate(Comments(it)) },
                 onAddComment = { nav.navigate(Comments(it, write = true)) },
@@ -225,10 +245,13 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
 }
 
 private fun NavGraphBuilder.publishGraph(nav: NavController) {
-    navigation<PublishGraph>(startDestination = PublishForm) {
-        composable<PublishForm> {
+    navigation<PublishGraph>(startDestination = PublishForm()) {
+        composable<PublishForm> { entry ->
+            // Provisional hasta construir 15–19: el título dice qué publicación se corrige y en qué paso abre (24).
+            val form = entry.toRoute<PublishForm>()
             PlaceholderScreen(
-                "15–19", "Publicar un lugar",
+                "15–19",
+                if (form.resubmitId == null) "Publicar un lugar" else "Corregir y reenviar · paso ${form.step}",
                 listOf(link("Enviar a verificación (paso 5)") { nav.navigate(PublishSent) { popUpTo<PublishForm> { inclusive = true } } }),
                 onBack = nav.back(),
             )
@@ -238,7 +261,7 @@ private fun NavGraphBuilder.publishGraph(nav: NavController) {
                 "20", "Enviada a verificación",
                 listOf(
                     link("Ver mis publicaciones") { nav.navigate(MyPublications()) { popUpTo<PublishGraph> { inclusive = true } } },
-                    link("Publicar otro lugar") { nav.navigate(PublishForm) { popUpTo<PublishSent> { inclusive = true } } },
+                    link("Publicar otro lugar") { nav.navigate(PublishForm()) { popUpTo<PublishSent> { inclusive = true } } },
                     link("Volver a explorar") { nav.popBackStack<PublishGraph>(inclusive = true) },
                 ),
             )
@@ -273,27 +296,31 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Uni
         composable<Badges> { BadgesRoute(onBack = nav.back()) }
         composable<EditProfile> { PlaceholderScreen("28", "Editar perfil", emptyList(), onBack = nav.back()) }
         composable<MyPublications> { entry ->
-            // Provisional hasta construir 22: el título dice con qué filtro se abrió desde las cifras del perfil (26).
+            // Provisional hasta construir 22: el título dice con qué filtro se abrió desde las cifras del perfil (26), y
+            // avisa «Publicación eliminada» al volver de eliminar una (24).
             val status = entry.toRoute<MyPublications>().filter.toStatus()
+            val deleted by entry.savedStateHandle.getStateFlow(PUBLICATION_DELETED_KEY, false).collectAsStateWithLifecycle()
             PlaceholderScreen(
                 "22",
                 if (status == null) "Mis publicaciones" else "Mis publicaciones · ${stringResource(status.labelRes)}",
                 listOf(
                     link("Café La Fonda · editar") { nav.navigate(EditPublication("cafe-la-fonda")) },
-                    link("Mirador del Alto · rechazada") { nav.navigate(RejectedPublication("mirador-del-alto")) },
+                    link("Mirador de La Peña · rechazada") { nav.navigate(RejectedPublication("mirador-de-la-pena")) },
+                    link("Puerta Falsa, tamales · ya existía") { nav.navigate(RejectedPublication("puerta-falsa-tamales")) },
                 ),
                 onBack = nav.back(),
+                message = if (deleted) stringResource(R.string.publication_deleted) else null,
+                onMessageShown = { entry.savedStateHandle[PUBLICATION_DELETED_KEY] = false },
             )
         }
         composable<EditPublication> { PlaceholderScreen("23", "Editar publicación", emptyList(), onBack = nav.back()) }
         composable<RejectedPublication> {
-            PlaceholderScreen(
-                "24", "Publicación rechazada",
-                listOf(
-                    link("Corregir y reenviar") { nav.navigateToTab(TopLevelDestination.PUBLISH) },
-                    link("Ir al lugar existente") { nav.navigate(PoiDetail("cafe-las-acacias")) },
-                ),
+            RejectedPublicationRoute(
                 onBack = nav.back(),
+                onResubmit = { id, step -> nav.navigate(PublishForm(resubmitId = id, step = step)) },
+                onOpenExisting = { nav.navigate(PoiDetail(it, focusComment = true)) },
+                onOpenMine = { nav.openMyPublications() },
+                onDeleted = { nav.openMyPublications(deleted = true) },
             )
         }
         composable<Settings> {

@@ -42,11 +42,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -95,6 +99,7 @@ import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
+import co.edu.uniquindio.exploracity.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.ui.components.rememberNow
@@ -140,6 +145,7 @@ fun PoiDetailRoute(
     onAddComment: (String) -> Unit,
     onOpenAuthor: (String) -> Unit,
     onOpenMap: (String) -> Unit,
+    focusComment: Boolean = false,
     viewModel: PoiDetailViewModel = viewModel(factory = PoiDetailViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -149,6 +155,7 @@ fun PoiDetailRoute(
     val poiId = viewModel.poiId
     PoiDetailScreen(
         state = state,
+        focusComment = focusComment,
         callbacks = DetailCallbacks(
             onBack = onBack,
             onRetry = viewModel::onRetry,
@@ -184,7 +191,7 @@ class DetailCallbacks(
 )
 
 @Composable
-fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifier: Modifier = Modifier) {
+fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifier: Modifier = Modifier, focusComment: Boolean = false) {
     val snackbarHostState = remember { SnackbarHostState() }
     DetailMessageEffect(state.message, snackbarHostState, callbacks.onMessageShown)
 
@@ -200,7 +207,7 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         when (val content = state.content) {
             DetailContent.Loading -> DetailSkeleton()
-            is DetailContent.Loaded -> DetailLoaded(content.details, state, callbacks, scrollState)
+            is DetailContent.Loaded -> DetailLoaded(content.details, state, callbacks, scrollState, focusComment)
             DetailContent.Error -> Centered {
                 EmptyState(
                     icon = R.drawable.ic_sync_problem,
@@ -293,14 +300,20 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
 }
 
 @Composable
-private fun DetailLoaded(details: PoiDetails, state: PoiDetailUiState, callbacks: DetailCallbacks, scrollState: ScrollState) {
+private fun DetailLoaded(
+    details: PoiDetails,
+    state: PoiDetailUiState,
+    callbacks: DetailCallbacks,
+    scrollState: ScrollState,
+    focusComment: Boolean,
+) {
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(scrollState)) {
             Gallery(details)
             details.savedAt?.let { savedAt -> SavedBanner(savedAt, state.offline, callbacks.onRetry) }
             DetailBody(details, state.voting, callbacks)
         }
-        CommentsBar(details.poi.comments, callbacks.onOpenComments, callbacks.onAddComment)
+        CommentsBar(details.poi.comments, callbacks.onOpenComments, callbacks.onAddComment, focusComment)
     }
 }
 
@@ -706,11 +719,23 @@ private fun ActionButton(
     }
 }
 
-/** Barra fija: «Ver 12 comentarios» y el botón de comentar; los dos llevan a 14, el segundo con el teclado listo. */
+/**
+ * Barra fija: «Ver 12 comentarios» y el botón de comentar; los dos llevan a 14, el segundo con el teclado listo. Con
+ * [focusAdd] (llegando desde «Ir al lugar existente», 24) el foco va una sola vez al botón de comentar: la invitación es
+ * contar la experiencia en el lugar que ya existía.
+ */
 @Composable
-private fun CommentsBar(comments: Int, onOpenComments: () -> Unit, onAddComment: () -> Unit) {
+private fun CommentsBar(comments: Int, onOpenComments: () -> Unit, onAddComment: () -> Unit, focusAdd: Boolean) {
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
+    val addFocus = remember { FocusRequester() }
+    var focused by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(focusAdd) {
+        if (focusAdd && !focused) {
+            addFocus.requestFocus()
+            focused = true
+        }
+    }
     Column(Modifier.fillMaxWidth().background(scheme.surface)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(explora.divider))
         Row(
@@ -744,6 +769,7 @@ private fun CommentsBar(comments: Int, onOpenComments: () -> Unit, onAddComment:
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(scheme.primary)
+                    .then(if (focusAdd) Modifier.initialFocus(addFocus) else Modifier)
                     .clickable(role = Role.Button, onClick = onAddComment)
                     .semantics { contentDescription = add },
                 contentAlignment = Alignment.Center,

@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.ui.theme.ExploraSizes
@@ -40,6 +41,9 @@ enum class ExploraButtonStyle {
 
     /** Acción destructiva: relleno error. Nunca es la acción predeterminada de un diálogo. */
     DESTRUCTIVE,
+
+    /** Acción destructiva secundaria, como texto en color error («Eliminar publicación», 24.a). */
+    DESTRUCTIVE_TEXT,
 }
 
 /**
@@ -67,6 +71,7 @@ fun ExploraButton(
         ExploraButtonStyle.SECONDARY -> Color.Transparent to explora.onSurfaceAccent
         ExploraButtonStyle.TEXT -> Color.Transparent to scheme.tertiary
         ExploraButtonStyle.DESTRUCTIVE -> scheme.error to scheme.onError
+        ExploraButtonStyle.DESTRUCTIVE_TEXT -> Color.Transparent to scheme.error
     }
     val filled = container != Color.Transparent
     val border = if (style == ExploraButtonStyle.SECONDARY) {
@@ -105,6 +110,7 @@ fun ExploraButton(
             icon != null -> Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(20.dp.scaledWithFont()))
         }
         if (loading || icon != null) Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.labelLarge)
+        // Con fuente grande el texto puede partirse en dos líneas: centrado, como la línea única.
+        Text(text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
     }
 }
