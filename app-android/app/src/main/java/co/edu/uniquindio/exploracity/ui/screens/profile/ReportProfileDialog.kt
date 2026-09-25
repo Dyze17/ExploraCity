@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -42,6 +41,7 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.viewmodel.ReportDialogState
 import co.edu.uniquindio.exploracity.viewmodel.ReportError
@@ -121,7 +121,7 @@ fun ReportProfileDialog(
             ExploraButton(
                 stringResource(R.string.report_cancel),
                 onClick = onDismiss,
-                modifier = Modifier.focusRequester(cancelFocus),
+                modifier = Modifier.initialFocus(cancelFocus),
                 style = ExploraButtonStyle.TEXT,
                 enabled = !state.sending,
             )

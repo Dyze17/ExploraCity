@@ -9,13 +9,16 @@ import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
+import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeUserRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.UserRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.data.sync.PendingSender
@@ -47,6 +50,8 @@ class AppContainer(context: Context) {
     private val server: PoiRepository = FakePoiRepository(currentUser = currentUser)
 
     private val notificationServer: NotificationRepository = FakeNotificationRepository()
+
+    private val publicationServer = FakePublicationRepository(server)
 
     /** Lo usa el worker de WorkManager para enviar la cola, también con la app cerrada. */
     val pendingSender = PendingSender(server, notificationServer, database.pendingActionsDao(), database.savedPlacesDao())
@@ -87,7 +92,9 @@ class AppContainer(context: Context) {
         }
     }
 
-    val userRepository: UserRepository = OfflineUserRepository(FakeUserRepository(server, currentUser), database.profileDao(), connectivity)
+    val userRepository: UserRepository =
+        OfflineUserRepository(FakeUserRepository(server, publicationServer, currentUser), database.profileDao(), connectivity)
+    val publicationRepository: PublicationRepository = OnlineOnlyPublicationRepository(publicationServer, connectivity)
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 

@@ -12,8 +12,15 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
@@ -36,8 +43,32 @@ fun PlaceholderScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     fab: @Composable (() -> Unit)? = null,
+    message: String? = null,
+    onMessageShown: () -> Unit = {},
 ) {
-    Column(modifier.fillMaxSize()) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val currentOnMessageShown by rememberUpdatedState(onMessageShown)
+    LaunchedEffect(message) {
+        if (message == null) return@LaunchedEffect
+        // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
+        snackbarHostState.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Short)
+        currentOnMessageShown()
+    }
+    Box(modifier.fillMaxSize()) {
+        PlaceholderContent(number, title, links, onBack, fab)
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars))
+    }
+}
+
+@Composable
+private fun PlaceholderContent(
+    number: String,
+    title: String,
+    links: List<PlaceholderLink>,
+    onBack: (() -> Unit)?,
+    fab: @Composable (() -> Unit)?,
+) {
+    Column(Modifier.fillMaxSize()) {
         ExploraTopAppBar(title = title, onBack = onBack)
         Box(Modifier.weight(1f)) {
             Column(

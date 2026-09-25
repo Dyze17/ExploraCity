@@ -32,10 +32,12 @@ interface UserRepository {
 
 /**
  * Temporal hasta que exista la API: los perfiles de prueba con los lugares que publicó cada persona, tomados del
- * servidor de lugares ([pois]) para que sus votos y comentarios estén al día.
+ * servidor de lugares ([pois]) para que sus votos y comentarios estén al día. Las publicaciones que el feed no muestra
+ * salen de [publications]: al borrar una, las cifras del perfil bajan.
  */
 class FakeUserRepository(
     private val pois: PoiRepository,
+    private val publications: FakePublicationRepository = FakePublicationRepository(pois),
     private val currentUser: Author = sampleCurrentUser,
     private val latency: Duration = 700.milliseconds,
     private val actionLatency: Duration = 300.milliseconds,
@@ -61,7 +63,7 @@ class FakeUserRepository(
     override suspend fun ownProfile(): OwnProfile {
         delay(latency)
         val seed = sampleProfiles.getValue(currentUser.id)
-        val statuses = placesBy(currentUser.id).map { it.status } + sampleHiddenPublications.map { it.status }
+        val statuses = placesBy(currentUser.id).map { it.status } + publications.hiddenStatuses
         return OwnProfile(
             author = seed.author,
             residency = seed.residency,
