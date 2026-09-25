@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -13,8 +14,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
+import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
+import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
 import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
@@ -22,6 +25,8 @@ import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
 import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
+import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
+import co.edu.uniquindio.exploracity.ui.screens.profile.OwnProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 
@@ -63,6 +68,22 @@ fun NavController.navigateToTab(tab: TopLevelDestination) {
 }
 
 private fun NavController.back(): () -> Unit = { popBackStack() }
+
+private fun PublicationStatus?.toFilter(): PublicationFilter = when (this) {
+    null -> PublicationFilter.ALL
+    PublicationStatus.PENDING -> PublicationFilter.PENDING
+    PublicationStatus.VERIFIED -> PublicationFilter.VERIFIED
+    PublicationStatus.REJECTED -> PublicationFilter.REJECTED
+    PublicationStatus.FINALIZED -> PublicationFilter.FINALIZED
+}
+
+private fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
+    PublicationFilter.ALL -> null
+    PublicationFilter.PENDING -> PublicationStatus.PENDING
+    PublicationFilter.VERIFIED -> PublicationStatus.VERIFIED
+    PublicationFilter.REJECTED -> PublicationStatus.REJECTED
+    PublicationFilter.FINALIZED -> PublicationStatus.FINALIZED
+}
 
 /**
  * El FeedViewModel vive en el grafo de Explorar, no en cada pantalla: lista (7) y mapa (8) comparten búsqueda,
@@ -216,7 +237,7 @@ private fun NavGraphBuilder.publishGraph(nav: NavController) {
             PlaceholderScreen(
                 "20", "Enviada a verificación",
                 listOf(
-                    link("Ver mis publicaciones") { nav.navigate(MyPublications) { popUpTo<PublishGraph> { inclusive = true } } },
+                    link("Ver mis publicaciones") { nav.navigate(MyPublications()) { popUpTo<PublishGraph> { inclusive = true } } },
                     link("Publicar otro lugar") { nav.navigate(PublishForm) { popUpTo<PublishSent> { inclusive = true } } },
                     link("Volver a explorar") { nav.popBackStack<PublishGraph>(inclusive = true) },
                 ),
@@ -242,21 +263,21 @@ private fun NavGraphBuilder.notificationsGraph(nav: NavController) {
 private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Unit) {
     navigation<ProfileGraph>(startDestination = Profile) {
         composable<Profile> {
-            PlaceholderScreen(
-                "26", "Perfil",
-                listOf(
-                    link("Ajustes") { nav.navigate(Settings) },
-                    link("Editar perfil") { nav.navigate(EditProfile) },
-                    link("Insignias · ver todas") { nav.navigate(Badges) },
-                    link("Ver mis publicaciones") { nav.navigate(MyPublications) },
-                ),
+            OwnProfileRoute(
+                onOpenSettings = { nav.navigate(Settings) },
+                onEditProfile = { nav.navigate(EditProfile) },
+                onOpenBadges = { nav.navigate(Badges) },
+                onOpenPublications = { status -> nav.navigate(MyPublications(status.toFilter())) },
             )
         }
-        composable<Badges> { PlaceholderScreen("27", "Insignias y niveles", emptyList(), onBack = nav.back()) }
+        composable<Badges> { BadgesRoute(onBack = nav.back()) }
         composable<EditProfile> { PlaceholderScreen("28", "Editar perfil", emptyList(), onBack = nav.back()) }
-        composable<MyPublications> {
+        composable<MyPublications> { entry ->
+            // Provisional hasta construir 22: el título dice con qué filtro se abrió desde las cifras del perfil (26).
+            val status = entry.toRoute<MyPublications>().filter.toStatus()
             PlaceholderScreen(
-                "22", "Mis publicaciones",
+                "22",
+                if (status == null) "Mis publicaciones" else "Mis publicaciones · ${stringResource(status.labelRes)}",
                 listOf(
                     link("Café La Fonda · editar") { nav.navigate(EditPublication("cafe-la-fonda")) },
                     link("Mirador del Alto · rechazada") { nav.navigate(RejectedPublication("mirador-del-alto")) },

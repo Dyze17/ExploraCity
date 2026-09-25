@@ -14,8 +14,8 @@ import kotlin.time.toJavaDuration
 // y Sendero La Vieja abre con el de Laura, al que lleva el aviso de 25. El resto se completa con frases generales,
 // tantas como diga el contador del lugar.
 
-/** Persona de la sesión mientras no haya inicio de sesión real: Ana Ríos, como en los lienzos. */
-val sampleCurrentUser = Author("ana-rios", "Ana Ríos", points = 60)
+/** Persona de la sesión mientras no haya inicio de sesión real: Ana Ríos, Aventurera con 340 puntos como en los lienzos (26.a). */
+val sampleCurrentUser = Author("ana-rios", "Ana Ríos", points = 340)
 
 private val commenters = sampleAuthors + listOf(
     Author("andres-m", "Andrés M.", points = 90),

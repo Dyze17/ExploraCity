@@ -358,6 +358,143 @@
     <string name="report_failed">No pudimos enviar el reporte. Intenta de nuevo.</string>
     <string name="report_offline">Sin conexión: no pudimos enviar el reporte. Inténtalo cuando vuelva el internet.</string>
 
+    <!-- Perfil propio (26) -->
+    <string name="own_profile_title">Mi perfil</string>
+    <string name="own_profile_settings">Ajustes</string>
+    <string name="own_profile_edit">Editar perfil</string>
+    <string name="own_profile_since">desde %1$s</string>
+    <string name="own_profile_points_to_next">%1$d para %2$s</string>
+    <string name="own_profile_max_level">Llegaste al nivel máximo</string>
+    <plurals name="own_profile_progress_spoken">
+        <item quantity="one">%1$d de %2$d punto, %3$d por ciento hacia %4$s</item>
+        <item quantity="many">%1$d de %2$d puntos, %3$d por ciento hacia %4$s</item>
+        <item quantity="other">%1$d de %2$d puntos, %3$d por ciento hacia %4$s</item>
+    </plurals>
+    <plurals name="own_profile_progress_max_spoken">
+        <item quantity="one">%1$d punto, nivel máximo</item>
+        <item quantity="many">%1$d puntos, nivel máximo</item>
+        <item quantity="other">%1$d puntos, nivel máximo</item>
+    </plurals>
+    <string name="own_profile_open_levels">ver niveles e insignias</string>
+    <string name="own_profile_publications">Mis publicaciones</string>
+    <plurals name="own_stat_active">
+        <item quantity="one">Activa</item>
+        <item quantity="many">Activas</item>
+        <item quantity="other">Activas</item>
+    </plurals>
+    <plurals name="own_stat_active_spoken">
+        <item quantity="one">%d publicación activa</item>
+        <item quantity="many">%d publicaciones activas</item>
+        <item quantity="other">%d publicaciones activas</item>
+    </plurals>
+    <plurals name="own_stat_finalized">
+        <item quantity="one">Finalizada</item>
+        <item quantity="many">Finalizadas</item>
+        <item quantity="other">Finalizadas</item>
+    </plurals>
+    <plurals name="own_stat_finalized_spoken">
+        <item quantity="one">%d publicación finalizada</item>
+        <item quantity="many">%d publicaciones finalizadas</item>
+        <item quantity="other">%d publicaciones finalizadas</item>
+    </plurals>
+    <plurals name="own_stat_pending">
+        <item quantity="one">Pendiente</item>
+        <item quantity="many">Pendientes</item>
+        <item quantity="other">Pendientes</item>
+    </plurals>
+    <plurals name="own_stat_pending_spoken">
+        <item quantity="one">%d publicación pendiente</item>
+        <item quantity="many">%d publicaciones pendientes</item>
+        <item quantity="other">%d publicaciones pendientes</item>
+    </plurals>
+    <string name="own_stat_filter">ver en Mis publicaciones</string>
+    <plurals name="own_profile_see_publications">
+        <item quantity="one">Ver mi publicación</item>
+        <item quantity="many">Ver mis %d publicaciones</item>
+        <item quantity="other">Ver mis %d publicaciones</item>
+    </plurals>
+    <string name="own_profile_see_publications_none">Ver mis publicaciones</string>
+    <string name="own_profile_badges">Insignias · %1$d de %2$d</string>
+    <plurals name="own_profile_badges_spoken">
+        <item quantity="one">Insignias, %1$d de %2$d desbloqueada</item>
+        <item quantity="many">Insignias, %1$d de %2$d desbloqueadas</item>
+        <item quantity="other">Insignias, %1$d de %2$d desbloqueadas</item>
+    </plurals>
+    <string name="own_profile_see_all">Ver todas</string>
+    <string name="own_profile_see_all_spoken">Ver todas las insignias</string>
+    <string name="own_profile_loading">Cargando tu perfil</string>
+    <string name="own_profile_error_title">No pudimos cargar tu perfil</string>
+    <string name="own_profile_offline_body">Todavía no hay un perfil guardado para ver sin conexión. Se cargará solo cuando vuelva la conexión.</string>
+    <string name="own_profile_not_updated_title">No pudimos actualizar tu perfil</string>
+    <string name="own_profile_saved_body">Estás viendo tu perfil guardado %1$s.</string>
+
+    <!-- Niveles e insignias (27) y «Cómo se obtiene» (27A) -->
+    <string name="badges_title">Niveles e insignias</string>
+    <string name="badges_path">Tu camino</string>
+    <string name="badges_section">Insignias</string>
+    <string name="badges_loading">Cargando niveles e insignias</string>
+    <plurals name="level_range">
+        <item quantity="one">%1$d a %2$d punto</item>
+        <item quantity="many">%1$d a %2$d puntos</item>
+        <item quantity="other">%1$d a %2$d puntos</item>
+    </plurals>
+    <plurals name="level_range_from">
+        <item quantity="one">Desde %d punto</item>
+        <item quantity="many">Desde %d puntos</item>
+        <item quantity="other">Desde %d puntos</item>
+    </plurals>
+    <string name="level_achieved">Logrado</string>
+    <string name="level_current">Estás aquí</string>
+    <plurals name="level_remaining">
+        <item quantity="one">Falta %d</item>
+        <item quantity="many">Faltan %d</item>
+        <item quantity="other">Faltan %d</item>
+    </plurals>
+    <plurals name="level_remaining_spoken">
+        <item quantity="one">falta %d punto</item>
+        <item quantity="many">faltan %d puntos</item>
+        <item quantity="other">faltan %d puntos</item>
+    </plurals>
+    <string name="level_row_spoken">%1$s, %2$s, %3$s</string>
+    <string name="badge_unlocked">Desbloqueada</string>
+    <string name="badge_locked">Bloqueada</string>
+    <string name="badge_locked_progress">Bloqueada · %1$s de %2$s</string>
+    <string name="badge_unlocked_spoken">%1$s, desbloqueada</string>
+    <string name="badge_locked_spoken">%1$s, bloqueada, %2$s</string>
+    <string name="badge_open">ver cómo se obtiene</string>
+    <plurals name="badge_progress_publications">
+        <item quantity="one">%1$s de %2$s publicación</item>
+        <item quantity="many">%1$s de %2$s publicaciones</item>
+        <item quantity="other">%1$s de %2$s publicaciones</item>
+    </plurals>
+    <plurals name="badge_progress_verified">
+        <item quantity="one">%1$s de %2$s lugar verificado</item>
+        <item quantity="many">%1$s de %2$s lugares verificados</item>
+        <item quantity="other">%1$s de %2$s lugares verificados</item>
+    </plurals>
+    <plurals name="badge_progress_category">
+        <item quantity="one">%1$s de %2$s lugar de %3$s verificado</item>
+        <item quantity="many">%1$s de %2$s lugares de %3$s verificados</item>
+        <item quantity="other">%1$s de %2$s lugares de %3$s verificados</item>
+    </plurals>
+    <plurals name="badge_progress_comments">
+        <item quantity="one">%1$s de %2$s comentario</item>
+        <item quantity="many">%1$s de %2$s comentarios</item>
+        <item quantity="other">%1$s de %2$s comentarios</item>
+    </plurals>
+    <plurals name="badge_progress_visits">
+        <item quantity="one">%1$s de %2$s lugar visitado</item>
+        <item quantity="many">%1$s de %2$s lugares visitados</item>
+        <item quantity="other">%1$s de %2$s lugares visitados</item>
+    </plurals>
+    <plurals name="badge_progress_votes">
+        <item quantity="one">%1$s de %2$s voto en tus lugares</item>
+        <item quantity="many">%1$s de %2$s votos en tus lugares</item>
+        <item quantity="other">%1$s de %2$s votos en tus lugares</item>
+    </plurals>
+    <string name="badge_how_to">Cómo se obtiene</string>
+    <string name="badge_got_it">Entendido</string>
+
     <!-- Notificaciones (25) -->
     <string name="notifications_title">Notificaciones</string>
     <string name="notifications_mark_all">Marcar leídas</string>
@@ -377,9 +514,9 @@
     <string name="notification_duplicate_hint">Puedes comentarla o marcarla como visitada.</string>
     <string name="notification_achievement">Nuevo logro: %1$s.</string>
     <plurals name="notification_achievement_next">
-        <item quantity="one">Te falta %1$d para la insignia de %2$s.</item>
-        <item quantity="many">Te faltan %1$d para la insignia de %2$s.</item>
-        <item quantity="other">Te faltan %1$d para la insignia de %2$s.</item>
+        <item quantity="one">Te falta %1$d para la insignia «%2$s».</item>
+        <item quantity="many">Te faltan %1$d para la insignia «%2$s».</item>
+        <item quantity="other">Te faltan %1$d para la insignia «%2$s».</item>
     </plurals>
     <plurals name="notification_points">
         <item quantity="one">+%d punto</item>

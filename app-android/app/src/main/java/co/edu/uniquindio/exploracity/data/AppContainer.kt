@@ -14,7 +14,7 @@ import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
-import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyUserRepository
+import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.UserRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
@@ -87,7 +87,7 @@ class AppContainer(context: Context) {
         }
     }
 
-    val userRepository: UserRepository = OnlineOnlyUserRepository(FakeUserRepository(server), connectivity)
+    val userRepository: UserRepository = OfflineUserRepository(FakeUserRepository(server, currentUser), database.profileDao(), connectivity)
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 

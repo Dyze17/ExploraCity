@@ -27,9 +27,10 @@ internal val sampleAuthors = listOf(
 
 /**
  * Lugares publicados por la persona de la sesión (Ana Ríos): sus avisos (25) hablan de ellos, así el aviso «tu lugar
- * quedó verificado» y el detalle («Publicado por Ana Ríos») coinciden.
+ * quedó verificado» y el detalle («Publicado por Ana Ríos») coinciden. Sendero La Vieja es suyo como en 22.a y 25
+ * («Laura comentó en Sendero La Vieja»).
  */
-internal val currentUserPlaces = setOf("quinta-de-bolivar", "casa-independencia")
+internal val currentUserPlaces = setOf("quinta-de-bolivar", "sendero-la-vieja", "casa-independencia")
 
 private val mondayToSaturday = setOf(MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY)
 private val everyDay = DayOfWeek.entries.toSet()

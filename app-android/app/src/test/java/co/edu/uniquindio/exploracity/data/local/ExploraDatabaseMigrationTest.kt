@@ -10,6 +10,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -54,6 +55,20 @@ class ExploraDatabaseMigrationTest {
 
         val database = Room.databaseBuilder(context, ExploraDatabase::class.java, NAME).allowMainThreadQueries().build()
         runBlocking { assertEquals(1, database.pendingActionsDao().count()) }
+        database.close()
+    }
+
+    @Test
+    fun `de la 3 a la actual conserva los avisos y agrega el perfil guardado vacío`() {
+        createVersion(3) {
+            execSQL("INSERT INTO saved_notifications (id, position, type, createdAtMillis, read) VALUES ('n-1', 0, 'FINALIZED', 1000, 1)")
+        }
+
+        val database = Room.databaseBuilder(context, ExploraDatabase::class.java, NAME).allowMainThreadQueries().build()
+        runBlocking {
+            assertEquals(listOf("n-1"), database.notificationsDao().all().map { it.id })
+            assertNull(database.profileDao().get())
+        }
         database.close()
     }
 
