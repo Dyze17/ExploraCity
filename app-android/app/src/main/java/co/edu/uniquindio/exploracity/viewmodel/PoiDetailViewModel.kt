@@ -84,6 +84,22 @@ class PoiDetailViewModel(
 
     fun onRetry() = load()
 
+    /**
+     * Al volver al detalle (de 14, del mapa…) se recarga sin la silueta, para que el número de comentarios quede al
+     * día. No pisa un voto ni una visita en curso; si falla, se queda lo que había.
+     */
+    fun onResumed() {
+        if (_state.value.content !is DetailContent.Loaded || loadJob?.isActive == true) return
+        loadJob = viewModelScope.launch {
+            val fresh = runCatchingNonCancellation { poiRepository.poiDetails(poiId) } ?: return@launch
+            _state.update { current ->
+                val shown = current.details
+                if (shown == null || current.voting || current.visitSheet?.sending == true) return@update current
+                current.copy(content = DetailContent.Loaded(fresh.copy(visited = fresh.visited || shown.visited)))
+            }
+        }
+    }
+
     /** «Es importante»: cambia al instante (relleno + «Ya votaste») y se revierte si el servidor falla. */
     fun onToggleVote() {
         val state = _state.value

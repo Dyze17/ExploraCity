@@ -17,6 +17,7 @@ import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
+import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
 import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
@@ -188,11 +189,12 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
             PoiDetailRoute(
                 onBack = nav.back(),
                 onOpenComments = { nav.navigate(Comments(it)) },
+                onAddComment = { nav.navigate(Comments(it, write = true)) },
                 onOpenAuthor = { nav.navigate(PublicProfile(it)) },
                 onOpenMap = { nav.navigate(FeedMap(focusPoiId = it)) },
             )
         }
-        composable<Comments> { PlaceholderScreen("14", "Comentarios", emptyList(), onBack = nav.back()) }
+        composable<Comments> { CommentsRoute(onBack = nav.back()) }
         composable<PublicProfile> {
             PlaceholderScreen(
                 "31", "Perfil público",

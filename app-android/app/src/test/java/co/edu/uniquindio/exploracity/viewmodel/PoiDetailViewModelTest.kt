@@ -200,6 +200,22 @@ class PoiDetailViewModelTest {
         assertEquals(VisitExperience(), vm.state.value.visitSheet!!.draft)
     }
 
+    @Test
+    fun `al volver al detalle se actualiza el número de comentarios sin mostrar la carga`() = runTest(dispatcher) {
+        val repository = FakePoiRepository()
+        val vm = viewModel(repository)
+        vm.onResumed()
+        advanceUntilIdle()
+        val before = vm.details.poi.comments
+
+        repository.addComment("cafe-las-acacias", "Muy buen pan de queso.")
+        vm.onResumed()
+        assertTrue(vm.state.value.content is DetailContent.Loaded)
+        advanceUntilIdle()
+
+        assertEquals(before + 1, vm.details.poi.comments)
+    }
+
     private class FailingRepository(
         var failDetails: Boolean = false,
         private val failVote: Boolean = false,

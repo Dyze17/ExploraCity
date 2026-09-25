@@ -204,6 +204,52 @@
     </plurals>
     <string name="visit_failed">No pudimos marcar tu visita. Lo que escribiste sigue ahí; intenta de nuevo.</string>
 
+    <!-- Comentarios (14) -->
+    <string name="comments_title">Comentarios</string>
+    <string name="comments_subtitle">%1$s · %2$d</string>
+    <plurals name="comments_subtitle_description">
+        <item quantity="one">%1$s, %2$d comentario</item>
+        <item quantity="many">%1$s, %2$d comentarios</item>
+        <item quantity="other">%1$s, %2$d comentarios</item>
+    </plurals>
+    <string name="comments_loading">Cargando comentarios</string>
+    <string name="comments_loading_more">Cargando más comentarios…</string>
+    <string name="comments_load_more_failed">No pudimos cargar más comentarios.</string>
+    <string name="comments_error_title">No pudimos cargar los comentarios</string>
+    <string name="comments_error_body">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
+    <string name="comments_empty_title">Sé el primero en contar cómo te fue</string>
+    <string name="comments_empty_body">Un dato útil, como el horario, los precios o cómo llegar, ayuda a quien va por primera vez.</string>
+    <string name="comments_you">Tú</string>
+    <string name="comments_sending">Enviando…</string>
+    <string name="comments_failed">No se envió</string>
+    <string name="comments_sent">Publicado</string>
+    <string name="comments_description">%1$s, nivel %2$s, %3$s. %4$s</string>
+    <string name="comments_mine_description">Tu comentario, %1$s. %2$s</string>
+    <string name="comments_own_description">Tu comentario: %1$s</string>
+    <string name="comments_placeholder">Escribe un comentario…</string>
+    <string name="comments_field_label">Escribe un comentario</string>
+    <string name="comments_counter">%1$d/%2$d</string>
+    <string name="comments_counter_description">%1$d de %2$d caracteres</string>
+    <string name="comments_send">Enviar comentario</string>
+
+    <!-- Tiempo transcurrido (14) -->
+    <string name="time_just_now">hace un momento</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">hace %d minuto</item>
+        <item quantity="many">hace %d minutos</item>
+        <item quantity="other">hace %d minutos</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">hace %d hora</item>
+        <item quantity="many">hace %d horas</item>
+        <item quantity="other">hace %d horas</item>
+    </plurals>
+    <plurals name="time_days_ago">
+        <item quantity="one">hace %d día</item>
+        <item quantity="many">hace %d días</item>
+        <item quantity="other">hace %d días</item>
+    </plurals>
+
     <!-- Hoja de filtros (9) -->
     <string name="filters_title">Filtros</string>
     <string name="filters_close">Cerrar filtros</string>

@@ -25,7 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -86,6 +85,7 @@ import co.edu.uniquindio.exploracity.ui.components.FeedMode
 import co.edu.uniquindio.exploracity.ui.components.FiltersBottomSheet
 import co.edu.uniquindio.exploracity.ui.components.FiltersButton
 import co.edu.uniquindio.exploracity.ui.components.ListMapToggle
+import co.edu.uniquindio.exploracity.ui.components.LoadingMoreRow
 import co.edu.uniquindio.exploracity.ui.components.POICard
 import co.edu.uniquindio.exploracity.ui.components.POICardSkeleton
 import co.edu.uniquindio.exploracity.ui.components.PublishFab
@@ -403,7 +403,7 @@ private fun FeedList(content: FeedContent.Loaded, state: FeedUiState, isModerato
         item(key = "header") { ListHeader(content.total, state.filters.scope, state.areaName) }
         items(content.items, key = { it.id }) { poi -> PoiItem(poi, callbacks.onOpenPoi) }
         if (content.loadingMore) {
-            item(key = "loading-more") { LoadingMore() }
+            item(key = "loading-more") { LoadingMoreRow(stringResource(R.string.feed_loading_more)) }
         }
     }
 }
@@ -493,22 +493,6 @@ private fun ModerationQueueCard(summary: ModerationSummary, onClick: () -> Unit)
             )
         }
         Icon(painterResource(R.drawable.ic_chevron_right), null, tint = warning.content, modifier = Modifier.size(22.dp))
-    }
-}
-
-@Composable
-private fun LoadingMore() {
-    Row(
-        Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        CircularProgressIndicator(Modifier.size(18.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp)
-        Text(
-            stringResource(R.string.feed_loading_more),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

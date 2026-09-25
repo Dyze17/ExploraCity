@@ -6,6 +6,8 @@ import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
+import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 
 /**
@@ -13,7 +15,10 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
  * aquí por los que usan data/remote (Ktor Client) y data/local (Room, DataStore) sin tocar la UI.
  */
 class AppContainer {
-    val poiRepository: PoiRepository = FakePoiRepository()
+    /** Temporal: llegará de la sesión (JWT en DataStore) cuando exista el inicio de sesión real. */
+    val currentUser: Author = sampleCurrentUser
+
+    val poiRepository: PoiRepository = FakePoiRepository(currentUser = currentUser)
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 
