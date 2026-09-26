@@ -30,8 +30,10 @@ import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.EditPublicationRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.MyPublicationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.RejectedPublicationRoute
+import co.edu.uniquindio.exploracity.ui.screens.publish.PublishFormRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
+import co.edu.uniquindio.exploracity.viewmodel.PublishExit
 
 /**
  * Grafo de navegación completo. Cada destino es por ahora una [PlaceholderScreen] con los enlaces que
@@ -233,14 +235,15 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
 
 private fun NavGraphBuilder.publishGraph(nav: NavController) {
     navigation<PublishGraph>(startDestination = PublishForm()) {
-        composable<PublishForm> { entry ->
-            // Provisional hasta construir 15–19: el título dice qué publicación se corrige y en qué paso abre (24).
-            val form = entry.toRoute<PublishForm>()
-            PlaceholderScreen(
-                "15–19",
-                if (form.resubmitId == null) "Publicar un lugar" else "Corregir y reenviar · paso ${form.step}",
-                listOf(link("Enviar a verificación (paso 5)") { nav.navigate(PublishSent) { popUpTo<PublishForm> { inclusive = true } } }),
-                onBack = nav.back(),
+        composable<PublishForm> {
+            PublishFormRoute(
+                onExit = { exit ->
+                    when (exit) {
+                        // Cerrar o «Guardar»: vuelve a la pestaña desde la que se abrió (15A).
+                        PublishExit.CLOSED -> nav.popBackStack()
+                        PublishExit.SENT -> nav.navigate(PublishSent) { popUpTo<PublishForm> { inclusive = true } }
+                    }
+                },
             )
         }
         composable<PublishSent> {

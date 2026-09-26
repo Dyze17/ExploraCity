@@ -87,6 +87,11 @@ object PublicationLimits {
     const val TITLE_MAX = 60
     const val DESCRIPTION_MIN = 30
     const val DESCRIPTION_MAX = 600
+
+    /** Caracteres que le faltan al título para el mínimo (0 si ya lo cumple); los espacios de los extremos no cuentan. */
+    fun titleMissing(title: String): Int = (TITLE_MIN - title.trim().length).coerceAtLeast(0)
+
+    fun descriptionMissing(description: String): Int = (DESCRIPTION_MIN - description.trim().length).coerceAtLeast(0)
 }
 
 /**
@@ -99,9 +104,9 @@ data class PublicationChanges(val title: String, val category: Category, val des
     val descriptionLength: Int get() = description.trim().length
 
     /** Caracteres que faltan para el mínimo (0 si ya lo cumple): «El título necesita al menos 5. Van 4». */
-    val titleMissing: Int get() = (PublicationLimits.TITLE_MIN - titleLength).coerceAtLeast(0)
+    val titleMissing: Int get() = PublicationLimits.titleMissing(title)
 
-    val descriptionMissing: Int get() = (PublicationLimits.DESCRIPTION_MIN - descriptionLength).coerceAtLeast(0)
+    val descriptionMissing: Int get() = PublicationLimits.descriptionMissing(description)
 
     val isValid: Boolean get() = titleMissing == 0 && descriptionMissing == 0
 

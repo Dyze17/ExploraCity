@@ -45,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -79,6 +78,7 @@ import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.iconRes
 import co.edu.uniquindio.exploracity.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.ui.components.labelRes
+import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
@@ -336,16 +336,6 @@ private fun DescriptionField(form: PublicationChanges, showError: Boolean, callb
         inputTransformation = InputTransformation.maxLength(PublicationLimits.DESCRIPTION_MAX),
         modifier = Modifier.fillMaxWidth().onBlur(callbacks.onDescriptionBlur),
     )
-}
-
-/** Avisa cuando el campo pierde el foco (no al entrar): ahí se muestra su error (15.b). */
-@Composable
-private fun Modifier.onBlur(onBlur: () -> Unit): Modifier {
-    var focused by remember { mutableStateOf(false) }
-    return onFocusChanged { state ->
-        if (focused && !state.isFocused) onBlur()
-        focused = state.isFocused
-    }
 }
 
 /**
