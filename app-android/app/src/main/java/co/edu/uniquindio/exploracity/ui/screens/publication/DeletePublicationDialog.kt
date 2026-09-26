@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.initialFocus
@@ -37,21 +38,19 @@ import co.edu.uniquindio.exploracity.viewmodel.DeleteDialogState
 import co.edu.uniquindio.exploracity.viewmodel.DeleteError
 
 /**
- * 23 · «¿Eliminar…?» con las consecuencias enumeradas. El foco inicial va a «Cancelar»; «Sí, eliminar» nunca es la
- * acción por defecto ni responde a Enter. Una publicación rechazada nunca fue pública: solo se pierden ella y sus
- * fotos. Los comentarios, votos y puntos del lienzo 23.a se agregarán al hacer 23, donde sí aplican. Si falla, el
- * aviso queda dentro del diálogo.
+ * 23 · «¿Eliminar…?» con las consecuencias enumeradas (23.a): fotos, comentarios, votos y los puntos que se descuentan.
+ * Solo nombra lo que tiene: una rechazada nunca fue pública y pierde solo ella y sus fotos. El foco inicial va a
+ * «Cancelar»; «Sí, eliminar» nunca es la acción por defecto ni responde a Enter. Si falla, el aviso queda dentro.
  */
 @Composable
 fun DeletePublicationDialog(
-    title: String,
-    photos: Int,
+    publication: OwnPublication,
     state: DeleteDialogState,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val heading = stringResource(R.string.delete_publication_title, title)
+    val heading = stringResource(R.string.delete_publication_title, publication.title)
     val cancelFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { cancelFocus.requestFocus() }
 
@@ -67,7 +66,7 @@ fun DeletePublicationDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    pluralStringResource(R.plurals.delete_publication_body, photos, photos),
+                    deleteConsequences(publication),
                     style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
                     color = MaterialTheme.exploraColors.textSecondary,
                 )
@@ -101,4 +100,26 @@ fun DeletePublicationDialog(
         containerColor = scheme.surface,
         titleContentColor = scheme.onSurface,
     )
+}
+
+/** «Se borran la publicación, sus 3 fotos, sus 12 comentarios y los 48 votos que recibió. Se descuentan los 15 puntos…». */
+@Composable
+private fun deleteConsequences(publication: OwnPublication): String {
+    val parts = buildList {
+        add(stringResource(R.string.delete_publication_part_publication))
+        publication.photos.takeIf { it > 0 }?.let { add(pluralStringResource(R.plurals.delete_publication_part_photos, it, it)) }
+        publication.comments.takeIf { it > 0 }?.let { add(pluralStringResource(R.plurals.delete_publication_part_comments, it, it)) }
+        publication.votes.takeIf { it > 0 }?.let { add(pluralStringResource(R.plurals.delete_publication_part_votes, it, it)) }
+    }
+    val lastPair = stringResource(R.string.delete_publication_list_last)
+    val pair = stringResource(R.string.delete_publication_list)
+    // «a, b, c y d»: el último par va con «y» y los anteriores con coma.
+    val list = if (parts.size == 1) {
+        parts.single()
+    } else {
+        parts.dropLast(2).foldRight(lastPair.format(parts[parts.size - 2], parts.last())) { part, rest -> pair.format(part, rest) }
+    }
+    val points = publication.pointsEarned.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.delete_publication_points, it, it) }
+    return listOfNotNull(stringResource(R.string.delete_publication_body, list), points, stringResource(R.string.delete_publication_irreversible))
+        .joinToString(" ")
 }

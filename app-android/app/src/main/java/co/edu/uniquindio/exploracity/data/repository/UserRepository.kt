@@ -36,7 +36,7 @@ interface UserRepository {
  * salen de [publications]: al borrar una, las cifras del perfil bajan.
  */
 class FakeUserRepository(
-    private val pois: PoiRepository,
+    private val pois: FakePoiRepository,
     private val publications: FakePublicationRepository = FakePublicationRepository(pois),
     private val currentUser: Author = sampleCurrentUser,
     private val latency: Duration = 700.milliseconds,

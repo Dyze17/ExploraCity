@@ -42,6 +42,8 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 location = GeoPoint(4.5966, -74.0718),
                 photos = 3,
                 submittedAt = ago(2.hours),
+                // Ana confirmó que es otro lugar que uno cercano (17B): el moderador la ve como posible duplicado.
+                possibleDuplicate = true,
             ),
         ),
         PublicationSeed(
@@ -99,6 +101,19 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
         ),
     )
 }
+
+/**
+ * Cuándo envió Ana sus lugares públicos (currentUserPlaces) y los puntos que ganó con cada uno: +15 al quedar
+ * verificada y +20 más la primera (README · «Puntos que aparecen en el diseño»). Quinta de Bolívar se verificó hace 20
+ * minutos, como dice su aviso (25).
+ */
+internal class PublicSubmission(val submittedAgo: Duration, val pointsEarned: Int)
+
+internal val samplePublicSubmissions: Map<String, PublicSubmission> = mapOf(
+    "casa-independencia" to PublicSubmission(40.days, pointsEarned = 35),
+    "sendero-la-vieja" to PublicSubmission(12.days, pointsEarned = 15),
+    "quinta-de-bolivar" to PublicSubmission(2.days, pointsEarned = 15),
+)
 
 /** «Residente · Bogotá · desde marzo» (26.a). */
 internal val sampleMemberSince: YearMonth = YearMonth.of(2026, 3)

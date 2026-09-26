@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.navigation
 
 import androidx.annotation.Keep
+import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import kotlinx.serialization.Serializable
 
 // Rutas tipadas de la app. El número de cada una es el de la pantalla en el README del diseño.
@@ -75,6 +76,22 @@ import kotlinx.serialization.Serializable
 
 /** Filtros por estado de 22 («Todas · 7», «Pendientes · 2»…). */
 @Keep @Serializable enum class PublicationFilter { ALL, PENDING, VERIFIED, REJECTED, FINALIZED }
+
+fun PublicationStatus?.toFilter(): PublicationFilter = when (this) {
+    null -> PublicationFilter.ALL
+    PublicationStatus.PENDING -> PublicationFilter.PENDING
+    PublicationStatus.VERIFIED -> PublicationFilter.VERIFIED
+    PublicationStatus.REJECTED -> PublicationFilter.REJECTED
+    PublicationStatus.FINALIZED -> PublicationFilter.FINALIZED
+}
+
+fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
+    PublicationFilter.ALL -> null
+    PublicationFilter.PENDING -> PublicationStatus.PENDING
+    PublicationFilter.VERIFIED -> PublicationStatus.VERIFIED
+    PublicationFilter.REJECTED -> PublicationStatus.REJECTED
+    PublicationFilter.FINALIZED -> PublicationStatus.FINALIZED
+}
 
 @Serializable data class EditPublication(val publicationId: String) // 23
 

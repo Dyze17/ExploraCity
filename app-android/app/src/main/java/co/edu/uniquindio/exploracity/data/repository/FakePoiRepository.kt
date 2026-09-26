@@ -55,6 +55,17 @@ class FakePoiRepository(
     private val comments = mutableMapOf<String, MutableList<Comment>>()
     private var sentComments = 0
 
+    /** Lugares que su autor eliminó (22–24): dejan de estar en el feed, el mapa y el detalle. */
+    private val removed = mutableSetOf<String>()
+
+    /** Temporal: el servidor de publicaciones borra aquí las públicas; con la API real esto lo hace el backend. */
+    fun remove(id: String) {
+        removed += id
+    }
+
+    /** Todos los lugares al día, sin la latencia del feed: los usa el servidor de publicaciones (22–24). */
+    internal fun places(): List<Poi> = current()
+
     override suspend fun poiDetails(id: String): PoiDetails? {
         delay(latency)
         val poi = current().firstOrNull { it.id == id } ?: return null
@@ -81,7 +92,7 @@ class FakePoiRepository(
 
     override suspend fun comments(poiId: String, cursor: String?, pageSize: Int): CommentsPage? {
         delay(latency)
-        val poi = pois.firstOrNull { it.id == poiId } ?: return null
+        val poi = current().firstOrNull { it.id == poiId } ?: return null
         val all = commentsOf(poi)
         val from = cursor?.let { id -> all.indexOfFirst { it.id == id } + 1 } ?: 0
         val items = all.drop(from).take(pageSize)
@@ -91,7 +102,7 @@ class FakePoiRepository(
 
     override suspend fun addComment(poiId: String, text: String): Comment {
         delay(actionLatency)
-        val poi = pois.firstOrNull { it.id == poiId } ?: error("Lugar desconocido: $poiId")
+        val poi = current().firstOrNull { it.id == poiId } ?: error("Lugar desconocido: $poiId")
         require(text.isNotBlank() && text.length <= Comment.MAX_LENGTH) { "Comentario vacío o de más de ${Comment.MAX_LENGTH} caracteres" }
         val comment = Comment("$poiId-mine-${++sentComments}", currentUser, text, clock.instant(), mine = true)
         commentsOf(poi).add(0, comment)
@@ -103,7 +114,7 @@ class FakePoiRepository(
 
     private fun commentsOf(poi: Poi): MutableList<Comment> = comments.getOrPut(poi.id) { sampleComments(poi, clock.instant()).toMutableList() }
 
-    private fun current(): List<Poi> = pois.map { poi ->
+    private fun current(): List<Poi> = pois.filter { it.id !in removed }.map { poi ->
         poi.copy(votes = votes[poi.id] ?: poi.votes, comments = comments[poi.id]?.size ?: poi.comments)
     }
 

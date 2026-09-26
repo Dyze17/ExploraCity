@@ -66,6 +66,16 @@ data class OwnPublication(
     val photos: Int,
     val submittedAt: Instant,
     val photoUrl: String? = null,
+    /** Votos y comentarios: solo las públicas (verificadas y finalizadas) los reciben. */
+    val votes: Int = 0,
+    val comments: Int = 0,
+    /** Puntos que ganó con ella (verificada +15, primera publicación +20): se descuentan si la elimina (23). */
+    val pointsEarned: Int = 0,
+    /** Pendiente que el autor confirmó como distinta de un lugar cercano: el moderador la revisa como posible duplicado (ADR-14). */
+    val possibleDuplicate: Boolean = false,
     /** Solo en las rechazadas. */
     val rejection: Rejection? = null,
-)
+) {
+    /** Visible en el feed: tiene detalle (13) y comentarios. */
+    val isPublic: Boolean get() = status == PublicationStatus.VERIFIED || status == PublicationStatus.FINALIZED
+}

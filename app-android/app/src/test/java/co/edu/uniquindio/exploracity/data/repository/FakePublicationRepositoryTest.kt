@@ -68,4 +68,40 @@ class FakePublicationRepositoryTest {
         assertTrue(runCatching { repository.delete("mirador-de-la-pena") }.exceptionOrNull() is OfflineException)
         assertEquals(PublicationStatus.REJECTED, publications.publication("mirador-de-la-pena")?.status)
     }
+
+    @Test
+    fun `mis publicaciones son las siete de Ana, de la más reciente a la más antigua`() = runTest {
+        val mine = publications.myPublications()
+
+        assertEquals(7, mine.size)
+        assertEquals(mine.sortedByDescending { it.submittedAt }, mine)
+        assertEquals(2, mine.count { it.status == PublicationStatus.VERIFIED })
+        assertEquals(listOf("panaderia-la-candelaria"), mine.filter { it.possibleDuplicate }.map { it.id })
+    }
+
+    @Test
+    fun `las públicas traen votos, comentarios y los puntos que dieron, y las demás no`() = runTest {
+        val mine = publications.myPublications()
+        val quinta = mine.single { it.id == "quinta-de-bolivar" }
+        val place = pois.feedPage(FeedQuery(), 0, Int.MAX_VALUE).items.single { it.id == "quinta-de-bolivar" }
+
+        assertTrue(quinta.isPublic)
+        assertEquals(place.votes, quinta.votes)
+        assertEquals(place.comments, quinta.comments)
+        assertEquals(15, quinta.pointsEarned)
+        assertTrue(mine.filterNot { it.isPublic }.all { it.votes == 0 && it.comments == 0 && it.pointsEarned == 0 })
+    }
+
+    @Test
+    fun `eliminar una pública la quita del feed, de la lista y de las cifras del perfil`() = runTest {
+        val users = FakeUserRepository(pois, publications)
+        val verifiedBefore = users.ownProfile().publications.verified
+
+        publications.delete("sendero-la-vieja")
+
+        assertTrue(pois.feedPage(FeedQuery(), 0, Int.MAX_VALUE).items.none { it.id == "sendero-la-vieja" })
+        assertNull(pois.poiDetails("sendero-la-vieja"))
+        assertTrue(publications.myPublications().none { it.id == "sendero-la-vieja" })
+        assertEquals(verifiedBefore - 1, users.ownProfile().publications.verified)
+    }
 }

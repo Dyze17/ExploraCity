@@ -47,11 +47,11 @@ class AppContainer(context: Context) {
     val connectivity: ConnectivityObserver = AndroidConnectivityObserver(context, appScope)
 
     private val database = ExploraDatabase.build(context)
-    private val server: PoiRepository = FakePoiRepository(currentUser = currentUser)
+    private val server = FakePoiRepository(currentUser = currentUser)
 
     private val notificationServer: NotificationRepository = FakeNotificationRepository()
 
-    private val publicationServer = FakePublicationRepository(server)
+    private val publicationServer = FakePublicationRepository(server, currentUser = currentUser)
 
     /** Lo usa el worker de WorkManager para enviar la cola, también con la app cerrada. */
     val pendingSender = PendingSender(server, notificationServer, database.pendingActionsDao(), database.savedPlacesDao())

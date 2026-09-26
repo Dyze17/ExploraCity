@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -16,11 +15,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
-import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
-import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
 import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
@@ -31,6 +27,7 @@ import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.OwnProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
+import co.edu.uniquindio.exploracity.ui.screens.publication.MyPublicationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.RejectedPublicationRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 
@@ -73,7 +70,10 @@ fun NavController.navigateToTab(tab: TopLevelDestination) {
 
 private fun NavController.back(): () -> Unit = { popBackStack() }
 
-/** Marca en la entrada de 22 para avisar «Publicación eliminada» una vez (23 y 24). */
+/**
+ * Marca en la entrada de 22 (no en el SavedStateHandle de su ViewModel, que es otro) para avisar «Publicación eliminada»
+ * una vez al volver de eliminarla en 24.
+ */
 private const val PUBLICATION_DELETED_KEY = "publicacion_eliminada"
 
 /**
@@ -85,23 +85,8 @@ private fun NavController.openMyPublications(deleted: Boolean = false) {
         val current = currentBackStackEntry?.destination?.id
         navigate(MyPublications()) { if (current != null) popUpTo(current) { inclusive = true } }
     }
+    // 22 lo dice con «Publicación eliminada» y se pone al día.
     if (deleted) currentBackStackEntry?.savedStateHandle?.set(PUBLICATION_DELETED_KEY, true)
-}
-
-private fun PublicationStatus?.toFilter(): PublicationFilter = when (this) {
-    null -> PublicationFilter.ALL
-    PublicationStatus.PENDING -> PublicationFilter.PENDING
-    PublicationStatus.VERIFIED -> PublicationFilter.VERIFIED
-    PublicationStatus.REJECTED -> PublicationFilter.REJECTED
-    PublicationStatus.FINALIZED -> PublicationFilter.FINALIZED
-}
-
-private fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
-    PublicationFilter.ALL -> null
-    PublicationFilter.PENDING -> PublicationStatus.PENDING
-    PublicationFilter.VERIFIED -> PublicationStatus.VERIFIED
-    PublicationFilter.REJECTED -> PublicationStatus.REJECTED
-    PublicationFilter.FINALIZED -> PublicationStatus.FINALIZED
 }
 
 /**
@@ -296,21 +281,17 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Uni
         composable<Badges> { BadgesRoute(onBack = nav.back()) }
         composable<EditProfile> { PlaceholderScreen("28", "Editar perfil", emptyList(), onBack = nav.back()) }
         composable<MyPublications> { entry ->
-            // Provisional hasta construir 22: el título dice con qué filtro se abrió desde las cifras del perfil (26), y
-            // avisa «Publicación eliminada» al volver de eliminar una (24).
-            val status = entry.toRoute<MyPublications>().filter.toStatus()
-            val deleted by entry.savedStateHandle.getStateFlow(PUBLICATION_DELETED_KEY, false).collectAsStateWithLifecycle()
-            PlaceholderScreen(
-                "22",
-                if (status == null) "Mis publicaciones" else "Mis publicaciones · ${stringResource(status.labelRes)}",
-                listOf(
-                    link("Café La Fonda · editar") { nav.navigate(EditPublication("cafe-la-fonda")) },
-                    link("Mirador de La Peña · rechazada") { nav.navigate(RejectedPublication("mirador-de-la-pena")) },
-                    link("Puerta Falsa, tamales · ya existía") { nav.navigate(RejectedPublication("puerta-falsa-tamales")) },
-                ),
+            val deletedElsewhere by entry.savedStateHandle.getStateFlow(PUBLICATION_DELETED_KEY, false).collectAsStateWithLifecycle()
+            MyPublicationsRoute(
+                deletedElsewhere = deletedElsewhere,
+                onDeletedElsewhereHandled = { entry.savedStateHandle[PUBLICATION_DELETED_KEY] = false },
                 onBack = nav.back(),
-                message = if (deleted) stringResource(R.string.publication_deleted) else null,
-                onMessageShown = { entry.savedStateHandle[PUBLICATION_DELETED_KEY] = false },
+                onOpenPlace = { nav.navigate(PoiDetail(it)) },
+                onOpenRejected = { nav.navigate(RejectedPublication(it)) },
+                onEdit = { nav.navigate(EditPublication(it)) },
+                onOpenComments = { nav.navigate(Comments(it)) },
+                onResubmit = { id, step -> nav.navigate(PublishForm(resubmitId = id, step = step)) },
+                onPublish = { nav.navigateToTab(TopLevelDestination.PUBLISH) },
             )
         }
         composable<EditPublication> { PlaceholderScreen("23", "Editar publicación", emptyList(), onBack = nav.back()) }
