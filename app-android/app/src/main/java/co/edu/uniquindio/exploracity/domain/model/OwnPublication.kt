@@ -65,6 +65,7 @@ data class OwnPublication(
     val location: GeoPoint,
     val photos: Int,
     val submittedAt: Instant,
+    val description: String = "",
     val photoUrl: String? = null,
     /** Votos y comentarios: solo las públicas (verificadas y finalizadas) los reciben. */
     val votes: Int = 0,
@@ -78,4 +79,36 @@ data class OwnPublication(
 ) {
     /** Visible en el feed: tiene detalle (13) y comentarios. */
     val isPublic: Boolean get() = status == PublicationStatus.VERIFIED || status == PublicationStatus.FINALIZED
+}
+
+/** Reglas del paso 1 (15) que valen también al editar (23): título 5–60 y descripción 30–600 caracteres. */
+object PublicationLimits {
+    const val TITLE_MIN = 5
+    const val TITLE_MAX = 60
+    const val DESCRIPTION_MIN = 30
+    const val DESCRIPTION_MAX = 600
+}
+
+/**
+ * 23 · Lo que se puede cambiar de una publicación ya enviada. Los espacios de los extremos no cuentan: un título de
+ * cinco espacios no es un título.
+ */
+data class PublicationChanges(val title: String, val category: Category, val description: String) {
+    val titleLength: Int get() = title.trim().length
+
+    val descriptionLength: Int get() = description.trim().length
+
+    /** Caracteres que faltan para el mínimo (0 si ya lo cumple): «El título necesita al menos 5. Van 4». */
+    val titleMissing: Int get() = (PublicationLimits.TITLE_MIN - titleLength).coerceAtLeast(0)
+
+    val descriptionMissing: Int get() = (PublicationLimits.DESCRIPTION_MIN - descriptionLength).coerceAtLeast(0)
+
+    val isValid: Boolean get() = titleMissing == 0 && descriptionMissing == 0
+
+    /** Sin los espacios de los extremos, como se guarda. */
+    fun trimmed(): PublicationChanges = copy(title = title.trim(), description = description.trim())
+
+    companion object {
+        fun of(publication: OwnPublication) = PublicationChanges(publication.title, publication.category, publication.description)
+    }
 }

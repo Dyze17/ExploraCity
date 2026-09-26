@@ -406,6 +406,42 @@
     <string name="my_publications_status_rejected_spoken">rechazada, toca para ver el motivo</string>
     <string name="my_publications_status_finalized_spoken">finalizada</string>
 
+    <!-- Editar publicación (23) -->
+    <string name="edit_title">Editar publicación</string>
+    <string name="edit_save">Guardar</string>
+    <string name="edit_notice_verified">Al guardar cambios, la publicación vuelve a verificación y deja de ser visible hasta que un moderador la apruebe.</string>
+    <string name="edit_notice_pending">Sigue pendiente de verificación: el moderador revisará la versión con tus cambios.</string>
+    <string name="edit_field_title">Título</string>
+    <string name="edit_title_hint">Como lo conoce la gente del barrio · %1$d/%2$d</string>
+    <plurals name="edit_title_error">
+        <item quantity="one">El título necesita al menos %2$d caracteres. Va %1$d.</item>
+        <item quantity="many">El título necesita al menos %2$d caracteres. Van %1$d.</item>
+        <item quantity="other">El título necesita al menos %2$d caracteres. Van %1$d.</item>
+    </plurals>
+    <string name="edit_field_category">Categoría</string>
+    <string name="edit_category_spoken">Categoría: %1$s</string>
+    <string name="edit_category_change">cambiar la categoría</string>
+    <string name="edit_field_description">Descripción</string>
+    <string name="edit_description_hint">Mínimo %1$d caracteres · %2$d/%3$d</string>
+    <plurals name="edit_description_error">
+        <item quantity="one">Cuéntanos un poco más: falta %d carácter para el mínimo.</item>
+        <item quantity="many">Cuéntanos un poco más: faltan %d caracteres para el mínimo.</item>
+        <item quantity="other">Cuéntanos un poco más: faltan %d caracteres para el mínimo.</item>
+    </plurals>
+    <string name="edit_save_no_changes">todavía no hay cambios</string>
+    <string name="edit_save_fix_title">corrige el título</string>
+    <string name="edit_save_fix_description">corrige la descripción</string>
+    <string name="edit_save_fix_both">corrige el título y la descripción</string>
+    <string name="edit_save_offline">Sin conexión. Tus cambios siguen aquí; guarda cuando vuelva el internet.</string>
+    <string name="edit_save_failed">No pudimos guardar. Tus cambios siguen aquí; intenta de nuevo en un momento.</string>
+    <string name="edit_discard_title">¿Descartar los cambios?</string>
+    <string name="edit_discard_body">Lo que cambiaste se pierde y la publicación queda como estaba.</string>
+    <string name="edit_discard_confirm">Descartar</string>
+    <string name="edit_discard_keep">Seguir editando</string>
+    <string name="edit_not_editable_title">Esta publicación ya no se puede editar</string>
+    <string name="edit_not_editable_body">Las rechazadas se corrigen desde su motivo, y las finalizadas ya las cerró el moderador.</string>
+    <string name="edit_offline_body">Editar una publicación necesita internet. Se cargará sola cuando vuelva la conexión.</string>
+
     <!-- Publicación rechazada (24) y eliminar publicación (23) -->
     <string name="rejected_title">Publicación rechazada</string>
     <string name="rejected_status">Rechazada el %1$s</string>
@@ -460,6 +496,7 @@
     <string name="delete_publication_failed">No pudimos eliminarla. Intenta de nuevo en un momento.</string>
     <string name="delete_publication_offline">Sin conexión. Para eliminarla necesitas internet.</string>
     <string name="publication_deleted">Publicación eliminada</string>
+    <string name="publication_saved">Guardamos los cambios. Un moderador la revisará.</string>
 
     <!-- Perfil propio (26) -->
     <string name="own_profile_title">Mi perfil</string>
