@@ -244,6 +244,8 @@ private fun NavGraphBuilder.publishGraph(nav: NavController) {
                         PublishExit.SENT -> nav.navigate(PublishSent) { popUpTo<PublishForm> { inclusive = true } }
                     }
                 },
+                // 17A · «Ver este lugar»: al volver, el formulario sigue intacto.
+                onOpenPlace = { id -> nav.navigate(PoiDetail(id)) },
             )
         }
         composable<PublishSent> {

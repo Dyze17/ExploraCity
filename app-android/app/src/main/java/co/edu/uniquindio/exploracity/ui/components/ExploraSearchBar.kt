@@ -46,6 +46,8 @@ fun ExploraSearchBar(
     enabled: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     trailing: @Composable (() -> Unit)? = null,
+    /** La tecla «Buscar» del teclado; el feed filtra mientras se escribe y no la necesita. */
+    onSearch: () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
@@ -70,7 +72,12 @@ fun ExploraSearchBar(
         textStyle = MaterialTheme.typography.bodyLarge.copy(color = scheme.onSurface),
         cursorBrush = SolidColor(scheme.primary),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+        keyboardActions = KeyboardActions(
+            onSearch = {
+                focusManager.clearFocus()
+                onSearch()
+            },
+        ),
         interactionSource = interactionSource,
         decorationBox = { innerTextField ->
             OutlinedTextFieldDefaults.DecorationBox(

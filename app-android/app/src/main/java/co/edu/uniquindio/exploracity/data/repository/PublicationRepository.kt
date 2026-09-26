@@ -51,6 +51,10 @@ class FakePublicationRepository(
     /** Estados de las que el feed no muestra: el perfil (26) las cuenta junto a las públicas. */
     val hiddenStatuses: List<PublicationStatus> get() = hidden.value.map { it.publication.status }
 
+    /** Las pendientes, sin la latencia: la búsqueda de parecidos (17) también las compara. */
+    internal fun pendingOnes(): List<OwnPublication> =
+        hidden.value.map { it.publication }.filter { it.status == PublicationStatus.PENDING }
+
     override suspend fun myPublications(): List<OwnPublication> {
         delay(latency)
         return all().sortedByDescending { it.submittedAt }

@@ -41,7 +41,7 @@ fun rememberFilterCallbacks(viewModel: FeedViewModel): FilterCallbacks {
         when (purpose) {
             LocationPurpose.APPLY_FILTERS -> if (granted) viewModel.onApplyFilters() else viewModel.onLocationDenied()
             LocationPurpose.ENABLE_NEARBY -> if (granted) viewModel.onLocationGranted()
-            LocationPurpose.CENTER_MAP -> Unit
+            LocationPurpose.CENTER_MAP, LocationPurpose.PLACE_PIN -> Unit
         }
     }
     return remember(viewModel, location) {

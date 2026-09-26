@@ -82,7 +82,6 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
-import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.ui.components.ActiveFilterChip
@@ -127,8 +126,6 @@ import co.edu.uniquindio.exploracity.viewmodel.MapUiState
 import co.edu.uniquindio.exploracity.viewmodel.MapViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.ComposeMapColorScheme
@@ -509,7 +506,7 @@ private fun MapOffline(savedCount: Int, callbacks: MapCallbacks, modifier: Modif
 
 /** Solo en compilaciones de desarrollo sin MAPS_API_KEY: explica cómo configurarla en vez de dejar el mapa en blanco. */
 @Composable
-private fun MissingMapsKey() {
+internal fun MissingMapsKey() {
     Box(
         Modifier
             .fillMaxSize()
@@ -837,15 +834,6 @@ private fun EmptyArea(hasCriteria: Boolean, onClear: () -> Unit) {
         }
     }
 }
-
-private fun GeoPoint.toLatLng() = LatLng(latitude, longitude)
-
-private fun LatLngBounds.toGeoBounds() = GeoBounds(
-    southwest = GeoPoint(southwest.latitude, southwest.longitude),
-    northeast = GeoPoint(northeast.latitude, northeast.longitude),
-)
-
-private fun GeoBounds.toLatLngBounds() = LatLngBounds(southwest.toLatLng(), northeast.toLatLng())
 
 private val previewMap = MapUiState(
     areaCenter = samplePois.first().location,
