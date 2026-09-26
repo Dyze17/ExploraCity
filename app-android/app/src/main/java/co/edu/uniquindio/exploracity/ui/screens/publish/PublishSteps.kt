@@ -81,7 +81,7 @@ internal fun BasicsStep(state: PublishUiState, callbacks: PublishCallbacks) {
         when (state.stepErrors.firstOrNull()) {
             DraftField.TITLE -> titleFocus.requestFocus()
             DraftField.DESCRIPTION -> descriptionFocus.requestFocus()
-            DraftField.CATEGORY, null -> Unit
+            DraftField.CATEGORY, DraftField.LOCATION, null -> Unit
         }
     }
 
@@ -212,12 +212,13 @@ private fun SuggestionBanner(suggestion: Suggestion, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun BannerIcon(icon: Int, tint: Color) {
+internal fun BannerIcon(icon: Int, tint: Color) {
     Icon(painterResource(icon), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp.scaledWithFont()))
 }
 
+/** Aviso de color con icono, título opcional y acción opcional (16 · sugerencia, 17.b · sin permiso). */
 @Composable
-private fun Banner(
+internal fun Banner(
     container: Color,
     content: Color,
     leading: @Composable () -> Unit,

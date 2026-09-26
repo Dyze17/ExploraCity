@@ -9,10 +9,15 @@ import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.local.DataStoreDraftRepository
 import co.edu.uniquindio.exploracity.data.local.DraftRepository
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
+import co.edu.uniquindio.exploracity.data.location.AddressResolver
+import co.edu.uniquindio.exploracity.data.location.GeocoderAddressResolver
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
+import co.edu.uniquindio.exploracity.data.location.OnlineOnlyAddressResolver
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
+import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeCategorySuggester
+import co.edu.uniquindio.exploracity.data.repository.FakeDuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
@@ -24,6 +29,7 @@ import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationReposito
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyCategorySuggester
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyDuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
@@ -32,6 +38,7 @@ import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.data.sync.PendingSender
 import co.edu.uniquindio.exploracity.data.sync.WorkManagerScheduler
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -112,6 +119,12 @@ class AppContainer(context: Context) {
 
     /** Temporal: la sugerencia real la hará el backend con IA (SAD: Componente de Clasificación IA). */
     val categorySuggester: CategorySuggester = OnlineOnlyCategorySuggester(FakeCategorySuggester(), connectivity)
+
+    /** Temporal: la búsqueda real la hará el backend con PostGIS (SAD: Componente de Detección de Duplicados). */
+    val duplicateFinder: DuplicateFinder = OnlineOnlyDuplicateFinder(FakeDuplicateFinder(server, publicationServer), connectivity)
+
+    /** Dirección aproximada del pin y búsqueda por dirección (17), con el Geocoder de Android. */
+    val addressResolver: AddressResolver = OnlineOnlyAddressResolver(GeocoderAddressResolver(context), connectivity)
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 
@@ -120,4 +133,7 @@ class AppContainer(context: Context) {
 
     /** Centro del área: donde abre el mapa (8) mientras no haya permiso de ubicación. Temporal como [areaName]. */
     val areaCenter: GeoPoint = GeoPoint(4.6097, -74.0817)
+
+    /** Límites del área: la búsqueda por dirección (17.b) no sale de la ciudad. Temporal como [areaName]. */
+    val areaBounds: GeoBounds = GeoBounds(southwest = GeoPoint(4.4600, -74.2300), northeast = GeoPoint(4.8400, -73.9900))
 }

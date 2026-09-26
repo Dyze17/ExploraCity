@@ -461,6 +461,61 @@
     <string name="publish_close_body">Guardamos «%1$s» para que sigas después desde Publicar. Si lo descartas, se borra lo que escribiste.</string>
     <string name="publish_close_body_untitled">Guardamos lo que escribiste para que sigas después desde Publicar. Si lo descartas, se borra.</string>
     <string name="publish_discard">Descartar</string>
+    <!-- 17 · Paso 3, ubicación -->
+    <string name="publish_errors_location">Mueve el pin hasta la entrada del lugar para continuar.</string>
+    <string name="publish_confirm_location">Confirmar ubicación</string>
+    <string name="publish_searching_nearby">Buscando lugares cercanos…</string>
+    <string name="publish_location_heading">¿Dónde queda?</string>
+    <string name="publish_location_intro">Mueve el mapa hasta que el pin quede en la entrada del lugar. No tiene que ser exacto.</string>
+    <string name="publish_location_hint">Mueve el mapa para poner el pin en el lugar. Sin tu ubicación empezamos en el centro de la ciudad.</string>
+    <string name="publish_location_map">Mapa para ubicar el lugar</string>
+    <string name="publish_pin_placed">Pin del lugar</string>
+    <string name="publish_pin_unplaced">Pin del lugar, sin poner. Mueve el mapa hasta la entrada del lugar.</string>
+    <string name="publish_use_my_location">Usar mi ubicación</string>
+    <string name="publish_nudge_title">Mover el pin</string>
+    <string name="publish_nudge_north">Mover el pin al norte</string>
+    <string name="publish_nudge_south">Mover el pin al sur</string>
+    <string name="publish_nudge_east">Mover el pin al este</string>
+    <string name="publish_nudge_west">Mover el pin al oeste</string>
+    <string name="publish_address_title">Dirección aproximada</string>
+    <string name="publish_address_loading">Buscando la dirección…</string>
+    <string name="publish_address_none">Este punto no tiene una dirección conocida. Guardamos sus coordenadas.</string>
+    <string name="publish_address_offline">Sin conexión: la dirección aparecerá cuando vuelva la red. Las coordenadas ya quedaron guardadas.</string>
+    <string name="publish_address_unavailable">No pudimos traer la dirección. Guardamos las coordenadas del punto.</string>
+    <string name="publish_coordinates_spoken">Coordenadas: %1$s</string>
+    <string name="publish_location_denied_title">No tenemos permiso de ubicación</string>
+    <string name="publish_location_denied_body_settings">Puedes buscar la dirección o mover el pin a mano. También puedes darnos permiso desde Ajustes.</string>
+    <string name="publish_location_denied_body_ask">Puedes buscar la dirección o mover el pin a mano. También puedes darnos permiso.</string>
+    <string name="publish_location_allow">Dar permiso</string>
+    <string name="publish_location_open_settings">Abrir Ajustes</string>
+    <string name="publish_address_search">Buscar una dirección o barrio</string>
+    <string name="publish_address_search_not_found">No encontramos «%1$s» en la ciudad. Prueba con otra dirección o mueve el pin.</string>
+    <string name="publish_address_search_offline">Sin conexión no podemos buscar direcciones. Puedes mover el pin a mano.</string>
+    <string name="publish_address_search_failed">La búsqueda no respondió. Intenta otra vez o mueve el pin a mano.</string>
+    <!-- 17A · ¿Ya existe este lugar? y 17B · Es un lugar distinto -->
+    <string name="duplicate_sheet_title">Encontramos lugares parecidos muy cerca</string>
+    <string name="duplicate_sheet_body">Revisa si tu lugar ya está en ExploraCity. Si es otro, puedes continuar.</string>
+    <string name="duplicate_not_same">Es otro lugar, continuar</string>
+    <string name="duplicate_draft_saved">Tu borrador está guardado</string>
+    <string name="duplicate_open_place">Ver este lugar</string>
+    <string name="duplicate_not_public">En revisión, aún no es público.</string>
+    <string name="duplicate_candidate_description">Lugar parecido %1$d: %2$s, %3$s, %4$s, %5$s</string>
+    <string name="duplicate_marker_new">Tu nuevo lugar</string>
+    <string name="duplicate_marker_existing">Lugar parecido %1$d</string>
+    <plurals name="duplicate_map_description">
+        <item quantity="one">Mapa con tu nuevo lugar y %d lugar parecido a menos de 50 m</item>
+        <item quantity="many">Mapa con tu nuevo lugar y %d lugares parecidos a menos de 50 m</item>
+        <item quantity="other">Mapa con tu nuevo lugar y %d lugares parecidos a menos de 50 m</item>
+    </plurals>
+    <string name="duplicate_legend_new">+ Tu nuevo lugar</string>
+    <string name="duplicate_legend_existing">▢ Lugar existente</string>
+    <string name="duplicate_legend_radius">◌ %1$d m</string>
+    <string name="duplicate_different_title">Es un lugar distinto</string>
+    <string name="duplicate_different_body">Perfecto. Antes de publicarlo, el moderador lo comparará con los lugares parecidos para confirmar que no esté repetido.</string>
+    <string name="duplicate_flag_intro">Tu publicación llevará esta marca:</string>
+    <string name="duplicate_note_label">¿En qué se diferencia? (opcional)</string>
+    <string name="duplicate_note_hint">Ayuda al moderador a decidir más rápido · %1$d/%2$d</string>
+    <string name="duplicate_back_to_similar">Volver a los lugares parecidos</string>
 
     <!-- Editar publicación (23) -->
     <string name="edit_title">Editar publicación</string>

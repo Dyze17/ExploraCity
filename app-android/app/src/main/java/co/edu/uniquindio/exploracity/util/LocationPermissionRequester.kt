@@ -28,6 +28,9 @@ enum class LocationPurpose {
 
     /** Botón «Mi ubicación» del mapa (8). */
     CENTER_MAP,
+
+    /** «Usar mi ubicación» o el aviso de 17.b en el paso 3 del formulario. */
+    PLACE_PIN,
 }
 
 /**

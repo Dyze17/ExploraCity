@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
+import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +41,31 @@ class DataStoreDraftRepositoryTest {
         repository.save(DraftKey.New, draft)
 
         assertEquals(draft, repository.load(DraftKey.New))
+    }
+
+    @Test
+    fun `guarda el pin y la marca de posible duplicado con su nota (17 y 17B)`() = runTest {
+        val located = draft.copy(
+            location = GeoPoint(4.63412, -74.06558),
+            duplicateCheck = DuplicateCheck(GeoPoint(4.63412, -74.06558), listOf("la-fonda-cafe"), "Es el local del segundo piso."),
+            step = PublishStep.SCHEDULE,
+        )
+        repository.save(DraftKey.New, located)
+
+        val loaded = repository.load(DraftKey.New)
+        assertEquals(located, loaded)
+        assertEquals(true, loaded?.possibleDuplicate)
+        assertEquals(true, loaded?.duplicatesChecked)
+    }
+
+    @Test
+    fun `un borrador guardado antes del paso 3 se sigue leyendo`() = runTest {
+        dataStore.edit {
+            it[stringPreferencesKey("borrador:nueva")] = """{"title":"Café Las Acacias","category":"GASTRONOMY","step":"CATEGORY"}"""
+        }
+
+        val loaded = repository.load(DraftKey.New)
+        assertEquals(PublicationDraft(title = "Café Las Acacias", category = Category.GASTRONOMY, step = PublishStep.CATEGORY), loaded)
     }
 
     @Test

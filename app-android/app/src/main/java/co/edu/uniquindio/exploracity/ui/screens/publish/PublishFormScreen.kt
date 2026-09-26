@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.ui.screens.publish
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,7 +28,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -43,10 +47,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
@@ -62,6 +69,9 @@ import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.util.LocationPurpose
+import co.edu.uniquindio.exploracity.util.rememberLocationPermissionRequester
+import co.edu.uniquindio.exploracity.util.shouldShowLocationRationale
 import co.edu.uniquindio.exploracity.viewmodel.DraftField
 import co.edu.uniquindio.exploracity.viewmodel.PublishContent
 import co.edu.uniquindio.exploracity.viewmodel.PublishExit
@@ -69,10 +79,11 @@ import co.edu.uniquindio.exploracity.viewmodel.PublishUiState
 import co.edu.uniquindio.exploracity.viewmodel.PublishViewModel
 import co.edu.uniquindio.exploracity.viewmodel.Suggestion
 
-/** 15–19 · Formulario de publicación, conectado a su ViewModel. */
+/** 15–19 · Formulario de publicación, conectado a su ViewModel. [onOpenPlace] abre un lugar parecido (17A → 13). */
 @Composable
 fun PublishFormRoute(
     onExit: (PublishExit) -> Unit,
+    onOpenPlace: (String) -> Unit,
     viewModel: PublishViewModel = viewModel(factory = PublishViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -84,6 +95,31 @@ fun PublishFormRoute(
     }
     // El gesto de volver retrocede un paso; en el primero, cierra (con 15A si hay algo escrito).
     BackHandler(enabled = state.content == PublishContent.Editing) { viewModel.onBack() }
+
+    // 17 · Permiso de ubicación: «Usar mi ubicación» y el aviso de 17.b. Si Android ya no muestra su diálogo, el aviso
+    // lleva a Ajustes; se revisa al negarlo y al volver a la app.
+    val activity = LocalActivity.current
+    var canAskLocation by remember { mutableStateOf(true) }
+    val location = rememberLocationPermissionRequester { purpose, granted ->
+        if (purpose != LocationPurpose.PLACE_PIN) return@rememberLocationPermissionRequester
+        if (granted) {
+            viewModel.onUseMyLocation()
+        } else {
+            canAskLocation = activity?.shouldShowLocationRationale() == true
+            viewModel.onLocationDenied()
+        }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        canAskLocation = activity?.shouldShowLocationRationale() == true
+        // Vuelve de «Ver este lugar» (17A → 13): la hoja reaparece como estaba.
+        viewModel.onBackFromPlace()
+    }
+    // Con el permiso ya concedido, el paso 3 empieza donde está la persona y el pin cuenta como puesto.
+    val onLocationStep = state.content == PublishContent.Editing && state.step == PublishStep.LOCATION
+    LaunchedEffect(onLocationStep) {
+        if (onLocationStep && state.draft.location == null && location.isGranted) viewModel.onUseMyLocation()
+    }
+
     PublishFormScreen(
         state = state,
         callbacks = PublishCallbacks(
@@ -100,7 +136,24 @@ fun PublishFormRoute(
             onDescriptionBlur = viewModel::onDescriptionBlur,
             onCategoryChange = viewModel::onCategoryChange,
             onRetrySuggestion = viewModel::onRetrySuggestion,
+            onPinMoved = viewModel::onPinMoved,
+            onPinTargetShown = viewModel::onPinTargetShown,
+            onUseMyLocation = { location.request(LocationPurpose.PLACE_PIN) },
+            onAllowLocation = { location.allow(LocationPurpose.PLACE_PIN) },
+            onAddressQueryChange = viewModel::onAddressQueryChange,
+            onSearchAddress = viewModel::onSearchAddress,
+            onDuplicatesDismiss = viewModel::onDuplicatesDismiss,
+            onNotSamePlace = viewModel::onNotSamePlace,
+            onBackToSimilar = viewModel::onBackToSimilar,
+            onDuplicateNoteChange = viewModel::onDuplicateNoteChange,
+            onConfirmDifferent = viewModel::onConfirmDifferent,
+            onOpenSimilar = { id ->
+                viewModel.onLeaveForPlace()
+                onOpenPlace(id)
+            },
         ),
+        cityCenter = viewModel.cityCenter,
+        canAskLocation = canAskLocation,
     )
 }
 
@@ -118,6 +171,18 @@ class PublishCallbacks(
     val onDescriptionBlur: () -> Unit = {},
     val onCategoryChange: (Category) -> Unit = {},
     val onRetrySuggestion: () -> Unit = {},
+    val onPinMoved: (GeoPoint, Boolean) -> Unit = { _, _ -> },
+    val onPinTargetShown: (GeoPoint) -> Unit = {},
+    val onUseMyLocation: () -> Unit = {},
+    val onAllowLocation: () -> Unit = {},
+    val onAddressQueryChange: (String) -> Unit = {},
+    val onSearchAddress: () -> Unit = {},
+    val onDuplicatesDismiss: () -> Unit = {},
+    val onNotSamePlace: () -> Unit = {},
+    val onBackToSimilar: () -> Unit = {},
+    val onDuplicateNoteChange: (String) -> Unit = {},
+    val onConfirmDifferent: () -> Unit = {},
+    val onOpenSimilar: (String) -> Unit = {},
 )
 
 @get:StringRes
@@ -135,7 +200,13 @@ internal val PublishStep.labelRes: Int
  * «Atrás» / «Continuar». Con fuente grande la barra de acciones pasa a columna, «Continuar» arriba (16 al 200 %).
  */
 @Composable
-fun PublishFormScreen(state: PublishUiState, callbacks: PublishCallbacks, modifier: Modifier = Modifier) {
+fun PublishFormScreen(
+    state: PublishUiState,
+    callbacks: PublishCallbacks,
+    modifier: Modifier = Modifier,
+    cityCenter: GeoPoint = GeoPoint(4.6097, -74.0817),
+    canAskLocation: Boolean = true,
+) {
     val step = state.step
     val stepLabel = stringResource(step.labelRes)
     // Con fuente grande la barra no lleva «Guardar» (16 al 200 %): el borrador se guarda solo y cerrar lo ofrece (15A).
@@ -168,21 +239,40 @@ fun PublishFormScreen(state: PublishUiState, callbacks: PublishCallbacks, modifi
             }
             PublishContent.Editing -> {
                 StepIndicator(step, stepLabel, errors = if (state.showErrors) state.stepErrors.size else 0)
-                Column(
-                    Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
-                ) {
-                    when (step) {
-                        PublishStep.BASICS -> BasicsStep(state, callbacks)
-                        PublishStep.CATEGORY -> CategoryStep(state, callbacks)
-                        PublishStep.LOCATION, PublishStep.SCHEDULE, PublishStep.PHOTOS -> ComingStep(stepLabel)
+                if (step == PublishStep.LOCATION) {
+                    // El mapa ocupa lo que sobra: no va dentro de una columna desplazable.
+                    LocationStep(state, callbacks, cityCenter, canAskLocation, Modifier.weight(1f).fillMaxWidth().padding(bottom = 12.dp))
+                } else {
+                    Column(
+                        Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
+                        when (step) {
+                            PublishStep.BASICS -> BasicsStep(state, callbacks)
+                            PublishStep.CATEGORY -> CategoryStep(state, callbacks)
+                            PublishStep.LOCATION, PublishStep.SCHEDULE, PublishStep.PHOTOS -> ComingStep(stepLabel)
+                        }
                     }
                 }
-                ActionBar(isLast = step.next == null, onBack = callbacks.onBack, onContinue = callbacks.onContinue)
+                ActionBar(
+                    continueText = stringResource(
+                        when {
+                            state.searchingNearby -> R.string.publish_searching_nearby
+                            step == PublishStep.LOCATION -> R.string.publish_confirm_location
+                            step.next == null -> R.string.publish_send
+                            else -> R.string.publish_continue
+                        },
+                    ),
+                    loading = state.searchingNearby,
+                    onBack = callbacks.onBack,
+                    onContinue = callbacks.onContinue,
+                )
             }
         }
     }
     if (state.closeDialog) SaveDraftDialog(state.draft, callbacks)
+    // 17A/17B: se esconde mientras se ve un lugar parecido (13) y reaparece al volver.
+    DuplicatesSheet(state.duplicates?.takeUnless { state.awayForPlace }, state.draft.location, callbacks)
 }
 
 /**
@@ -214,24 +304,26 @@ private fun StepIndicator(step: PublishStep, stepLabel: String, errors: Int) {
     }
 }
 
-/** «Atrás» (1/3) y «Continuar» (2/3). Con fuente grande pasan a columna, «Continuar» arriba. */
+/**
+ * «Atrás» (1/3) y «Continuar» (2/3). Con fuente grande pasan a columna, «Continuar» arriba. Con [loading] (17 · buscando
+ * lugares cercanos) el botón muestra el progreso sin parecer deshabilitado e ignora el segundo toque.
+ */
 @Composable
-private fun ActionBar(isLast: Boolean, onBack: () -> Unit, onContinue: () -> Unit) {
+private fun ActionBar(continueText: String, loading: Boolean, onBack: () -> Unit, onContinue: () -> Unit) {
     val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
-    val continueText = stringResource(if (isLast) R.string.publish_send else R.string.publish_continue)
     val backText = stringResource(R.string.publish_back)
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest))
         val padding = Modifier.windowInsetsPadding(WindowInsets.navigationBars).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp)
         if (stacked) {
             Column(padding, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExploraButton(continueText, onClick = onContinue, modifier = Modifier.fillMaxWidth())
+                ExploraButton(continueText, onClick = onContinue, modifier = Modifier.fillMaxWidth(), loading = loading)
                 ExploraButton(backText, onClick = onBack, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
             }
         } else {
             Row(padding, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 ExploraButton(backText, onClick = onBack, modifier = Modifier.weight(1f), style = ExploraButtonStyle.TEXT)
-                ExploraButton(continueText, onClick = onContinue, modifier = Modifier.weight(2f))
+                ExploraButton(continueText, onClick = onContinue, modifier = Modifier.weight(2f), loading = loading)
             }
         }
     }
@@ -243,6 +335,7 @@ internal fun ErrorSummary(errors: List<DraftField>) {
     val scheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(12.dp)
     val detail = when {
+        DraftField.LOCATION in errors -> R.string.publish_errors_location
         DraftField.CATEGORY in errors -> R.string.publish_errors_category
         DraftField.TITLE in errors && DraftField.DESCRIPTION in errors -> R.string.publish_errors_basics
         DraftField.TITLE in errors -> R.string.publish_errors_title_only
@@ -284,7 +377,7 @@ internal fun StepHeading(text: String, intro: String? = null) {
     }
 }
 
-/** Pasos 3 a 5 mientras llegan las partes 2 y 3: se puede recorrer el formulario completo. */
+/** Pasos 4 y 5 mientras llega la parte 3: se puede recorrer el formulario completo. */
 @Composable
 private fun ComingStep(stepLabel: String) {
     StepHeading(stepLabel, stringResource(R.string.publish_step_coming))
