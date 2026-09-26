@@ -22,6 +22,7 @@
     <string name="state_not_selected">no seleccionado</string>
     <string name="button_unavailable">no disponible, %1$s</string>
     <string name="navigate_back">Volver</string>
+    <string name="navigate_close">Cerrar</string>
     <string name="fab_publish">Publicar</string>
     <string name="fab_publish_description">Publicar un lugar nuevo</string>
     <string name="poi_card_description">%1$s, %2$s, %3$s, a %4$s, %5$s, %6$s</string>
@@ -405,6 +406,61 @@
     <string name="my_publications_status_verified_spoken">verificada</string>
     <string name="my_publications_status_rejected_spoken">rechazada, toca para ver el motivo</string>
     <string name="my_publications_status_finalized_spoken">finalizada</string>
+
+    <!-- Publicar un lugar (15–21) -->
+    <string name="publish_title">Publicar un lugar</string>
+    <string name="publish_step">Paso %1$d de 5 · %2$s</string>
+    <string name="publish_step_spoken">Paso %1$d de 5, %2$s</string>
+    <string name="publish_step_basics">Lo básico</string>
+    <string name="publish_step_category">Categoría</string>
+    <string name="publish_step_location">Ubicación</string>
+    <string name="publish_step_schedule">Horario y precio</string>
+    <string name="publish_step_photos">Fotos</string>
+    <string name="publish_save">Guardar</string>
+    <string name="publish_back">Atrás</string>
+    <string name="publish_continue">Continuar</string>
+    <string name="publish_send">Enviar a verificación</string>
+    <string name="publish_loading">Cargando tu borrador</string>
+    <string name="publish_basics_heading">¿Qué lugar quieres mostrar?</string>
+    <string name="publish_basics_intro">Un título corto y una descripción honesta bastan. Te tomará menos de 3 minutos.</string>
+    <string name="publish_field_title">Título del lugar</string>
+    <string name="publish_title_placeholder">Ej. Mirador del Alto de la Cruz</string>
+    <string name="publish_title_hint_empty">Entre 5 y 60 caracteres</string>
+    <string name="publish_field_description">Descripción</string>
+    <string name="publish_description_placeholder">¿Qué hace especial este lugar? Cuenta qué se ve, qué se come o qué se siente al llegar.</string>
+    <string name="publish_description_hint_empty">Mínimo 30 caracteres</string>
+    <string name="publish_description_tip">Ejemplo: «Café de barrio con tostión propia y patio interior; buen wifi en la mañana».</string>
+    <string name="publish_autosave">Guardamos tu borrador automáticamente. Puedes salir y volver cuando quieras.</string>
+    <plurals name="publish_errors_title">
+        <item quantity="one">Falta arreglar %d cosa</item>
+        <item quantity="many">Falta arreglar %d cosas</item>
+        <item quantity="other">Falta arreglar %d cosas</item>
+    </plurals>
+    <string name="publish_errors_basics">Revisa el título y la descripción para continuar.</string>
+    <string name="publish_errors_title_only">Revisa el título para continuar.</string>
+    <string name="publish_errors_description_only">Revisa la descripción para continuar.</string>
+    <string name="publish_errors_category">Elige una categoría para continuar.</string>
+    <string name="publish_category_heading">¿En qué categoría encaja?</string>
+    <string name="publish_category_list">Categorías</string>
+    <string name="publish_suggesting">Buscando una categoría para ti…</string>
+    <string name="publish_suggesting_body">Mientras tanto puedes elegirla tú.</string>
+    <string name="publish_suggesting_spoken">Buscando una categoría</string>
+    <string name="publish_suggested_title">Sugerido automáticamente</string>
+    <string name="publish_suggested_body">Por el título y la descripción creemos que es %1$s. Puedes cambiarla si no es así.</string>
+    <string name="publish_suggestion_replaced_title">Cambiaste la categoría sugerida</string>
+    <string name="publish_suggestion_replaced_body">Te sugerimos %1$s, pero elegiste otra. Puedes volver a ella cuando quieras.</string>
+    <string name="publish_no_answer_title">La sugerencia automática no respondió</string>
+    <string name="publish_no_answer_body">No pasa nada: elige tú la categoría. Tu título y tu descripción siguen guardados.</string>
+    <string name="publish_retry_suggestion">Intentar la sugerencia otra vez</string>
+    <string name="publish_not_found_body">No encontramos una categoría clara. Elige la que mejor lo describa.</string>
+    <string name="publish_category_suggested_selected">Sugerida · seleccionada</string>
+    <string name="publish_category_chosen_selected">Elegida por ti · seleccionada</string>
+    <string name="publish_category_suggested_spoken">%1$s, sugerida automáticamente</string>
+    <string name="publish_step_coming">Este paso está en construcción: llega en la próxima parte del formulario. Puedes continuar.</string>
+    <string name="publish_close_title">¿Guardar el borrador?</string>
+    <string name="publish_close_body">Guardamos «%1$s» para que sigas después desde Publicar. Si lo descartas, se borra lo que escribiste.</string>
+    <string name="publish_close_body_untitled">Guardamos lo que escribiste para que sigas después desde Publicar. Si lo descartas, se borra.</string>
+    <string name="publish_discard">Descartar</string>
 
     <!-- Editar publicación (23) -->
     <string name="edit_title">Editar publicación</string>

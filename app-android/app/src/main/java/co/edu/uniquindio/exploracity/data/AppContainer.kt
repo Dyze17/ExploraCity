@@ -1,11 +1,18 @@
 package co.edu.uniquindio.exploracity.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import co.edu.uniquindio.exploracity.data.connectivity.AndroidConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.local.DataStoreDraftRepository
+import co.edu.uniquindio.exploracity.data.local.DraftRepository
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
+import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
+import co.edu.uniquindio.exploracity.data.repository.FakeCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
@@ -16,6 +23,7 @@ import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
@@ -31,6 +39,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+
+/** Un solo archivo de DataStore por proceso: el delegado lo garantiza. */
+private val Context.draftsDataStore: DataStore<Preferences> by preferencesDataStore(name = "borradores")
 
 /**
  * Dependencias de la app (inyección manual). El «servidor» todavía es un repositorio en memoria
@@ -95,6 +106,12 @@ class AppContainer(context: Context) {
     val userRepository: UserRepository =
         OfflineUserRepository(FakeUserRepository(server, publicationServer, currentUser), database.profileDao(), connectivity)
     val publicationRepository: PublicationRepository = OnlineOnlyPublicationRepository(publicationServer, connectivity)
+
+    /** Borradores del formulario de publicación (15–19), en DataStore. */
+    val draftRepository: DraftRepository = DataStoreDraftRepository(context.draftsDataStore)
+
+    /** Temporal: la sugerencia real la hará el backend con IA (SAD: Componente de Clasificación IA). */
+    val categorySuggester: CategorySuggester = OnlineOnlyCategorySuggester(FakeCategorySuggester(), connectivity)
     val moderationRepository: ModerationRepository = FakeModerationRepository()
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 

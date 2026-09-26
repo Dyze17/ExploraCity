@@ -39,7 +39,8 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
  * Barra superior del esqueleto común: mínimo 56 dp, flecha de 48 × 48 y título en Outfit 20/600 (titleLarge).
  * Crece con la fuente en vez de recortar (el TopAppBar de M3 tiene alto fijo). [subtitle] va debajo del título
  * («Café Las Acacias · 12» en 14); [subtitleDescription] es lo que oye el lector si el texto visible no se lee
- * bien en voz alta. [divider] dibuja la línea inferior de los lienzos con lista debajo.
+ * bien en voz alta. [divider] dibuja la línea inferior de los lienzos con lista debajo. Con [closeIcon] la navegación es
+ * una X («Cerrar»), como en el formulario de publicación (15), que se abre encima de la pestaña.
  */
 @Composable
 fun ExploraTopAppBar(
@@ -49,6 +50,7 @@ fun ExploraTopAppBar(
     subtitleDescription: String? = subtitle,
     onBack: (() -> Unit)? = null,
     divider: Boolean = false,
+    closeIcon: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -65,7 +67,11 @@ fun ExploraTopAppBar(
         ) {
             if (onBack != null) {
                 IconButton(onClick = onBack) {
-                    Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.navigate_back), tint = scheme.onSurface)
+                    Icon(
+                        painterResource(if (closeIcon) R.drawable.ic_close else R.drawable.ic_arrow_back),
+                        contentDescription = stringResource(if (closeIcon) R.string.navigate_close else R.string.navigate_back),
+                        tint = scheme.onSurface,
+                    )
                 }
             }
             Column(Modifier.weight(1f).padding(start = if (onBack == null) 12.dp else 0.dp, top = 6.dp, bottom = 6.dp)) {
