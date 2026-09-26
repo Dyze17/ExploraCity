@@ -21,6 +21,12 @@ enum class PendingType {
 
     /** Aviso leído sin red (25). No va sobre un lugar: [PendingActionEntity.poiId] lleva [NOTIFICATIONS_TARGET]. */
     NOTIFICATION_READ,
+
+    /** 20 · Publicación enviada sin red; [PendingActionEntity.poiId] es la rechazada que se reenvía o «publicacion-nueva». */
+    PUBLICATION,
+
+    /** 19 · Foto que no alcanzó a subir antes del envío; [PendingActionEntity.poiId] es la publicación. */
+    PUBLICATION_PHOTO,
 }
 
 /** Destino de las acciones que no son de un lugar (hoy, leer avisos). */

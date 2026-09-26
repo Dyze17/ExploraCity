@@ -456,7 +456,6 @@
     <string name="publish_category_suggested_selected">Sugerida · seleccionada</string>
     <string name="publish_category_chosen_selected">Elegida por ti · seleccionada</string>
     <string name="publish_category_suggested_spoken">%1$s, sugerida automáticamente</string>
-    <string name="publish_step_coming">Este paso está en construcción: llega en la próxima parte del formulario. Puedes continuar.</string>
     <string name="publish_close_title">¿Guardar el borrador?</string>
     <string name="publish_close_body">Guardamos «%1$s» para que sigas después desde Publicar. Si lo descartas, se borra lo que escribiste.</string>
     <string name="publish_close_body_untitled">Guardamos lo que escribiste para que sigas después desde Publicar. Si lo descartas, se borra.</string>
@@ -492,6 +491,78 @@
     <string name="publish_address_search_not_found">No encontramos «%1$s» en la ciudad. Prueba con otra dirección o mueve el pin.</string>
     <string name="publish_address_search_offline">Sin conexión no podemos buscar direcciones. Puedes mover el pin a mano.</string>
     <string name="publish_address_search_failed">La búsqueda no respondió. Intenta otra vez o mueve el pin a mano.</string>
+    <!-- 18 · Paso 4, horario y precio -->
+    <string name="publish_schedule_heading">¿Cuándo se puede visitar?</string>
+    <string name="publish_schedule_intro">Si no conoces el horario exacto, puedes seguir sin él.</string>
+    <string name="publish_schedule_days">Días de atención</string>
+    <string name="publish_schedule_day_selected">seleccionado</string>
+    <string name="publish_schedule_day_not_selected">no seleccionado</string>
+    <string name="publish_schedule_days_missing">Elige al menos un día.</string>
+    <string name="publish_schedule_opens">Abre</string>
+    <string name="publish_schedule_closes">Cierra</string>
+    <string name="publish_schedule_time_empty">Elegir</string>
+    <string name="publish_schedule_pick_opens">Hora de apertura</string>
+    <string name="publish_schedule_pick_closes">Hora de cierre</string>
+    <string name="publish_schedule_opens_missing">Elige la hora de apertura.</string>
+    <string name="publish_schedule_closes_missing">Elige la hora de cierre.</string>
+    <string name="publish_schedule_closes_before">Debe ser después de la hora de apertura.</string>
+    <string name="publish_schedule_unknown">No tengo el horario exacto</string>
+    <string name="publish_schedule_price">Rango de precio</string>
+    <string name="publish_schedule_accept">Aceptar</string>
+    <string name="publish_schedule_cancel">Cancelar</string>
+    <string name="publish_errors_hours">Elige los días y las horas, o marca «No tengo el horario exacto».</string>
+    <string name="publish_errors_hours_order">La hora de cierre debe ser posterior a la de apertura.</string>
+    <!-- 19 · Paso 5, fotografías -->
+    <string name="publish_photos_heading">Muestra el lugar</string>
+    <string name="publish_photos_intro">Necesitas al menos una foto. Puedes subir hasta 5.</string>
+    <string name="publish_photos_empty">Toma una foto ahora o elige una de tu galería.</string>
+    <string name="publish_photos_camera">Cámara</string>
+    <string name="publish_photos_gallery">Galería</string>
+    <string name="publish_photos_rules">Sube fotos tomadas por ti. Evita fotos con datos personales de otras personas.</string>
+    <plurals name="publish_photos_count">
+        <item quantity="one">%d foto · será la portada</item>
+        <item quantity="many">%d fotos · la primera será la portada</item>
+        <item quantity="other">%d fotos · la primera será la portada</item>
+    </plurals>
+    <plurals name="publish_photos_add_more">
+        <item quantity="one">Agregar otra foto (%d disponible)</item>
+        <item quantity="many">Agregar otra foto (%d disponibles)</item>
+        <item quantity="other">Agregar otra foto (%d disponibles)</item>
+    </plurals>
+    <string name="publish_photos_full">Llegaste al máximo de %1$d fotos.</string>
+    <string name="publish_photos_take">Tomar una foto</string>
+    <string name="publish_photos_choose">Elegir de la galería</string>
+    <string name="publish_photo_uploaded">Subida</string>
+    <string name="publish_photo_uploading">Subiendo %1$d %%</string>
+    <string name="publish_photo_failed">No se pudo subir. Tu foto y el formulario siguen guardados.</string>
+    <string name="publish_photo_waiting">En espera</string>
+    <string name="publish_photo_preparing">Preparando la foto…</string>
+    <string name="publish_photo_position">Foto %1$d de %2$d</string>
+    <string name="publish_photo_cover">Portada</string>
+    <string name="publish_photo_cancel">Cancelar la subida de %1$s</string>
+    <string name="publish_photo_remove">Quitar %1$s</string>
+    <string name="publish_photos_unreadable">No pudimos leer una de las fotos. Prueba con otra.</string>
+    <string name="publish_photos_no_camera">No encontramos una app de cámara en tu teléfono. Elige una foto de tu galería.</string>
+    <string name="publish_errors_photos">Agrega al menos una foto para enviar.</string>
+    <string name="publish_sending">Enviando…</string>
+    <string name="publish_send_error_title">No se pudo enviar</string>
+    <string name="publish_send_error_photos">Ninguna foto terminó de subir. Reintenta las fotos y vuelve a enviar.</string>
+    <string name="publish_send_error_failed">Algo falló de nuestro lado. Tu publicación sigue guardada; inténtalo otra vez.</string>
+    <!-- 20 · Confirmación -->
+    <string name="publish_sent_title">Publicación enviada a verificación</string>
+    <string name="publish_sent_queued_title">Publicación pendiente de envío</string>
+    <string name="publish_sent_body">Un moderador revisará %1$s. Te avisamos en Notificaciones cuando quede verificada o si necesita cambios.</string>
+    <string name="publish_sent_duplicate_body">«%1$s» será visible en el feed cuando un moderador la revise. Te avisaremos del resultado.</string>
+    <string name="publish_sent_queued_body">Guardamos tu publicación y la enviaremos cuando vuelva el internet.</string>
+    <string name="publish_sent_wait">Suele tardar menos de 48 horas.</string>
+    <string name="publish_sent_duplicate_info">El moderador revisará que este lugar no esté repetido.</string>
+    <string name="publish_sent_pending_review">Pendiente de verificación</string>
+    <string name="publish_sent_pending_send">Pendiente de envío</string>
+    <string name="publish_sent_queued_note">Se enviará sola cuando haya internet, aunque cierres la app.</string>
+    <string name="publish_sent_reward">Ganaste la insignia «Primera publicación» · +%1$d puntos</string>
+    <string name="publish_sent_my_publications">Ver mis publicaciones</string>
+    <string name="publish_sent_another">Publicar otro lugar</string>
+    <string name="publish_sent_explore">Volver a explorar</string>
     <!-- 17A · ¿Ya existe este lugar? y 17B · Es un lugar distinto -->
     <string name="duplicate_sheet_title">Encontramos lugares parecidos muy cerca</string>
     <string name="duplicate_sheet_body">Revisa si tu lugar ya está en ExploraCity. Si es otro, puedes continuar.</string>

@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.local.DraftKey
@@ -7,28 +8,40 @@ import co.edu.uniquindio.exploracity.data.local.DraftRepository
 import co.edu.uniquindio.exploracity.data.location.AddressResolver
 import co.edu.uniquindio.exploracity.data.location.ApproximateAddress
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
+import co.edu.uniquindio.exploracity.data.photos.PhotoStore
+import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
+import co.edu.uniquindio.exploracity.data.photos.UploadProgress
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
+import co.edu.uniquindio.exploracity.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
+import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
+import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -38,6 +51,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.time.DayOfWeek
+import java.time.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -51,6 +66,10 @@ class PublishViewModelTest {
     private val finder = FakeFinder()
     private val addresses = FakeAddresses()
     private val connectivity = FakeConnectivity()
+    private val photos = FakePhotos()
+    private val uploads = FakeUploads(connectivity)
+    private val outbox = MemoryOutbox()
+    private val savedState = SavedStateHandle()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -65,10 +84,12 @@ class PublishViewModelTest {
     ) = PublishViewModel(
         drafts = drafts,
         suggester = suggester,
-        publications = publications,
+        publications = OnlineOnlyPublicationRepository(publications, connectivity),
         places = PublishPlaces(finder, addresses, SimulatedLocationProvider(here), connectivity, cityCenter, cityBounds),
+        delivery = PublishDelivery(photos, uploads, outbox),
         resubmitId = resubmitId,
         initialStep = step,
+        savedState = savedState,
     )
 
     private val basics = PublicationDraft(
@@ -242,7 +263,7 @@ class PublishViewModelTest {
         vm.onClose()
 
         assertFalse(vm.state.value.closeDialog)
-        assertEquals(PublishExit.CLOSED, vm.state.value.exit)
+        assertEquals(PublishExit.Closed, vm.state.value.exit)
     }
 
     @Test
@@ -254,7 +275,7 @@ class PublishViewModelTest {
 
         vm.onSaveAndClose()
         advanceUntilIdle()
-        assertEquals(PublishExit.CLOSED, vm.state.value.exit)
+        assertEquals(PublishExit.Closed, vm.state.value.exit)
         assertEquals("Café Las Acacias", drafts.saved[DraftKey.New]?.title)
 
         val again = viewModel()
@@ -289,17 +310,6 @@ class PublishViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PublishContent.Error, vm.state.value.content)
-    }
-
-    @Test
-    fun `en el último paso continuar sigue a la confirmación provisional`() = runTest(dispatcher) {
-        drafts.saved[DraftKey.New] = basics.copy(category = Category.GASTRONOMY, step = PublishStep.PHOTOS)
-        val vm = viewModel()
-        advanceUntilIdle()
-
-        vm.onContinue()
-
-        assertEquals(PublishExit.SENT, vm.state.value.exit)
     }
 
     // 17 · Paso 3, ubicación
@@ -553,6 +563,293 @@ class PublishViewModelTest {
         assertEquals(PinAddress.Found(addresses.address), vm.state.value.address)
     }
 
+    // 18 · Paso 4, horario y precio
+
+    /** Un ViewModel en el paso 4 con los pasos 1 a 3 hechos. */
+    private fun TestScope.onScheduleStep(): PublishViewModel {
+        drafts.saved[DraftKey.New] = basics.copy(category = Category.GASTRONOMY, location = entrance, duplicateCheck = DuplicateCheck(entrance), step = PublishStep.SCHEDULE)
+        val vm = viewModel()
+        advanceUntilIdle()
+        return vm
+    }
+
+    @Test
+    fun `sin horario ni la casilla, continuar pide días y horas (21)`() = runTest(dispatcher) {
+        val vm = onScheduleStep()
+
+        vm.onContinue()
+
+        assertEquals(listOf(DraftField.DAYS, DraftField.OPENS, DraftField.CLOSES), vm.state.value.stepErrors)
+        assertTrue(vm.state.value.showScheduleError(DraftField.DAYS))
+        assertEquals(PublishStep.SCHEDULE, vm.state.value.step)
+    }
+
+    @Test
+    fun `no tengo el horario exacto libera el paso`() = runTest(dispatcher) {
+        val vm = onScheduleStep()
+
+        vm.onHoursUnknownChange(true)
+        vm.onContinue()
+
+        assertEquals(PublishStep.PHOTOS, vm.state.value.step)
+        assertNull(vm.state.value.draft.openingHours)
+    }
+
+    @Test
+    fun `el cierre debe ser posterior a la apertura, y se avisa sin esperar a continuar`() = runTest(dispatcher) {
+        val vm = onScheduleStep()
+        vm.onDayToggle(DayOfWeek.MONDAY)
+        vm.onDayToggle(DayOfWeek.SATURDAY)
+        vm.onOpensChange(LocalTime.of(19, 0))
+        vm.onClosesChange(LocalTime.of(7, 0))
+
+        assertTrue(vm.state.value.closesBeforeOpens)
+        vm.onContinue()
+        assertEquals(listOf(DraftField.CLOSES), vm.state.value.stepErrors)
+
+        vm.onOpensChange(LocalTime.of(7, 0))
+        vm.onClosesChange(LocalTime.of(19, 0))
+        vm.onContinue()
+        advanceUntilIdle()
+        assertEquals(PublishStep.PHOTOS, vm.state.value.step)
+        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), drafts.saved[DraftKey.New]?.openingHours?.days)
+    }
+
+    @Test
+    fun `tocar un día otra vez lo desmarca, y el precio elegido se quita igual`() = runTest(dispatcher) {
+        val vm = onScheduleStep()
+
+        vm.onDayToggle(DayOfWeek.SUNDAY)
+        vm.onDayToggle(DayOfWeek.SUNDAY)
+        vm.onPriceChange(PriceRange.LOW)
+        assertEquals(PriceRange.LOW, vm.state.value.draft.price)
+        vm.onPriceChange(PriceRange.LOW)
+
+        assertTrue(vm.state.value.draft.hours.days.isEmpty())
+        assertNull(vm.state.value.draft.price)
+    }
+
+    // 19 · Paso 5, fotos, y el envío (20)
+
+    private val complete = basics.copy(
+        category = Category.GASTRONOMY,
+        location = entrance,
+        duplicateCheck = DuplicateCheck(entrance),
+        hoursUnknown = true,
+        step = PublishStep.PHOTOS,
+    )
+
+    private fun TestScope.onPhotosStep(draft: PublicationDraft = complete, resubmitId: String? = null): PublishViewModel {
+        drafts.saved[resubmitId?.let { DraftKey.Resubmit(it) } ?: DraftKey.New] = draft
+        val vm = viewModel(resubmitId = resubmitId)
+        advanceUntilIdle()
+        return vm
+    }
+
+    @Test
+    fun `las fotos de la galería se suben y guardan su dirección en el borrador`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg", "content://galeria/barra.jpg"))
+        advanceTimeBy(600.milliseconds)
+        assertEquals(PhotoUpload.Uploading(50), vm.state.value.uploads["foto-1"])
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.uploads.isEmpty())
+        assertEquals(listOf("fake://foto-1", "fake://foto-2"), drafts.saved[DraftKey.New]?.photos?.map { it.remoteUrl })
+        assertEquals("patio.jpg", vm.state.value.draft.photos.first().name)
+    }
+
+    @Test
+    fun `como máximo 5 fotos, y una ilegible se avisa sin agregarla`() = runTest(dispatcher) {
+        photos.unreadable = setOf("content://galeria/rota.jpg")
+        val vm = onPhotosStep()
+
+        vm.onGalleryPicked(listOf("content://galeria/rota.jpg") + (1..7).map { "content://galeria/$it.jpg" })
+        advanceUntilIdle()
+
+        assertEquals(5, vm.state.value.draft.photos.size)
+        assertEquals(0, vm.state.value.draft.photosLeft)
+        assertEquals(PhotoProblem.UNREADABLE, vm.state.value.photoProblem)
+    }
+
+    @Test
+    fun `si la subida falla la foto queda con error y se reintenta sola al volver la red`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg"))
+        advanceTimeBy(300.milliseconds)
+
+        connectivity.online = false
+        advanceUntilIdle()
+        assertEquals(PhotoUpload.Failed, vm.state.value.uploads["foto-1"])
+        assertEquals(1, vm.state.value.draft.photos.size)
+
+        connectivity.online = true
+        advanceUntilIdle()
+        assertTrue(vm.state.value.draft.photos.single().uploaded)
+    }
+
+    @Test
+    fun `quitar una foto cancela su subida y borra el archivo`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg"))
+        advanceTimeBy(300.milliseconds)
+
+        vm.onRemovePhoto("foto-1")
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.draft.photos.isEmpty())
+        assertTrue(vm.state.value.uploads.isEmpty())
+        assertEquals(listOf("foto-1"), photos.deleted)
+    }
+
+    @Test
+    fun `la foto de la cámara llega aunque Android haya cerrado la app mientras tanto`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+        val shot = vm.onCameraShot()
+        assertEquals("content://camara/foto-1.jpg", shot)
+
+        // Android cierra el proceso con la cámara abierta: el ViewModel nuevo recibe la respuesta.
+        val again = viewModel()
+        again.onCameraResult(taken = true)
+        advanceUntilIdle()
+
+        assertEquals("foto-1.jpg", again.state.value.draft.photos.single().name)
+    }
+
+    @Test
+    fun `sin fotos, enviar muestra el resumen y no envía (21)`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+
+        vm.onContinue()
+
+        assertEquals(listOf(DraftField.PHOTOS), vm.state.value.stepErrors)
+        assertTrue(vm.state.value.showPhotosError)
+        assertNull(vm.state.value.exit)
+    }
+
+    @Test
+    fun `enviar con red la deja pendiente en mis publicaciones y borra el borrador`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg"))
+        advanceUntilIdle()
+
+        vm.onContinue()
+        assertTrue(vm.state.value.sending)
+        advanceUntilIdle()
+
+        val exit = vm.state.value.exit as PublishExit.Sent
+        assertEquals(SentSummary("Café Las Acacias", possibleDuplicate = false, queued = false), exit.summary)
+        assertNull(drafts.saved[DraftKey.New])
+        val sent = publications.myPublications().first()
+        assertEquals("Café Las Acacias", sent.title)
+        assertEquals(PublicationStatus.PENDING, sent.status)
+        assertEquals(listOf("foto-1"), photos.deleted)
+    }
+
+    @Test
+    fun `con una foto subida ya se envía y las demás siguen en segundo plano`() = runTest(dispatcher) {
+        uploads.slow["foto-2"] = 10.seconds
+        val vm = onPhotosStep()
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg", "content://galeria/barra.jpg"))
+        runCurrent()
+
+        // Aún subiendo las dos: espera a la primera y envía.
+        assertEquals(PhotoUpload.Uploading(0), vm.state.value.uploads["foto-1"])
+        vm.onContinue()
+        advanceTimeBy(1500.milliseconds)
+        advanceTimeBy(400.milliseconds)
+
+        assertTrue(vm.state.value.exit is PublishExit.Sent)
+        val sent = publications.myPublications().first()
+        assertEquals(1, sent.photos)
+        assertEquals(listOf("foto-2"), outbox.photos[sent.id]?.map { it.id })
+        assertTrue("La foto que falta conserva su archivo", "foto-2" !in photos.deleted)
+    }
+
+    @Test
+    fun `enviar mientras la foto se prepara la espera en vez de pedir fotos`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg"))
+        vm.onContinue()
+
+        assertTrue(vm.state.value.sending)
+        assertFalse(vm.state.value.showPhotosError)
+        advanceUntilIdle()
+        assertTrue(vm.state.value.exit is PublishExit.Sent)
+    }
+
+    @Test
+    fun `sin red la publicación completa queda en la cola y se confirma como pendiente de envío`() = runTest(dispatcher) {
+        connectivity.online = false
+        val vm = onPhotosStep(complete.copy(duplicateCheck = DuplicateCheck(entrance, listOf("la-puerta-falsa"), "Es otro local.")))
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg"))
+        advanceUntilIdle()
+
+        vm.onContinue()
+        advanceUntilIdle()
+
+        val exit = vm.state.value.exit as PublishExit.Sent
+        assertEquals(SentSummary("Café Las Acacias", possibleDuplicate = true, queued = true), exit.summary)
+        val queued = outbox.publications.single()
+        assertEquals(listOf("foto-1"), queued.photos.map { it.id })
+        assertEquals("Es otro local.", queued.duplicateCheck?.note)
+        assertNull("El borrador ya está a salvo en la cola", drafts.saved[DraftKey.New])
+        assertTrue(photos.deleted.isEmpty())
+    }
+
+    @Test
+    fun `con red pero ninguna foto subida, avisa y no envía`() = runTest(dispatcher) {
+        uploads.failing += "foto-1"
+        val vm = onPhotosStep()
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg"))
+        advanceUntilIdle()
+
+        vm.onContinue()
+        advanceUntilIdle()
+
+        assertEquals(SendError.NO_PHOTO_UPLOADED, vm.state.value.sendError)
+        assertFalse(vm.state.value.sending)
+        assertNull(vm.state.value.exit)
+    }
+
+    @Test
+    fun `reenviar una rechazada la deja otra vez pendiente`() = runTest(dispatcher) {
+        val rejected = PublicationDraft(
+            title = "Mirador de La Peña",
+            description = "Mirador en la subida de La Peña con vista al centro. Se llega por un sendero corto.",
+            category = Category.NATURE,
+            location = GeoPoint(4.5906, -74.0591),
+            hoursUnknown = true,
+            step = PublishStep.PHOTOS,
+        )
+        val vm = onPhotosStep(rejected, resubmitId = "mirador-de-la-pena")
+        vm.onGalleryPicked(listOf("content://galeria/mirador.jpg"))
+        advanceUntilIdle()
+
+        vm.onContinue()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.exit is PublishExit.Sent)
+        val resent = publications.publication("mirador-de-la-pena")
+        assertEquals(PublicationStatus.PENDING, resent?.status)
+        assertNull(resent?.rejection)
+    }
+
+    @Test
+    fun `descartar borra también las fotos del teléfono`() = runTest(dispatcher) {
+        val vm = onPhotosStep()
+        vm.onGalleryPicked(listOf("content://galeria/patio.jpg"))
+        advanceUntilIdle()
+
+        vm.onClose()
+        vm.onDiscard()
+        advanceUntilIdle()
+
+        assertEquals(listOf("foto-1"), photos.deleted)
+    }
+
     /** Borradores en memoria. */
     private class MemoryDrafts : DraftRepository {
         val saved = mutableMapOf<DraftKey, PublicationDraft>()
@@ -598,6 +895,54 @@ class PublishViewModelTest {
         override suspend fun search(query: String, bounds: GeoBounds): GeoPoint? {
             delay(200.milliseconds)
             return places[query]
+        }
+    }
+
+    /** Fotos de prueba: cualquier dirección se «comprime» al instante; guarda lo que se borra. */
+    private class FakePhotos : PhotoStore {
+        val deleted = mutableListOf<String>()
+        var unreadable = setOf<String>()
+        private var next = 0
+
+        override suspend fun import(uri: String, fallbackName: String?): DraftPhoto? {
+            if (uri in unreadable) return null
+            next++
+            return DraftPhoto("foto-$next", "/fotos/foto-$next.jpg", uri.substringAfterLast('/'))
+        }
+
+        override fun newCameraShot(): String = "content://camara/foto-${next + 1}.jpg"
+
+        override suspend fun delete(photo: DraftPhoto) {
+            deleted += photo.id
+        }
+    }
+
+    /** Subida de prueba: 1 s por foto (o lo de [slow]) de 25 en 25 %; sin red, o si está en [failing], falla. */
+    private class FakeUploads(private val connectivity: FakeConnectivity) : PhotoUploader {
+        val slow = mutableMapOf<String, Duration>()
+        val failing = mutableSetOf<String>()
+
+        override fun upload(photo: DraftPhoto): Flow<UploadProgress> = flow {
+            val total = slow[photo.id] ?: 1.seconds
+            for (percent in 0..100 step 25) {
+                if (!connectivity.online || photo.id in failing) throw OfflineException()
+                emit(UploadProgress.Sending(percent))
+                if (percent < 100) delay(total / 4)
+            }
+            emit(UploadProgress.Done("fake://${photo.id}"))
+        }
+    }
+
+    private class MemoryOutbox : PublicationOutbox {
+        val publications = mutableListOf<PublicationSubmission>()
+        val photos = mutableMapOf<String, List<DraftPhoto>>()
+
+        override suspend fun enqueue(submission: PublicationSubmission) {
+            publications += submission
+        }
+
+        override suspend fun enqueuePhotos(publicationId: String, photos: List<DraftPhoto>) {
+            if (photos.isNotEmpty()) this.photos[publicationId] = photos
         }
     }
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 19 · Solo la carpeta temporal de la cámara: las fotos del borrador (filesDir) nunca se comparten. -->
+<paths>
+    <cache-path name="camara" path="camara/" />
+</paths>

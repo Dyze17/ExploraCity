@@ -57,7 +57,13 @@ import kotlinx.serialization.Serializable
  */
 @Serializable data class PublishForm(val resubmitId: String? = null, val step: Int = 1)
 
-@Serializable data object PublishSent // 20
+/** 20 · Lo necesario para la confirmación; [firstPublicationPoints] 0 = sin insignia. */
+@Serializable data class PublishSent(
+    val title: String,
+    val possibleDuplicate: Boolean = false,
+    val queued: Boolean = false,
+    val firstPublicationPoints: Int = 0,
+) // 20
 
 @Serializable data object NotificationsGraph
 

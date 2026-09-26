@@ -10,13 +10,24 @@ import co.edu.uniquindio.exploracity.data.local.NOTIFICATIONS_TARGET
 import co.edu.uniquindio.exploracity.data.local.PendingType
 import co.edu.uniquindio.exploracity.data.local.QueuedRead
 import co.edu.uniquindio.exploracity.data.local.QueuedVote
+import co.edu.uniquindio.exploracity.data.photos.FakePhotoUploader
+import co.edu.uniquindio.exploracity.data.photos.PhotoStore
 import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
+import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
+import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.Comment
+import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
+import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.OpeningHours
+import co.edu.uniquindio.exploracity.domain.model.PriceRange
+import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
 import co.edu.uniquindio.exploracity.domain.model.VoteResult
@@ -40,8 +51,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.IOException
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneOffset
+import kotlin.time.Duration
 
 /** Lo que se hizo sin red llega al servidor en orden cuando WorkManager ve conexión. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -82,9 +96,30 @@ class PendingSenderTest {
     )
 
     private val notificationServer = FakeNotificationRepository(clock)
+    private val publicationServer = FakePublicationRepository(server, clock = clock)
+    private val photoFiles = DeletedPhotos()
 
-    private fun sender(remote: PoiRepository = server) =
-        PendingSender(remote, notificationServer, database.pendingActionsDao(), database.savedPlacesDao())
+    private fun sender(remote: PoiRepository = server) = PendingSender(
+        remote,
+        notificationServer,
+        database.pendingActionsDao(),
+        database.savedPlacesDao(),
+        PublicationDelivery(publicationServer, FakePhotoUploader(connectivity, duration = Duration.ZERO), photoFiles),
+    )
+
+    private fun outbox() = RoomPublicationOutbox(database.pendingActionsDao(), scheduler = {}, clock = clock)
+
+    private val submission = PublicationSubmission(
+        title = "Café Las Acacias",
+        description = "Café de barrio con tostión propia y un patio interior lleno de matas.",
+        category = Category.GASTRONOMY,
+        categoryOrigin = CategoryOrigin.SUGGESTED,
+        location = GeoPoint(4.6383, -74.0656),
+        hours = OpeningHours(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)),
+        price = PriceRange.LOW,
+        photos = listOf(DraftPhoto("foto-1", "/fotos/foto-1.jpg", "patio.jpg"), DraftPhoto("foto-2", "/fotos/foto-2.jpg", "barra.jpg")),
+        duplicateCheck = DuplicateCheck(GeoPoint(4.6383, -74.0656), listOf("cafe-las-acacias"), "Es el local del lado."),
+    )
 
     /** Guarda el feed con red y deja el teléfono sin ella, listo para encolar. */
     private suspend fun TestScope.offlineWithSavedFeed(): OfflinePoiRepository {
@@ -177,6 +212,56 @@ class PendingSenderTest {
         assertTrue(before > 0)
         assertEquals(0, notificationServer.unreadCount.value)
         assertEquals(0, database.pendingActionsDao().count())
+    }
+
+    @Test
+    fun `una publicación enviada sin red llega al volver la red con sus fotos, y se borran los archivos`() = runTest(dispatcher) {
+        outbox().enqueue(submission)
+
+        assertTrue(sender().flush())
+
+        val sent = publicationServer.myPublications().first()
+        assertEquals("Café Las Acacias", sent.title)
+        assertEquals(2, sent.photos)
+        assertTrue("La marca de posible duplicado viaja en la cola", sent.possibleDuplicate)
+        assertEquals(listOf("foto-1", "foto-2"), photoFiles.deleted)
+        assertEquals(0, database.pendingActionsDao().count())
+    }
+
+    @Test
+    fun `si la red vuelve a fallar, la publicación sigue en la cola con sus archivos`() = runTest(dispatcher) {
+        outbox().enqueue(submission)
+        connectivity.online = false
+
+        assertFalse(sender().flush())
+
+        assertEquals(1, database.pendingActionsDao().count())
+        assertTrue(photoFiles.deleted.isEmpty())
+    }
+
+    @Test
+    fun `las fotos que no alcanzaron a subir se agregan después a la publicación`() = runTest(dispatcher) {
+        val first = submission.photos[0].copy(remoteUrl = "fake://foto-1")
+        val result = publicationServer.submit(submission.copy(photos = listOf(first)))
+        outbox().enqueuePhotos(result.publicationId, listOf(submission.photos[1]))
+
+        assertTrue(sender().flush())
+
+        assertEquals(2, publicationServer.publication(result.publicationId)?.photos)
+        assertEquals(listOf("foto-2"), photoFiles.deleted)
+    }
+
+    /** Archivos del teléfono: solo anota cuáles se borran. */
+    private class DeletedPhotos : PhotoStore {
+        val deleted = mutableListOf<String>()
+
+        override suspend fun import(uri: String, fallbackName: String?): DraftPhoto? = null
+
+        override fun newCameraShot(): String = ""
+
+        override suspend fun delete(photo: DraftPhoto) {
+            deleted += photo.id
+        }
     }
 
     /** Anota qué se envía y puede simular que se cae la red al enviar comentarios. */

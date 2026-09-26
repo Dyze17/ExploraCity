@@ -81,7 +81,7 @@ internal fun BasicsStep(state: PublishUiState, callbacks: PublishCallbacks) {
         when (state.stepErrors.firstOrNull()) {
             DraftField.TITLE -> titleFocus.requestFocus()
             DraftField.DESCRIPTION -> descriptionFocus.requestFocus()
-            DraftField.CATEGORY, DraftField.LOCATION, null -> Unit
+            else -> Unit
         }
     }
 
@@ -305,9 +305,9 @@ private fun CategoryOption(category: Category, draft: PublicationDraft, onSelect
     }
 }
 
-/** Aviso neutro con icono (borrador automático, ejemplo de descripción). */
+/** Aviso neutro con icono (borrador automático, ejemplo de descripción, reglas de las fotos). */
 @Composable
-private fun Note(icon: Int, text: String) {
+internal fun Note(icon: Int, text: String) {
     val explora = MaterialTheme.exploraColors
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)).padding(12.dp),
