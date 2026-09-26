@@ -2,7 +2,9 @@ package co.edu.uniquindio.exploracity.data.repository
 
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
+import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FixKind
+import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import kotlinx.coroutines.test.runTest
@@ -103,5 +105,44 @@ class FakePublicationRepositoryTest {
         assertNull(pois.poiDetails("sendero-la-vieja"))
         assertTrue(publications.myPublications().none { it.id == "sendero-la-vieja" })
         assertEquals(verifiedBefore - 1, users.ownProfile().publications.verified)
+    }
+
+    @Test
+    fun `editar una verificada la vuelve pendiente, la saca del feed y guarda sin espacios de más`() = runTest {
+        val users = FakeUserRepository(pois, publications)
+        val before = users.ownProfile().publications
+
+        val updated = publications.update(
+            "sendero-la-vieja",
+            PublicationChanges("  Sendero La Vieja  ", Category.NATURE, "Caminata entre bosque de niebla; mejor subir temprano y con buenos zapatos."),
+        )
+
+        assertEquals(PublicationStatus.PENDING, updated.status)
+        assertEquals("Sendero La Vieja", updated.title)
+        assertTrue(pois.feedPage(FeedQuery(), 0, Int.MAX_VALUE).items.none { it.id == "sendero-la-vieja" })
+        assertEquals(updated, publications.publication("sendero-la-vieja"))
+        val after = users.ownProfile().publications
+        assertEquals(before.verified - 1, after.verified)
+        assertEquals(before.pending + 1, after.pending)
+    }
+
+    @Test
+    fun `editar una pendiente la actualiza sin cambiar cuándo se envió`() = runTest {
+        val before = requireNotNull(publications.publication("murales-calle-26"))
+
+        val updated = publications.update("murales-calle-26", PublicationChanges.of(before).copy(category = Category.ENTERTAINMENT))
+
+        assertEquals(Category.ENTERTAINMENT, updated.category)
+        assertEquals(PublicationStatus.PENDING, updated.status)
+        assertEquals(before.submittedAt, updated.submittedAt)
+    }
+
+    @Test
+    fun `no se edita una rechazada ni con un título demasiado corto`() = runTest {
+        val rejected = requireNotNull(publications.publication("mirador-de-la-pena"))
+        val pending = requireNotNull(publications.publication("murales-calle-26"))
+
+        assertTrue(runCatching { publications.update(rejected.id, PublicationChanges.of(rejected)) }.isFailure)
+        assertTrue(runCatching { publications.update(pending.id, PublicationChanges.of(pending).copy(title = "Mur")) }.isFailure)
     }
 }

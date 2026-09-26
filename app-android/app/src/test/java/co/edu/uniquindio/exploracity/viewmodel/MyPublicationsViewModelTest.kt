@@ -19,7 +19,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -92,9 +91,9 @@ class MyPublicationsViewModelTest {
 
         assertNull(vm.state.value.delete)
         assertTrue(vm.items.none { it.id == pending.id })
-        assertTrue(vm.state.value.deletedShown)
-        vm.onDeletedShown()
-        assertFalse(vm.state.value.deletedShown)
+        assertEquals(PublicationMessage.DELETED, vm.state.value.message)
+        vm.onMessageShown()
+        assertNull(vm.state.value.message)
     }
 
     @Test
@@ -119,10 +118,10 @@ class MyPublicationsViewModelTest {
         advanceUntilIdle()
 
         server.delete("mirador-de-la-pena")
-        vm.onDeletedElsewhere()
+        vm.onMessageFromElsewhere(PublicationMessage.DELETED)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.deletedShown)
+        assertEquals(PublicationMessage.DELETED, vm.state.value.message)
         assertTrue(vm.items.none { it.id == "mirador-de-la-pena" })
     }
 

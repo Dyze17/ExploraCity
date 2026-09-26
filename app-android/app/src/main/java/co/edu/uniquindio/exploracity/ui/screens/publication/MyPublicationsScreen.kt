@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -103,6 +104,7 @@ import co.edu.uniquindio.exploracity.util.submittedDay
 import co.edu.uniquindio.exploracity.viewmodel.MyPublicationsContent
 import co.edu.uniquindio.exploracity.viewmodel.MyPublicationsUiState
 import co.edu.uniquindio.exploracity.viewmodel.MyPublicationsViewModel
+import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -117,16 +119,16 @@ fun MyPublicationsRoute(
     onOpenComments: (String) -> Unit,
     onResubmit: (publicationId: String, step: Int) -> Unit,
     onPublish: () -> Unit,
-    deletedElsewhere: Boolean = false,
-    onDeletedElsewhereHandled: () -> Unit = {},
+    messageFromElsewhere: PublicationMessage? = null,
+    onMessageFromElsewhereHandled: () -> Unit = {},
     viewModel: MyPublicationsViewModel = viewModel(factory = MyPublicationsViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResumed() }
-    val currentOnHandled by rememberUpdatedState(onDeletedElsewhereHandled)
-    LaunchedEffect(deletedElsewhere) {
-        if (!deletedElsewhere) return@LaunchedEffect
-        viewModel.onDeletedElsewhere()
+    val currentOnHandled by rememberUpdatedState(onMessageFromElsewhereHandled)
+    LaunchedEffect(messageFromElsewhere) {
+        val message = messageFromElsewhere ?: return@LaunchedEffect
+        viewModel.onMessageFromElsewhere(message)
         currentOnHandled()
     }
     MyPublicationsScreen(
@@ -149,7 +151,7 @@ fun MyPublicationsRoute(
             onOpenDelete = viewModel::onOpenDelete,
             onDismissDelete = viewModel::onDismissDelete,
             onConfirmDelete = viewModel::onConfirmDelete,
-            onDeletedShown = viewModel::onDeletedShown,
+            onMessageShown = viewModel::onMessageShown,
             onPublish = onPublish,
         ),
     )
@@ -166,7 +168,7 @@ class MyPublicationsCallbacks(
     val onOpenDelete: (OwnPublication) -> Unit = {},
     val onDismissDelete: () -> Unit = {},
     val onConfirmDelete: () -> Unit = {},
-    val onDeletedShown: () -> Unit = {},
+    val onMessageShown: () -> Unit = {},
     val onPublish: () -> Unit = {},
 )
 
@@ -178,7 +180,7 @@ class MyPublicationsCallbacks(
 @Composable
 fun MyPublicationsScreen(state: MyPublicationsUiState, callbacks: MyPublicationsCallbacks, modifier: Modifier = Modifier) {
     val snackbarHostState = remember { SnackbarHostState() }
-    DeletedEffect(state.deletedShown, snackbarHostState, callbacks.onDeletedShown)
+    MessageEffect(state.message, snackbarHostState, callbacks.onMessageShown)
     val loaded = state.loaded
 
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -236,11 +238,16 @@ fun MyPublicationsScreen(state: MyPublicationsUiState, callbacks: MyPublications
 }
 
 @Composable
-private fun DeletedEffect(shown: Boolean, hostState: SnackbarHostState, onShown: () -> Unit) {
+private fun MessageEffect(message: PublicationMessage?, hostState: SnackbarHostState, onShown: () -> Unit) {
     val currentOnShown by rememberUpdatedState(onShown)
-    val text = stringResource(R.string.publication_deleted)
-    LaunchedEffect(shown) {
-        if (!shown) return@LaunchedEffect
+    val deleted = stringResource(R.string.publication_deleted)
+    val saved = stringResource(R.string.publication_saved)
+    LaunchedEffect(message) {
+        val text = when (message) {
+            null -> return@LaunchedEffect
+            PublicationMessage.DELETED -> deleted
+            PublicationMessage.SAVED -> saved
+        }
         // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
         hostState.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Short)
         currentOnShown()
@@ -339,7 +346,14 @@ private fun FilterEmpty(filter: PublicationStatus?, onSeeAll: () -> Unit) {
 private fun PublicationList(items: List<OwnPublication>, callbacks: MyPublicationsCallbacks) {
     val now by rememberNow()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val listState = rememberLazyListState()
+    // Lo recién guardado (23) pasa a ser lo más reciente: si se estaba al principio, la lista sigue al principio para
+    // que se vea (LazyColumn conserva el primer ítem visible y la dejaría justo encima de la vista).
+    LaunchedEffect(items.firstOrNull()?.id) {
+        if (listState.firstVisibleItemIndex <= 1) listState.scrollToItem(0)
+    }
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp + bottom),
         verticalArrangement = Arrangement.spacedBy(12.dp),

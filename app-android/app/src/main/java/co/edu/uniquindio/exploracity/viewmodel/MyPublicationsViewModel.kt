@@ -44,6 +44,9 @@ sealed interface MyPublicationsContent {
     data object Offline : MyPublicationsContent
 }
 
+/** Aviso de 22 tras eliminar (aquí, en 23 o en 24) o guardar cambios (23). */
+enum class PublicationMessage { DELETED, SAVED }
+
 /** «¿Eliminar…?» abierto para [publicationId]. */
 data class DeleteTarget(val publicationId: String, val dialog: DeleteDialogState = DeleteDialogState())
 
@@ -52,8 +55,8 @@ data class MyPublicationsUiState(
     /** null: «Todas». */
     val filter: PublicationStatus? = null,
     val delete: DeleteTarget? = null,
-    /** «Publicación eliminada» (snackbar, una vez): se borró aquí o en la publicación rechazada (24). */
-    val deletedShown: Boolean = false,
+    /** Snackbar, una vez: «Publicación eliminada» o «Guardamos los cambios…». */
+    val message: PublicationMessage? = null,
 ) {
     val loaded: MyPublicationsContent.Loaded? get() = content as? MyPublicationsContent.Loaded
 
@@ -98,9 +101,9 @@ class MyPublicationsViewModel(
     /** Al volver de un detalle (13) o de la rechazada (24) se pone al día sin la silueta. */
     fun onResumed() = refresh()
 
-    /** Se eliminó una publicación en la rechazada (24) y se volvió aquí: se dice y la lista se pone al día. */
-    fun onDeletedElsewhere() {
-        _state.update { it.copy(deletedShown = true) }
+    /** Se eliminó o editó una publicación en 23 o 24 y se volvió aquí: se dice y la lista se pone al día. */
+    fun onMessageFromElsewhere(message: PublicationMessage) {
+        _state.update { it.copy(message = message) }
         refresh()
     }
 
@@ -129,8 +132,11 @@ class MyPublicationsViewModel(
             if (result.isSuccess) {
                 updateDelete(null)
                 _state.update { state ->
-                    val loaded = state.loaded ?: return@update state.copy(deletedShown = true)
-                    state.copy(content = loaded.copy(items = loaded.items.filterNot { it.id == target.publicationId }), deletedShown = true)
+                    val loaded = state.loaded ?: return@update state.copy(message = PublicationMessage.DELETED)
+                    state.copy(
+                        content = loaded.copy(items = loaded.items.filterNot { it.id == target.publicationId }),
+                        message = PublicationMessage.DELETED,
+                    )
                 }
             } else {
                 val error = if (result.exceptionOrNull() is OfflineException) DeleteError.OFFLINE else DeleteError.FAILED
@@ -139,7 +145,7 @@ class MyPublicationsViewModel(
         }
     }
 
-    fun onDeletedShown() = _state.update { it.copy(deletedShown = false) }
+    fun onMessageShown() = _state.update { it.copy(message = null) }
 
     private fun updateDelete(delete: DeleteTarget?) {
         _state.update { it.copy(delete = delete) }

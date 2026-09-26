@@ -42,6 +42,7 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 location = GeoPoint(4.5966, -74.0718),
                 photos = 3,
                 submittedAt = ago(2.hours),
+                description = "Pan de yuca y almojábanas recién horneadas desde las 6 de la mañana, a una cuadra del Chorro de Quevedo.",
                 // Ana confirmó que es otro lugar que uno cercano (17B): el moderador la ve como posible duplicado.
                 possibleDuplicate = true,
             ),
@@ -55,6 +56,7 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 location = GeoPoint(4.6155, -74.0790),
                 photos = 4,
                 submittedAt = ago(1.days),
+                description = "Tramo de murales entre la carrera 5 y la 13; se recorre a pie en media hora y de día hay buena luz para fotos.",
             ),
         ),
         PublicationSeed(
@@ -66,6 +68,7 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 location = GeoPoint(4.5905, -74.0590),
                 photos = 2,
                 submittedAt = ago(4.days),
+                description = "Mirador en la subida de La Peña con vista al centro. Se llega por un sendero corto desde el barrio.",
                 rejection = Rejection(
                     reason = RejectionReason.PHOTO,
                     message = "La foto no permite reconocer el lugar y el pin quedó a unas tres cuadras de la entrada. " +
@@ -89,6 +92,7 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 location = GeoPoint(4.59791, -74.0746),
                 photos = 1,
                 submittedAt = ago(1.days),
+                description = "Los tamales santafereños y el chocolate con queso de siempre, en la esquina de la catedral.",
                 rejection = Rejection(
                     reason = RejectionReason.DUPLICATE,
                     message = "Es La Puerta Falsa, que ya está publicada. Tu experiencia le sirve a la comunidad en sus comentarios.",

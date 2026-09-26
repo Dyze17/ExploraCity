@@ -27,9 +27,11 @@ import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.OwnProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
+import co.edu.uniquindio.exploracity.ui.screens.publication.EditPublicationRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.MyPublicationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.RejectedPublicationRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
+import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
 
 /**
  * Grafo de navegación completo. Cada destino es por ahora una [PlaceholderScreen] con los enlaces que
@@ -71,22 +73,22 @@ fun NavController.navigateToTab(tab: TopLevelDestination) {
 private fun NavController.back(): () -> Unit = { popBackStack() }
 
 /**
- * Marca en la entrada de 22 (no en el SavedStateHandle de su ViewModel, que es otro) para avisar «Publicación eliminada»
- * una vez al volver de eliminarla en 24.
+ * Marca en la entrada de 22 (no en el SavedStateHandle de su ViewModel, que es otro) para avisar una vez, al volver de 23
+ * o 24, que la publicación se eliminó o se guardó.
  */
-private const val PUBLICATION_DELETED_KEY = "publicacion_eliminada"
+private const val PUBLICATION_MESSAGE_KEY = "aviso_publicacion"
 
 /**
  * Vuelve a Mis publicaciones (22) si ya estaba en la pila, con su filtro; si no, la abre en lugar de la pantalla
  * actual, así «atrás» no regresa a una publicación que ya se eliminó.
  */
-private fun NavController.openMyPublications(deleted: Boolean = false) {
+private fun NavController.openMyPublications(message: PublicationMessage? = null) {
     if (!popBackStack<MyPublications>(inclusive = false)) {
         val current = currentBackStackEntry?.destination?.id
         navigate(MyPublications()) { if (current != null) popUpTo(current) { inclusive = true } }
     }
-    // 22 lo dice con «Publicación eliminada» y se pone al día.
-    if (deleted) currentBackStackEntry?.savedStateHandle?.set(PUBLICATION_DELETED_KEY, true)
+    // 22 lo dice («Publicación eliminada», «Guardamos los cambios…») y se pone al día.
+    if (message != null) currentBackStackEntry?.savedStateHandle?.set(PUBLICATION_MESSAGE_KEY, message.name)
 }
 
 /**
@@ -281,10 +283,10 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Uni
         composable<Badges> { BadgesRoute(onBack = nav.back()) }
         composable<EditProfile> { PlaceholderScreen("28", "Editar perfil", emptyList(), onBack = nav.back()) }
         composable<MyPublications> { entry ->
-            val deletedElsewhere by entry.savedStateHandle.getStateFlow(PUBLICATION_DELETED_KEY, false).collectAsStateWithLifecycle()
+            val message by entry.savedStateHandle.getStateFlow<String?>(PUBLICATION_MESSAGE_KEY, null).collectAsStateWithLifecycle()
             MyPublicationsRoute(
-                deletedElsewhere = deletedElsewhere,
-                onDeletedElsewhereHandled = { entry.savedStateHandle[PUBLICATION_DELETED_KEY] = false },
+                messageFromElsewhere = PublicationMessage.entries.firstOrNull { it.name == message },
+                onMessageFromElsewhereHandled = { entry.savedStateHandle[PUBLICATION_MESSAGE_KEY] = null },
                 onBack = nav.back(),
                 onOpenPlace = { nav.navigate(PoiDetail(it)) },
                 onOpenRejected = { nav.navigate(RejectedPublication(it)) },
@@ -294,14 +296,16 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Uni
                 onPublish = { nav.navigateToTab(TopLevelDestination.PUBLISH) },
             )
         }
-        composable<EditPublication> { PlaceholderScreen("23", "Editar publicación", emptyList(), onBack = nav.back()) }
+        composable<EditPublication> {
+            EditPublicationRoute(onLeave = nav.back(), onDone = { message -> nav.openMyPublications(message) })
+        }
         composable<RejectedPublication> {
             RejectedPublicationRoute(
                 onBack = nav.back(),
                 onResubmit = { id, step -> nav.navigate(PublishForm(resubmitId = id, step = step)) },
                 onOpenExisting = { nav.navigate(PoiDetail(it, focusComment = true)) },
                 onOpenMine = { nav.openMyPublications() },
-                onDeleted = { nav.openMyPublications(deleted = true) },
+                onDeleted = { nav.openMyPublications(PublicationMessage.DELETED) },
             )
         }
         composable<Settings> {

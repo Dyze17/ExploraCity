@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.Poi
+import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,12 @@ interface PublicationRepository {
 
     /** 22–24 · La borra con sus fotos, comentarios y votos, sin vuelta atrás. Lanza excepción si falla la red. */
     suspend fun delete(id: String)
+
+    /**
+     * 23 · Guarda título, categoría y descripción. La publicación vuelve a verificación: una verificada deja de verse en
+     * el feed hasta que un moderador la apruebe. Devuelve cómo quedó. Lanza excepción si falla la red.
+     */
+    suspend fun update(id: String, changes: PublicationChanges): OwnPublication
 }
 
 /**
@@ -63,6 +70,33 @@ class FakePublicationRepository(
         }
     }
 
+    override suspend fun update(id: String, changes: PublicationChanges): OwnPublication {
+        delay(actionLatency)
+        val clean = changes.trimmed()
+        require(clean.isValid) { "Título o descripción fuera de los límites" }
+        val hiddenOne = hidden.value.firstOrNull { it.publication.id == id }?.publication
+        val updated = if (hiddenOne != null) {
+            check(hiddenOne.status == PublicationStatus.PENDING) { "Solo se editan las pendientes y las verificadas: $id" }
+            hiddenOne.copy(title = clean.title, category = clean.category, description = clean.description)
+        } else {
+            val public = publicOnes().firstOrNull { it.id == id } ?: error("Publicación desconocida: $id")
+            check(public.status == PublicationStatus.VERIFIED) { "Solo se editan las pendientes y las verificadas: $id" }
+            // Vuelve a verificación: sale del feed y se envía de nuevo ahora.
+            pois.remove(id)
+            public.copy(
+                title = clean.title,
+                category = clean.category,
+                description = clean.description,
+                status = PublicationStatus.PENDING,
+                submittedAt = clock.instant(),
+                votes = 0,
+                comments = 0,
+            )
+        }
+        hidden.update { list -> list.filterNot { it.publication.id == id } + PublicationSeed(updated) }
+        return updated
+    }
+
     private fun all(): List<OwnPublication> {
         val feed = pois.places()
         val hiddenOnes = hidden.value.map { seed ->
@@ -85,6 +119,7 @@ class FakePublicationRepository(
                 location = poi.location,
                 photos = details.photos.size,
                 submittedAt = clock.instant() - (submission?.submittedAgo ?: Duration.ZERO).toJavaDuration(),
+                description = details.description,
                 photoUrl = poi.photoUrl,
                 votes = poi.votes,
                 comments = poi.comments,
@@ -94,8 +129,9 @@ class FakePublicationRepository(
 }
 
 /**
- * Ver, listar o borrar publicaciones propias necesita red: sin ella se avisa sin intentar. Borrar no se encola: es una
- * acción destructiva y deliberada, como reportar un perfil (31A).
+ * Ver, listar, editar o borrar publicaciones propias necesita red: sin ella se avisa sin intentar. Nada de esto se
+ * encola: borrar es destructivo y deliberado, como reportar un perfil (31A), y una edición en cola podría chocar con la
+ * revisión del moderador.
  */
 class OnlineOnlyPublicationRepository(
     private val remote: PublicationRepository,
@@ -114,6 +150,11 @@ class OnlineOnlyPublicationRepository(
     override suspend fun delete(id: String) {
         requireOnline()
         remote.delete(id)
+    }
+
+    override suspend fun update(id: String, changes: PublicationChanges): OwnPublication {
+        requireOnline()
+        return remote.update(id, changes)
     }
 
     private fun requireOnline() {

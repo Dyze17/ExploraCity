@@ -26,4 +26,15 @@ class OwnPublicationTest {
     fun `sin correcciones abre en el paso 1, como la tabla de interacciones de 24`() {
         assertEquals(1, rejection().firstStepToFix)
     }
+
+    @Test
+    fun `al editar cuenta lo que falta para el mínimo, sin los espacios de los extremos (21 · Van 4)`() {
+        val changes = PublicationChanges("  Café ", Category.GASTRONOMY, "Rico")
+
+        assertEquals(4, changes.titleLength)
+        assertEquals(1, changes.titleMissing)
+        assertEquals(26, changes.descriptionMissing)
+        assertEquals(false, changes.isValid)
+        assertEquals(true, changes.copy(title = "Café Las Acacias", description = "a".repeat(30)).isValid)
+    }
 }
