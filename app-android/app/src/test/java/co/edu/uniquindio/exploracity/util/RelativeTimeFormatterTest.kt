@@ -1,10 +1,12 @@
 package co.edu.uniquindio.exploracity.util
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -56,5 +58,30 @@ class RelativeTimeFormatterTest {
     fun `el mes del perfil, con año solo si es otro (26 · desde marzo)`() {
         assertEquals("marzo", formatMonth(YearMonth.of(2026, 3), withYear = false))
         assertEquals("diciembre de 2025", formatMonth(YearMonth.of(2025, 12), withYear = true))
+    }
+
+    @Test
+    fun `el día de envío cuenta días de calendario (22 · Enviada hoy, ayer, hace 4 días)`() {
+        val bogota = ZoneId.of("America/Bogota")
+        val now = Instant.parse("2026-09-25T15:00:00Z") // 10:00 en Bogotá
+
+        assertEquals(SubmittedDay.Today(LocalTime.of(9, 12)), submittedDay(Instant.parse("2026-09-25T14:12:00Z"), now, bogota))
+        // Anoche a las 23:50 fue ayer, aunque no hayan pasado 24 horas.
+        assertEquals(SubmittedDay.Yesterday, submittedDay(Instant.parse("2026-09-25T04:50:00Z"), now, bogota))
+        assertEquals(SubmittedDay.DaysAgo(4), submittedDay(Instant.parse("2026-09-21T15:00:00Z"), now, bogota))
+        assertEquals(SubmittedDay.On(LocalDate.of(2026, 8, 1), sameYear = true), submittedDay(Instant.parse("2026-08-01T15:00:00Z"), now, bogota))
+    }
+
+    @Test
+    fun `un envío con el reloj adelantado es de hoy`() {
+        val now = Instant.parse("2026-09-25T15:00:00Z")
+
+        assertTrue(submittedDay(now.plusSeconds(600), now, utc) is SubmittedDay.Today)
+    }
+
+    @Test
+    fun `la hora va sin cero delante`() {
+        assertEquals("9:12", formatTime(LocalTime.of(9, 12)))
+        assertEquals("21:05", formatTime(LocalTime.of(21, 5)))
     }
 }

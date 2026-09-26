@@ -173,7 +173,7 @@ fun RejectedPublicationScreen(state: RejectedPublicationUiState, callbacks: Reje
 
     val delete = state.delete
     if (publication != null && delete != null) {
-        DeletePublicationDialog(publication.title, publication.photos, delete, callbacks.onConfirmDelete, callbacks.onDismissDelete)
+        DeletePublicationDialog(publication, delete, callbacks.onConfirmDelete, callbacks.onDismissDelete)
     }
 }
 

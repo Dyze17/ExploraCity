@@ -3,9 +3,11 @@ package co.edu.uniquindio.exploracity.util
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 /** Antigüedad de un comentario como se dice en 14 («hace 2 días»). La pantalla pone las palabras. */
 sealed interface RelativeTime {
@@ -50,3 +52,36 @@ private val monthYear = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", spanishCol
 
 /** «marzo»; de otro año, «marzo de 2025» (26: «Residente · Bogotá · desde marzo»). */
 fun formatMonth(month: YearMonth, withYear: Boolean): String = (if (withYear) monthYear else monthOnly).format(month)
+
+/** Día de envío de una publicación como se dice en 22 («Enviada hoy · 9:12», «Enviada ayer», «hace 4 días»). */
+sealed interface SubmittedDay {
+    data class Today(val time: LocalTime) : SubmittedDay
+
+    data object Yesterday : SubmittedDay
+
+    data class DaysAgo(val days: Int) : SubmittedDay
+
+    /** Pasado un mes, la fecha, como en [RelativeTime.On]. */
+    data class On(val date: LocalDate, val sameYear: Boolean) : SubmittedDay
+}
+
+/**
+ * Cuenta días de calendario en [zone], no periodos de 24 horas: lo enviado anoche a las 23:50 fue «ayer» aunque hayan
+ * pasado diez minutos. Un envío del futuro (relojes que no coinciden) es de hoy.
+ */
+fun submittedDay(then: Instant, now: Instant, zone: ZoneId): SubmittedDay {
+    val thenDate = then.atZone(zone).toLocalDate()
+    val today = now.atZone(zone).toLocalDate()
+    val days = ChronoUnit.DAYS.between(thenDate, today)
+    return when {
+        days <= 0 -> SubmittedDay.Today(then.atZone(zone).toLocalTime())
+        days == 1L -> SubmittedDay.Yesterday
+        days < 30 -> SubmittedDay.DaysAgo(days.toInt())
+        else -> SubmittedDay.On(thenDate, sameYear = thenDate.year == today.year)
+    }
+}
+
+private val hourMinute = DateTimeFormatter.ofPattern("H:mm", spanishColombia)
+
+/** «9:12». */
+fun formatTime(time: LocalTime): String = hourMinute.format(time)
