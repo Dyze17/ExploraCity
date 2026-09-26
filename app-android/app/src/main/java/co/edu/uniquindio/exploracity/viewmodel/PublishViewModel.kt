@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
@@ -16,16 +17,25 @@ import co.edu.uniquindio.exploracity.data.local.DraftRepository
 import co.edu.uniquindio.exploracity.data.location.AddressResolver
 import co.edu.uniquindio.exploracity.data.location.ApproximateAddress
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
+import co.edu.uniquindio.exploracity.data.photos.PhotoStore
+import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
+import co.edu.uniquindio.exploracity.data.photos.UploadProgress
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
+import co.edu.uniquindio.exploracity.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
+import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.PhotoRules
+import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
+import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
+import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import co.edu.uniquindio.exploracity.navigation.PublishForm
 import kotlinx.coroutines.CancellationException
@@ -36,9 +46,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.DayOfWeek
+import java.time.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -76,7 +89,34 @@ sealed interface Suggestion {
 }
 
 /** Un campo que impide continuar (21). */
-enum class DraftField { TITLE, DESCRIPTION, CATEGORY, LOCATION }
+enum class DraftField { TITLE, DESCRIPTION, CATEGORY, LOCATION, DAYS, OPENS, CLOSES, PHOTOS }
+
+/** 19 · Cómo va la subida de una foto que aún no tiene dirección en el servidor. */
+sealed interface PhotoUpload {
+    /** 0 a 100. */
+    data class Uploading(val percent: Int) : PhotoUpload
+
+    /** Falló (sin red o error): la foto y el formulario siguen guardados; se reintenta sola al volver la red. */
+    data object Failed : PhotoUpload
+}
+
+/** 19 · Un aviso sobre las fotos que no es de una en particular. */
+enum class PhotoProblem {
+    /** No se pudo leer o comprimir la foto elegida. */
+    UNREADABLE,
+
+    /** El teléfono no tiene app de cámara: queda la galería. */
+    NO_CAMERA,
+}
+
+/** 19 → 20 · El envío no salió; la publicación sigue en el formulario. */
+enum class SendError {
+    /** Con red, ninguna foto terminó de subir: se reintentan antes de enviar. */
+    NO_PHOTO_UPLOADED,
+
+    /** El servidor no la recibió. */
+    FAILED,
+}
 
 /** 17 · La dirección aproximada del pin. */
 sealed interface PinAddress {
@@ -116,12 +156,12 @@ data class DuplicateReview(
 )
 
 /** Cómo sale del formulario. */
-enum class PublishExit {
+sealed interface PublishExit {
     /** Cerrar o «Guardar»: el borrador queda guardado (o no había nada que guardar). */
-    CLOSED,
+    data object Closed : PublishExit
 
-    /** Paso 5 provisional: sigue a la confirmación (20) mientras no exista el envío (parte 3). */
-    SENT,
+    /** «Enviar a verificación»: a la confirmación (20), enviada o en la cola sin red. */
+    data class Sent(val summary: SentSummary) : PublishExit
 }
 
 data class PublishUiState(
@@ -150,6 +190,14 @@ data class PublishUiState(
     val duplicates: DuplicateReview? = null,
     /** 17A · Se abrió «Ver este lugar»: la hoja se esconde mientras tanto y vuelve al regresar. */
     val awayForPlace: Boolean = false,
+    /** 19 · Subidas en curso o fallidas, por id de foto; las subidas no están aquí. */
+    val uploads: Map<String, PhotoUpload> = emptyMap(),
+    /** 19 · Fotos elegidas que aún se están comprimiendo («Preparando la foto…»). */
+    val preparingPhotos: Int = 0,
+    val photoProblem: PhotoProblem? = null,
+    /** 19 → 20 · «Enviar a verificación» en curso (espera la primera foto si hace falta). */
+    val sending: Boolean = false,
+    val sendError: SendError? = null,
     /** 15A · «¿Guardar el borrador?» abierto. */
     val closeDialog: Boolean = false,
     val exit: PublishExit? = null,
@@ -165,8 +213,18 @@ data class PublishUiState(
             )
             PublishStep.CATEGORY -> listOfNotNull(DraftField.CATEGORY.takeIf { draft.category == null })
             PublishStep.LOCATION -> listOfNotNull(DraftField.LOCATION.takeIf { draft.location == null })
-            // Los pasos 4 y 5 llegan en la parte 3.
-            PublishStep.SCHEDULE, PublishStep.PHOTOS -> emptyList()
+            // 18 · «No tengo el horario exacto» libera el paso; si no, días y horas, con el cierre después de la apertura.
+            PublishStep.SCHEDULE -> if (draft.hoursUnknown) {
+                emptyList()
+            } else {
+                listOfNotNull(
+                    DraftField.DAYS.takeIf { draft.hours.days.isEmpty() },
+                    DraftField.OPENS.takeIf { draft.hours.opens == null },
+                    DraftField.CLOSES.takeIf { draft.hours.closes == null || !draft.hours.closesAfterOpens },
+                )
+            }
+            // Una foto que se está preparando ya cuenta: «Enviar» la espera.
+            PublishStep.PHOTOS -> listOfNotNull(DraftField.PHOTOS.takeIf { draft.photos.size < PhotoRules.MIN && preparingPhotos == 0 })
         }
 
     val showTitleError: Boolean get() = (titleTouched || showErrors) && draft.titleMissing > 0
@@ -176,6 +234,14 @@ data class PublishUiState(
     val showCategoryError: Boolean get() = showErrors && step == PublishStep.CATEGORY && draft.category == null
 
     val showLocationError: Boolean get() = showErrors && step == PublishStep.LOCATION && draft.location == null
+
+    /** 18 · Los errores de días y horas junto a cada campo, tras tocar «Continuar». */
+    fun showScheduleError(field: DraftField): Boolean = showErrors && step == PublishStep.SCHEDULE && field in stepErrors
+
+    /** 18 · «La hora de cierre debe ser posterior»: se ve en cuanto las dos horas están, sin esperar a «Continuar». */
+    val closesBeforeOpens: Boolean get() = !draft.hoursUnknown && !draft.hours.closesAfterOpens
+
+    val showPhotosError: Boolean get() = showErrors && step == PublishStep.PHOTOS && draft.photos.size < PhotoRules.MIN
 }
 
 /** Lo que el formulario necesita del mapa (17): el pin, su dirección, la ubicación y los parecidos. */
@@ -190,13 +256,23 @@ class PublishPlaces(
     val cityBounds: GeoBounds,
 )
 
+/** Lo que el formulario necesita para las fotos y el envío (19, 20). */
+class PublishDelivery(
+    val photos: PhotoStore,
+    val uploader: PhotoUploader,
+    val outbox: PublicationOutbox,
+)
+
 class PublishViewModel(
     private val drafts: DraftRepository,
     private val suggester: CategorySuggester,
     private val publications: PublicationRepository,
     private val places: PublishPlaces,
+    private val delivery: PublishDelivery,
     resubmitId: String?,
     private val initialStep: PublishStep,
+    /** Guarda la foto que está tomando la cámara: Android puede cerrar la app mientras tanto. */
+    private val savedState: SavedStateHandle,
     private val suggestionTimeout: Duration = SUGGESTION_TIMEOUT,
     private val saveDelay: Duration = SAVE_DELAY,
 ) : ViewModel() {
@@ -215,14 +291,18 @@ class PublishViewModel(
     private var addressJob: Job? = null
     private var searchJob: Job? = null
     private var nearbyJob: Job? = null
+    private var sendJob: Job? = null
+    private val uploadJobs = mutableMapOf<String, Job>()
 
     init {
         load()
-        // Sin red la tarjeta promete la dirección para cuando vuelva: se busca sola al reconectar.
+        // Al volver la red: la dirección que se prometió (17) y las fotos que no pudieron subir (19).
         viewModelScope.launch {
             places.connectivity.isOnline.drop(1).filter { it }.collect {
-                val location = _state.value.draft.location
-                if (_state.value.address == PinAddress.Offline && location != null) resolveAddress(location)
+                val state = _state.value
+                val location = state.draft.location
+                if (state.address == PinAddress.Offline && location != null) resolveAddress(location)
+                state.draft.photos.filter { state.uploads[it.id] == PhotoUpload.Failed }.forEach(::startUpload)
             }
         }
     }
@@ -263,7 +343,7 @@ class PublishViewModel(
      */
     fun onContinue() {
         val state = _state.value
-        if (state.content != PublishContent.Editing || state.searchingNearby) return
+        if (state.content != PublishContent.Editing || state.searchingNearby || state.sending) return
         if (state.stepErrors.isNotEmpty()) {
             _state.update {
                 it.copy(showErrors = true, titleTouched = true, descriptionTouched = true, errorFocusRequest = it.errorFocusRequest + 1)
@@ -272,8 +352,7 @@ class PublishViewModel(
         }
         val next = state.step.next
         when {
-            // Parte 3: aquí se enviará a verificación. Mientras tanto se sigue a la confirmación provisional.
-            next == null -> _state.update { it.copy(exit = PublishExit.SENT) }
+            next == null -> send()
             state.step == PublishStep.LOCATION && !state.draft.duplicatesChecked -> searchNearby()
             else -> moveTo(next)
         }
@@ -281,6 +360,7 @@ class PublishViewModel(
 
     /** «Atrás»: al paso anterior (también mientras busca parecidos); en el primero equivale a cerrar. */
     fun onBack() {
+        if (_state.value.sending) return
         val previous = _state.value.step.previous ?: return onClose()
         nearbyJob?.cancel()
         _state.update { it.copy(searchingNearby = false) }
@@ -379,6 +459,62 @@ class PublishViewModel(
         moveTo(PublishStep.SCHEDULE)
     }
 
+    /** 18 · Un día de atención: tocarlo lo marca o lo desmarca. */
+    fun onDayToggle(day: DayOfWeek) = updateDraft { draft ->
+        val days = draft.hours.days
+        draft.copy(hours = draft.hours.copy(days = if (day in days) days - day else days + day))
+    }
+
+    fun onOpensChange(time: LocalTime) = updateDraft { it.copy(hours = it.hours.copy(opens = time)) }
+
+    fun onClosesChange(time: LocalTime) = updateDraft { it.copy(hours = it.hours.copy(closes = time)) }
+
+    /** 18 · «No tengo el horario exacto»: días y horas dejan de hacer falta (se conservan por si la desmarca). */
+    fun onHoursUnknownChange(unknown: Boolean) = updateDraft { it.copy(hoursUnknown = unknown) }
+
+    /** 18 · El precio es opcional: tocar el elegido lo quita. */
+    fun onPriceChange(price: PriceRange) = updateDraft { it.copy(price = if (it.price == price) null else price) }
+
+    /**
+     * 19 · «Cámara»: dónde escribirá la foto la app de cámara; null si ya hay 5. Se recuerda en [savedState] porque
+     * Android puede cerrar la app mientras la cámara está abierta.
+     */
+    fun onCameraShot(): String? {
+        if (_state.value.draft.photosLeft == 0) return null
+        return delivery.photos.newCameraShot().also { savedState[CAMERA_SHOT_KEY] = it }
+    }
+
+    /** 19 · Volvió de la cámara: con foto, se comprime y se sube; si canceló, no pasa nada. */
+    fun onCameraResult(taken: Boolean) {
+        val shot = savedState.remove<String>(CAMERA_SHOT_KEY) ?: return
+        if (taken) importPhotos(listOf(shot))
+    }
+
+    /** 19 · No hay app de cámara: se explica y queda la galería. */
+    fun onCameraUnavailable() {
+        savedState.remove<String>(CAMERA_SHOT_KEY)
+        _state.update { it.copy(photoProblem = PhotoProblem.NO_CAMERA) }
+    }
+
+    /** 19 · Fotos elegidas en la galería (el selector ya limita cuántas). */
+    fun onGalleryPicked(uris: List<String>) = importPhotos(uris)
+
+    fun onPhotoProblemShown() = _state.update { it.copy(photoProblem = null) }
+
+    /** 19 · «Reintentar» de una foto que no pudo subir. */
+    fun onRetryPhoto(id: String) {
+        _state.value.draft.photos.firstOrNull { it.id == id }?.let(::startUpload)
+    }
+
+    /** 19 · Quitar una foto (o cancelar su subida): se borra también del teléfono. */
+    fun onRemovePhoto(id: String) {
+        val photo = _state.value.draft.photos.firstOrNull { it.id == id } ?: return
+        uploadJobs.remove(id)?.cancel()
+        _state.update { it.copy(uploads = it.uploads - id, sendError = null) }
+        updateDraft { draft -> draft.copy(photos = draft.photos.filterNot { it.id == id }) }
+        viewModelScope.launch { delivery.photos.delete(photo) }
+    }
+
     /** 17A · «Ver este lugar»: el formulario queda intacto y la hoja vuelve al regresar. */
     fun onLeaveForPlace() = _state.update { it.copy(awayForPlace = true) }
 
@@ -386,10 +522,11 @@ class PublishViewModel(
 
     /** Cerrar (X): con algo escrito pregunta (15A); si no, sale. */
     fun onClose() {
+        if (_state.value.sending) return
         if (_state.value.draft.hasContent && _state.value.content == PublishContent.Editing) {
             _state.update { it.copy(closeDialog = true) }
         } else {
-            _state.update { it.copy(exit = PublishExit.CLOSED) }
+            _state.update { it.copy(exit = PublishExit.Closed) }
         }
     }
 
@@ -400,7 +537,7 @@ class PublishViewModel(
             nearbyJob?.cancel()
             val draft = _state.value.draft
             if (draft.hasContent) drafts.save(key, draft) else drafts.clear(key)
-            _state.update { it.copy(closeDialog = false, exit = PublishExit.CLOSED) }
+            _state.update { it.copy(closeDialog = false, exit = PublishExit.Closed) }
         }
     }
 
@@ -412,8 +549,11 @@ class PublishViewModel(
             // Una búsqueda que terminara después guardaría otra vez el borrador.
             nearbyJob?.cancel()
             searchJob?.cancel()
+            uploadJobs.values.forEach(Job::cancel)
             drafts.clear(key)
-            _state.update { it.copy(closeDialog = false, exit = PublishExit.CLOSED) }
+            // Las fotos comprimidas del borrador tampoco se necesitan ya.
+            _state.value.draft.photos.forEach { delivery.photos.delete(it) }
+            _state.update { it.copy(closeDialog = false, exit = PublishExit.Closed) }
         }
     }
 
@@ -477,6 +617,120 @@ class PublishViewModel(
                 }
             }
         }
+    }
+
+    /** 19 · Comprime y agrega las fotos (hasta 5) y empieza a subirlas; espera al borrador si aún se está leyendo. */
+    private fun importPhotos(uris: List<String>) {
+        if (uris.isEmpty()) return
+        _state.update { it.copy(photoProblem = null, preparingPhotos = it.preparingPhotos + uris.size) }
+        viewModelScope.launch {
+            _state.first { it.content == PublishContent.Editing }
+            var unreadable = false
+            for (uri in uris) {
+                val photo = if (_state.value.draft.photosLeft > 0) delivery.photos.import(uri) else null
+                _state.update { it.copy(preparingPhotos = it.preparingPhotos - 1) }
+                if (photo == null) {
+                    // Más de 5: el selector ya las limita; si pasa, sobran en silencio.
+                    if (_state.value.draft.photosLeft > 0) unreadable = true
+                    continue
+                }
+                updateDraft { it.copy(photos = it.photos + photo) }
+                _state.update { it.copy(sendError = null) }
+                startUpload(photo)
+            }
+            if (unreadable) _state.update { it.copy(photoProblem = PhotoProblem.UNREADABLE) }
+        }
+    }
+
+    /** 19 · Sube una foto informando el progreso; al terminar guarda su dirección en el borrador. */
+    private fun startUpload(photo: DraftPhoto) {
+        uploadJobs.remove(photo.id)?.cancel()
+        setUpload(photo.id, PhotoUpload.Uploading(0))
+        uploadJobs[photo.id] = viewModelScope.launch {
+            try {
+                delivery.uploader.upload(photo).collect { progress ->
+                    when (progress) {
+                        is UploadProgress.Sending -> setUpload(photo.id, PhotoUpload.Uploading(progress.percent))
+                        is UploadProgress.Done -> {
+                            setUpload(photo.id, null)
+                            updateDraft { draft ->
+                                draft.copy(photos = draft.photos.map { if (it.id == photo.id) it.copy(remoteUrl = progress.url) else it })
+                            }
+                        }
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                setUpload(photo.id, PhotoUpload.Failed)
+            }
+        }
+    }
+
+    private fun setUpload(id: String, upload: PhotoUpload?) = _state.update {
+        it.copy(uploads = if (upload == null) it.uploads - id else it.uploads + (id to upload))
+    }
+
+    /**
+     * 19 → 20 · «Enviar a verificación». Con una foto subida ya se puede enviar: si todas siguen subiendo, espera a la
+     * primera; las que falten se suben después en segundo plano. Sin red, la publicación entera queda en la cola y se
+     * envía al volver el internet. El borrador se borra cuando el servidor la recibe o cuando ya está a salvo en la cola.
+     */
+    private fun send() {
+        _state.update { it.copy(sending = true, sendError = null) }
+        sendJob = viewModelScope.launch {
+            val ready = _state.first { state ->
+                state.preparingPhotos == 0 &&
+                    (state.draft.photos.any(DraftPhoto::uploaded) || state.draft.photos.none { state.uploads[it.id] is PhotoUpload.Uploading })
+            }
+            val draft = ready.draft
+            val submission = PublicationSubmission.from(draft, resubmitId)
+            if (submission == null) {
+                // La foto que se esperaba no se pudo leer: queda el resumen de 21.
+                _state.update { it.copy(sending = false, showErrors = true, errorFocusRequest = it.errorFocusRequest + 1) }
+                return@launch
+            }
+            val uploaded = draft.photos.filter(DraftPhoto::uploaded)
+            if (uploaded.isEmpty()) {
+                if (places.connectivity.isOnline.value) {
+                    _state.update { it.copy(sending = false, sendError = SendError.NO_PHOTO_UPLOADED) }
+                } else {
+                    queue(submission)
+                }
+                return@launch
+            }
+            val result = try {
+                publications.submit(submission.copy(photos = uploaded))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: OfflineException) {
+                queue(submission)
+                return@launch
+            } catch (e: Exception) {
+                _state.update { it.copy(sending = false, sendError = SendError.FAILED) }
+                return@launch
+            }
+            // Las que no alcanzaron a subir siguen en segundo plano, con su archivo.
+            val later = draft.photos.filterNot(DraftPhoto::uploaded)
+            later.forEach { uploadJobs.remove(it.id)?.cancel() }
+            delivery.outbox.enqueuePhotos(result.publicationId, later)
+            finish(SentSummary(submission.title, submission.possibleDuplicate, queued = false, result.firstPublicationPoints))
+            uploaded.forEach { delivery.photos.delete(it) }
+        }
+    }
+
+    /** Sin red: la publicación completa, con sus fotos del teléfono, pasa a la cola de envío (B1 de Daniel). */
+    private suspend fun queue(submission: PublicationSubmission) {
+        uploadJobs.values.forEach(Job::cancel)
+        uploadJobs.clear()
+        delivery.outbox.enqueue(submission)
+        finish(SentSummary(submission.title, submission.possibleDuplicate, queued = true))
+    }
+
+    private suspend fun finish(summary: SentSummary) {
+        saveJob?.cancel()
+        drafts.clear(key)
+        _state.update { it.copy(sending = false, exit = PublishExit.Sent(summary)) }
     }
 
     /** Cada cambio se guarda solo, un momento después de escribir («Guardamos tu borrador automáticamente»). */
@@ -554,6 +808,8 @@ class PublishViewModel(
             if (draft.step == PublishStep.CATEGORY && category == null) startSuggestion(overrideChoice = false)
             val location = draft.location
             if (draft.step == PublishStep.LOCATION && location != null) resolveAddress(location)
+            // Las fotos que no alcanzaron a subir (se cerró la app) siguen donde quedaron.
+            draft.photos.filterNot(DraftPhoto::uploaded).forEach(::startUpload)
         }
     }
 
@@ -570,10 +826,13 @@ class PublishViewModel(
         /** Espera tras el último cambio antes de guardar el borrador: no escribe en disco con cada tecla. */
         val SAVE_DELAY = 400.milliseconds
 
+        private const val CAMERA_SHOT_KEY = "foto_de_camara"
+
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                val route = createSavedStateHandle().toRoute<PublishForm>()
+                val savedState = createSavedStateHandle()
+                val route = savedState.toRoute<PublishForm>()
                 PublishViewModel(
                     drafts = container.draftRepository,
                     suggester = container.categorySuggester,
@@ -586,8 +845,10 @@ class PublishViewModel(
                         cityCenter = container.areaCenter,
                         cityBounds = container.areaBounds,
                     ),
+                    delivery = PublishDelivery(container.photoStore, container.photoUploader, container.publicationOutbox),
                     resubmitId = route.resubmitId,
                     initialStep = PublishStep.of(route.step),
+                    savedState = savedState,
                 )
             }
         }

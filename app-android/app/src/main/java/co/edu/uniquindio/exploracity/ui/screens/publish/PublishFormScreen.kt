@@ -1,7 +1,12 @@
 package co.edu.uniquindio.exploracity.ui.screens.publish
 
+import android.content.ActivityNotFoundException
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -47,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,6 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
@@ -78,6 +86,8 @@ import co.edu.uniquindio.exploracity.viewmodel.PublishExit
 import co.edu.uniquindio.exploracity.viewmodel.PublishUiState
 import co.edu.uniquindio.exploracity.viewmodel.PublishViewModel
 import co.edu.uniquindio.exploracity.viewmodel.Suggestion
+import java.time.DayOfWeek
+import java.time.LocalTime
 
 /** 15–19 · Formulario de publicación, conectado a su ViewModel. [onOpenPlace] abre un lugar parecido (17A → 13). */
 @Composable
@@ -114,6 +124,32 @@ fun PublishFormRoute(
         // Vuelve de «Ver este lugar» (17A → 13): la hoja reaparece como estaba.
         viewModel.onBackFromPlace()
     }
+    // 19 · Cámara (la app de cámara del teléfono, sin pedir permiso) y galería (el selector de fotos de Android).
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> viewModel.onCameraResult(taken) }
+    val photosLeft = state.draft.photosLeft
+    val pickMany = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(photosLeft.coerceAtLeast(2))) { uris ->
+        viewModel.onGalleryPicked(uris.map(Uri::toString))
+    }
+    val pickOne = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { viewModel.onGalleryPicked(listOf(it.toString())) }
+    }
+    val takePhoto = {
+        viewModel.onCameraShot()?.let { shot ->
+            try {
+                camera.launch(shot.toUri())
+            } catch (e: ActivityNotFoundException) {
+                viewModel.onCameraUnavailable()
+            }
+        }
+    }
+    val pickPhotos = {
+        val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+        when {
+            photosLeft >= 2 -> pickMany.launch(request)
+            photosLeft == 1 -> pickOne.launch(request)
+        }
+    }
+
     // Con el permiso ya concedido, el paso 3 empieza donde está la persona y el pin cuenta como puesto.
     val onLocationStep = state.content == PublishContent.Editing && state.step == PublishStep.LOCATION
     LaunchedEffect(onLocationStep) {
@@ -151,6 +187,15 @@ fun PublishFormRoute(
                 viewModel.onLeaveForPlace()
                 onOpenPlace(id)
             },
+            onDayToggle = viewModel::onDayToggle,
+            onOpensChange = viewModel::onOpensChange,
+            onClosesChange = viewModel::onClosesChange,
+            onHoursUnknownChange = viewModel::onHoursUnknownChange,
+            onPriceChange = viewModel::onPriceChange,
+            onTakePhoto = { takePhoto() },
+            onPickPhotos = pickPhotos,
+            onRetryPhoto = viewModel::onRetryPhoto,
+            onRemovePhoto = viewModel::onRemovePhoto,
         ),
         cityCenter = viewModel.cityCenter,
         canAskLocation = canAskLocation,
@@ -183,6 +228,15 @@ class PublishCallbacks(
     val onDuplicateNoteChange: (String) -> Unit = {},
     val onConfirmDifferent: () -> Unit = {},
     val onOpenSimilar: (String) -> Unit = {},
+    val onDayToggle: (DayOfWeek) -> Unit = {},
+    val onOpensChange: (LocalTime) -> Unit = {},
+    val onClosesChange: (LocalTime) -> Unit = {},
+    val onHoursUnknownChange: (Boolean) -> Unit = {},
+    val onPriceChange: (PriceRange) -> Unit = {},
+    val onTakePhoto: () -> Unit = {},
+    val onPickPhotos: () -> Unit = {},
+    val onRetryPhoto: (String) -> Unit = {},
+    val onRemovePhoto: (String) -> Unit = {},
 )
 
 @get:StringRes
@@ -243,14 +297,19 @@ fun PublishFormScreen(
                     // El mapa ocupa lo que sobra: no va dentro de una columna desplazable.
                     LocationStep(state, callbacks, cityCenter, canAskLocation, Modifier.weight(1f).fillMaxWidth().padding(bottom = 12.dp))
                 } else {
+                    // Cada paso empieza arriba: sin esto, el 5 abría con el desplazamiento que tenía el 4.
+                    val scroll = key(step) { rememberScrollState() }
                     Column(
-                        Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+                        Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(18.dp),
                     ) {
                         when (step) {
                             PublishStep.BASICS -> BasicsStep(state, callbacks)
                             PublishStep.CATEGORY -> CategoryStep(state, callbacks)
-                            PublishStep.LOCATION, PublishStep.SCHEDULE, PublishStep.PHOTOS -> ComingStep(stepLabel)
+                            PublishStep.SCHEDULE -> ScheduleStep(state, callbacks)
+                            PublishStep.PHOTOS -> PhotosStep(state, callbacks)
+                            // Va aparte, arriba: el mapa no cabe en una columna desplazable.
+                            PublishStep.LOCATION -> Unit
                         }
                     }
                 }
@@ -258,12 +317,13 @@ fun PublishFormScreen(
                     continueText = stringResource(
                         when {
                             state.searchingNearby -> R.string.publish_searching_nearby
+                            state.sending -> R.string.publish_sending
                             step == PublishStep.LOCATION -> R.string.publish_confirm_location
                             step.next == null -> R.string.publish_send
                             else -> R.string.publish_continue
                         },
                     ),
-                    loading = state.searchingNearby,
+                    loading = state.searchingNearby || state.sending,
                     onBack = callbacks.onBack,
                     onContinue = callbacks.onContinue,
                 )
@@ -329,12 +389,18 @@ private fun ActionBar(continueText: String, loading: Boolean, onBack: () -> Unit
     }
 }
 
-/** 21 · Resumen arriba: cuántas cosas faltan y dónde. Se anuncia al aparecer; el foco va al primer campo con error. */
+/**
+ * 21 · Resumen arriba: cuántas cosas faltan y dónde. Se anuncia al aparecer; el foco va al primer campo con error.
+ * [closesBeforeOpens]: en el paso 4 lo único que falla es el orden de las horas.
+ */
 @Composable
-internal fun ErrorSummary(errors: List<DraftField>) {
+internal fun ErrorSummary(errors: List<DraftField>, closesBeforeOpens: Boolean = false) {
     val scheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(12.dp)
     val detail = when {
+        DraftField.PHOTOS in errors -> R.string.publish_errors_photos
+        errors == listOf(DraftField.CLOSES) && closesBeforeOpens -> R.string.publish_errors_hours_order
+        DraftField.DAYS in errors || DraftField.OPENS in errors || DraftField.CLOSES in errors -> R.string.publish_errors_hours
         DraftField.LOCATION in errors -> R.string.publish_errors_location
         DraftField.CATEGORY in errors -> R.string.publish_errors_category
         DraftField.TITLE in errors && DraftField.DESCRIPTION in errors -> R.string.publish_errors_basics
@@ -375,12 +441,6 @@ internal fun StepHeading(text: String, intro: String? = null) {
             Text(intro, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 20.sp), color = MaterialTheme.exploraColors.iconSecondary)
         }
     }
-}
-
-/** Pasos 4 y 5 mientras llega la parte 3: se puede recorrer el formulario completo. */
-@Composable
-private fun ComingStep(stepLabel: String) {
-    StepHeading(stepLabel, stringResource(R.string.publish_step_coming))
 }
 
 @Composable

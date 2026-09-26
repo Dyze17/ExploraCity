@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
+import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
@@ -31,6 +32,7 @@ import co.edu.uniquindio.exploracity.ui.screens.publication.EditPublicationRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.MyPublicationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.RejectedPublicationRoute
 import co.edu.uniquindio.exploracity.ui.screens.publish.PublishFormRoute
+import co.edu.uniquindio.exploracity.ui.screens.publish.PublishSentScreen
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
 import co.edu.uniquindio.exploracity.viewmodel.PublishExit
@@ -240,22 +242,25 @@ private fun NavGraphBuilder.publishGraph(nav: NavController) {
                 onExit = { exit ->
                     when (exit) {
                         // Cerrar o «Guardar»: vuelve a la pestaña desde la que se abrió (15A).
-                        PublishExit.CLOSED -> nav.popBackStack()
-                        PublishExit.SENT -> nav.navigate(PublishSent) { popUpTo<PublishForm> { inclusive = true } }
+                        PublishExit.Closed -> nav.popBackStack()
+                        is PublishExit.Sent -> {
+                            val summary = exit.summary
+                            val route = PublishSent(summary.title, summary.possibleDuplicate, summary.queued, summary.firstPublicationPoints ?: 0)
+                            nav.navigate(route) { popUpTo<PublishForm> { inclusive = true } }
+                        }
                     }
                 },
                 // 17A · «Ver este lugar»: al volver, el formulario sigue intacto.
                 onOpenPlace = { id -> nav.navigate(PoiDetail(id)) },
             )
         }
-        composable<PublishSent> {
-            PlaceholderScreen(
-                "20", "Enviada a verificación",
-                listOf(
-                    link("Ver mis publicaciones") { nav.navigate(MyPublications()) { popUpTo<PublishGraph> { inclusive = true } } },
-                    link("Publicar otro lugar") { nav.navigate(PublishForm()) { popUpTo<PublishSent> { inclusive = true } } },
-                    link("Volver a explorar") { nav.popBackStack<PublishGraph>(inclusive = true) },
-                ),
+        composable<PublishSent> { entry ->
+            val route = entry.toRoute<PublishSent>()
+            PublishSentScreen(
+                summary = SentSummary(route.title, route.possibleDuplicate, route.queued, route.firstPublicationPoints.takeIf { it > 0 }),
+                onMyPublications = { nav.openMyPublications() },
+                onPublishAnother = { nav.navigate(PublishForm()) { popUpTo<PublishSent> { inclusive = true } } },
+                onExplore = { nav.navigateToTab(TopLevelDestination.EXPLORE) },
             )
         }
     }

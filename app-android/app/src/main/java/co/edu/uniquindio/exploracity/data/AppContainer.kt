@@ -14,6 +14,10 @@ import co.edu.uniquindio.exploracity.data.location.GeocoderAddressResolver
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.data.location.OnlineOnlyAddressResolver
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
+import co.edu.uniquindio.exploracity.data.photos.AndroidPhotoStore
+import co.edu.uniquindio.exploracity.data.photos.FakePhotoUploader
+import co.edu.uniquindio.exploracity.data.photos.PhotoStore
+import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeCategorySuggester
@@ -36,6 +40,9 @@ import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.UserRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.data.sync.PendingSender
+import co.edu.uniquindio.exploracity.data.sync.PublicationDelivery
+import co.edu.uniquindio.exploracity.data.sync.PublicationOutbox
+import co.edu.uniquindio.exploracity.data.sync.RoomPublicationOutbox
 import co.edu.uniquindio.exploracity.data.sync.WorkManagerScheduler
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
@@ -71,10 +78,25 @@ class AppContainer(context: Context) {
 
     private val publicationServer = FakePublicationRepository(server, currentUser = currentUser)
 
+    /** 19 · Fotos del formulario: comprimidas y guardadas en el teléfono hasta que el servidor las tiene. */
+    val photoStore: PhotoStore = AndroidPhotoStore(context)
+
+    /** Temporal: la subida real irá a la API (SAD: Media Store en Cloudinary). */
+    val photoUploader: PhotoUploader = FakePhotoUploader(connectivity)
+
     /** Lo usa el worker de WorkManager para enviar la cola, también con la app cerrada. */
-    val pendingSender = PendingSender(server, notificationServer, database.pendingActionsDao(), database.savedPlacesDao())
+    val pendingSender = PendingSender(
+        remote = server,
+        notifications = notificationServer,
+        pending = database.pendingActionsDao(),
+        saved = database.savedPlacesDao(),
+        publications = PublicationDelivery(publicationServer, photoUploader, photoStore),
+    )
 
     private val scheduler = WorkManagerScheduler(context)
+
+    /** 20 sin conexión y fotos que terminan de subir después del envío. */
+    val publicationOutbox: PublicationOutbox = RoomPublicationOutbox(database.pendingActionsDao(), scheduler)
 
     val poiRepository: PoiRepository = OfflinePoiRepository(
         remote = server,

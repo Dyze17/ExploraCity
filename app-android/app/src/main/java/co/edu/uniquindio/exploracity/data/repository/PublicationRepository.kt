@@ -4,13 +4,18 @@ import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
+import co.edu.uniquindio.exploracity.domain.model.PhotoRules
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
+import co.edu.uniquindio.exploracity.domain.model.SubmitResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import java.text.Normalizer
 import java.time.Clock
+import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
@@ -31,6 +36,15 @@ interface PublicationRepository {
      * el feed hasta que un moderador la apruebe. Devuelve cómo quedó. Lanza excepción si falla la red.
      */
     suspend fun update(id: String, changes: PublicationChanges): OwnPublication
+
+    /**
+     * 19 → 20 · Envía la publicación a verificación, o reenvía una rechazada ([PublicationSubmission.resubmitId]). Van
+     * las fotos ya subidas (al menos una); las demás se agregan después con [addPhoto]. Lanza excepción si falla la red.
+     */
+    suspend fun submit(submission: PublicationSubmission): SubmitResult
+
+    /** 19 · Una foto que terminó de subir después del envío (se reintentan en segundo plano). */
+    suspend fun addPhoto(publicationId: String, photoUrl: String)
 }
 
 /**
@@ -101,6 +115,46 @@ class FakePublicationRepository(
         return updated
     }
 
+    override suspend fun submit(submission: PublicationSubmission): SubmitResult {
+        delay(actionLatency)
+        val uploaded = submission.photos.count { it.uploaded }
+        require(uploaded >= PhotoRules.MIN) { "Hace falta al menos una foto subida" }
+        val resubmitId = submission.resubmitId
+        if (resubmitId != null) {
+            val rejected = hidden.value.firstOrNull { it.publication.id == resubmitId }?.publication
+            check(rejected?.rejection?.canResubmit == true) { "No se puede reenviar: $resubmitId" }
+        }
+        val first = all().isEmpty()
+        val id = resubmitId ?: "${submission.title.toSlug()}-${clock.millis()}"
+        val publication = OwnPublication(
+            id = id,
+            title = submission.title,
+            category = submission.category,
+            status = PublicationStatus.PENDING,
+            location = submission.location,
+            photos = uploaded,
+            submittedAt = clock.instant(),
+            description = submission.description,
+            possibleDuplicate = submission.possibleDuplicate,
+        )
+        // Reenviar reemplaza a la rechazada: vuelve a pendiente, sin el motivo.
+        hidden.update { list -> list.filterNot { it.publication.id == id } + PublicationSeed(publication) }
+        return SubmitResult(id, firstPublicationPoints = if (first) FIRST_PUBLICATION_POINTS else null)
+    }
+
+    override suspend fun addPhoto(publicationId: String, photoUrl: String) {
+        delay(actionLatency)
+        hidden.update { list ->
+            list.map { seed ->
+                if (seed.publication.id != publicationId) {
+                    seed
+                } else {
+                    PublicationSeed(seed.publication.copy(photos = seed.publication.photos + 1), seed.duplicateOfId)
+                }
+            }
+        }
+    }
+
     private fun all(): List<OwnPublication> {
         val feed = pois.places()
         val hiddenOnes = hidden.value.map { seed ->
@@ -161,7 +215,28 @@ class OnlineOnlyPublicationRepository(
         return remote.update(id, changes)
     }
 
+    override suspend fun submit(submission: PublicationSubmission): SubmitResult {
+        requireOnline()
+        return remote.submit(submission)
+    }
+
+    override suspend fun addPhoto(publicationId: String, photoUrl: String) {
+        requireOnline()
+        remote.addPhoto(publicationId, photoUrl)
+    }
+
     private fun requireOnline() {
         if (!connectivity.isOnline.value) throw OfflineException()
     }
 }
+
+/** README · «primera publicación +20 (insignia)». */
+private const val FIRST_PUBLICATION_POINTS = 20
+
+private val diacriticMarks = Regex("\\p{Mn}+")
+private val nonSlug = Regex("[^a-z0-9]+")
+
+/** «Café Las Acacias» → «cafe-las-acacias», como los ids de los lugares de prueba. */
+private fun String.toSlug(): String =
+    Normalizer.normalize(lowercase(Locale.ROOT), Normalizer.Form.NFD).replace(diacriticMarks, "").replace(nonSlug, "-").trim('-')
+

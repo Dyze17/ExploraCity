@@ -30,6 +30,7 @@ class PendingSender(
     private val notifications: NotificationRepository,
     private val pending: PendingActionsDao,
     private val saved: SavedPlacesDao,
+    private val publications: PublicationDelivery,
 ) {
     private val mutex = Mutex()
 
@@ -70,6 +71,7 @@ class PendingSender(
                 saved.addComment(poiId)
             }
             PendingType.NOTIFICATION_READ -> action.payloadAs<QueuedRead>().id?.let { notifications.markRead(it) } ?: notifications.markAllRead()
+            PendingType.PUBLICATION, PendingType.PUBLICATION_PHOTO -> publications.send(action)
         }
     }
 }
