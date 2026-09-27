@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+>
+  <!-- Material Symbols «dark_mode»: su trazo va de y = -960 a 0, por eso el grupo lo baja. -->
+  <group android:translateY="960">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M480,-120q-150,0 -255,-105T120,-480q0,-150 105,-255t255,-105q8,0 17,0.5t23,1.5q-36,32 -56,79t-20,99q0,90 63,153t153,63q52,0 99,-18.5t79,-51.5q1,12 1.5,19.5t0.5,14.5q0,150 -105,255T480,-120ZM480,-200q88,0 158,-48.5T740,-375q-20,5 -40,8t-40,3q-123,0 -209.5,-86.5T364,-660q0,-20 3,-40t8,-40q-78,32 -126.5,102T200,-480q0,116 82,198t198,82Z"/>
+  </group>
+</vector>

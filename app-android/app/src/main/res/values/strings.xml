@@ -906,4 +906,74 @@
         <item quantity="many">%d comentarios</item>
         <item quantity="other">%d comentarios</item>
     </plurals>
+
+    <!-- 29 · Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_section_appearance">Apariencia</string>
+    <string name="settings_section_permissions">Permisos</string>
+    <string name="settings_section_personal_data">Datos personales</string>
+    <string name="settings_section_account">Cuenta</string>
+    <string name="settings_section_development">Desarrollo</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_theme_system">Sistema</string>
+    <string name="settings_permission_location">Ubicación</string>
+    <string name="settings_location_precise">Permitida mientras usas la app</string>
+    <string name="settings_location_approximate">Solo aproximada · «Usar mi ubicación» no queda exacto</string>
+    <string name="settings_location_denied">Sin permiso · sin «Cercanos» ni «Usar mi ubicación»</string>
+    <string name="settings_permission_camera">Cámara</string>
+    <string name="settings_camera_status">No hace falta · usas la app de cámara del teléfono</string>
+    <string name="settings_permission_photos">Fotos</string>
+    <string name="settings_photos_status">No hace falta · eliges cada foto en el selector de Android</string>
+    <string name="settings_permission_change">Cambiar</string>
+    <string name="settings_permission_change_action">cambiar el permiso en los ajustes del teléfono</string>
+    <string name="settings_policy">Política de tratamiento de datos</string>
+    <string name="settings_privacy_notice">Aviso de privacidad</string>
+    <string name="settings_download">Descargar mis datos</string>
+    <string name="settings_download_preparing">Preparando tu archivo…</string>
+    <string name="settings_download_saving">Guardando tu archivo…</string>
+    <string name="settings_download_offline">Sin conexión. Para descargar tus datos necesitas internet.</string>
+    <string name="settings_download_failed">No pudimos preparar tu archivo. Intenta de nuevo en un momento.</string>
+    <string name="settings_download_saved">Guardamos tus datos en «%1$s».</string>
+    <string name="settings_save_failed">No pudimos guardar el archivo. Intenta descargarlo de nuevo.</string>
+    <string name="settings_email">Correo electrónico</string>
+    <string name="settings_logout">Cerrar sesión</string>
+    <string name="settings_delete_account">Eliminar mi cuenta</string>
+    <string name="settings_design_catalog">Muestrario del sistema de diseño</string>
+    <string name="change_email_title">Cambiar correo</string>
+
+    <!-- 29A · Cerrar sesión -->
+    <string name="logout_title">¿Cerrar sesión?</string>
+    <string name="logout_body">Tus borradores se quedan guardados en este teléfono. Para volver a entrar necesitas tu correo y tu contraseña.</string>
+    <plurals name="logout_pending">
+        <item quantity="one">Tienes %d envío hecho sin conexión que aún no llega; si cierras sesión, se pierde.</item>
+        <item quantity="many">Tienes %d envíos hechos sin conexión que aún no llegan; si cierras sesión, se pierden.</item>
+        <item quantity="other">Tienes %d envíos hechos sin conexión que aún no llegan; si cierras sesión, se pierden.</item>
+    </plurals>
+    <string name="logout_cancel">Cancelar</string>
+    <string name="logout_confirm">Cerrar sesión</string>
+    <string name="session_signed_out">Cerraste sesión.</string>
+
+    <!-- 4A · Documentos legales (textos de ejemplo: requieren aprobación jurídica) -->
+    <string name="legal_title">Documentos legales</string>
+    <string name="legal_tab_policy">Política</string>
+    <string name="legal_tab_notice">Aviso de privacidad</string>
+    <string name="legal_version">Versión 1.0 · vigente desde el 1 de marzo de 2026</string>
+    <string name="legal_who_title">Quién trata tus datos</string>
+    <string name="legal_who_body">ExploraCity S.A.S., Bogotá (Colombia). Contacto: datos@exploracity.co</string>
+    <string name="legal_what_title">Qué datos tratamos</string>
+    <string name="legal_what_name">Tu nombre para mostrar y tu correo</string>
+    <string name="legal_what_location">Tu ubicación, solo mientras usas la app</string>
+    <string name="legal_what_photos">Las fotografías que publicas</string>
+    <string name="legal_purpose_title">Para qué los usamos</string>
+    <string name="legal_purpose_body">Crear tu cuenta, mostrarte lugares cercanos, publicar y verificar lugares y avisarte del resultado.</string>
+    <string name="legal_rights_title">Tus derechos</string>
+    <string name="legal_rights_body">Conocer, actualizar, rectificar y suprimir tus datos, y revocar la autorización cuando quieras (Ley 1581 de 2012).</string>
+    <string name="legal_notice_title">Aviso de privacidad</string>
+    <string name="legal_notice_body">ExploraCity S.A.S. tratará tu correo, tu ubicación y las fotografías que publiques solo para el funcionamiento de la app, según su Política de tratamiento de datos.</string>
+    <string name="legal_exercise_title">Cómo ejercer tus derechos</string>
+    <string name="legal_exercise_body">Escribe a datos@exploracity.co o usa «Descargar mis datos» y «Eliminar mi cuenta» en Ajustes. Respondemos en máximo 15 días hábiles.</string>
+    <string name="legal_notice_hint">La política completa está en la pestaña «Política».</string>
+    <string name="legal_understood">Entendido</string>
 </resources>

@@ -53,6 +53,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
@@ -65,7 +66,6 @@ import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.ScrimAlpha
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.viewmodel.VisitSheetState
 

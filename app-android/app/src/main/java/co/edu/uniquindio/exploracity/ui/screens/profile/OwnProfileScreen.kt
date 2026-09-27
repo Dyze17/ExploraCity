@@ -56,6 +56,7 @@ import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.UserLevel
 import co.edu.uniquindio.exploracity.domain.model.inDisplayOrder
 import co.edu.uniquindio.exploracity.ui.components.BadgeCard
@@ -74,7 +75,6 @@ import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.util.formatMonth

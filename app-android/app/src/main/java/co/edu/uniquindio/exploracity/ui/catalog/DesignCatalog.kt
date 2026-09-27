@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.ui.components.CategoryChip
 import co.edu.uniquindio.exploracity.ui.components.CategoryTag
@@ -41,8 +42,8 @@ import co.edu.uniquindio.exploracity.ui.components.DuplicateFlag
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraNavigationBar
-import co.edu.uniquindio.exploracity.ui.components.NavigationBarItem
 import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
+import co.edu.uniquindio.exploracity.ui.components.NavigationBarItem
 import co.edu.uniquindio.exploracity.ui.components.POICard
 import co.edu.uniquindio.exploracity.ui.components.PublishFab
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
@@ -50,7 +51,6 @@ import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.iconRes
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraSpacing
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 
 /** Muestrario del sistema de diseño para comparar con «Sistema de Diseño.dc.html». Solo para desarrollo. */

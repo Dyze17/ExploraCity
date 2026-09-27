@@ -85,6 +85,13 @@ class PublicationDelivery(
 
 private val queueJson = Json { ignoreUnknownKeys = true }
 
+/** Las fotos del teléfono que esperan en esta acción de la cola; ninguna si no es un envío de publicación. */
+internal fun PendingActionEntity.queuedPhotos(): List<DraftPhoto> = when (type) {
+    PendingType.PUBLICATION -> payloadAs<QueuedPublication>().photos.map(QueuedPhoto::toDomain)
+    PendingType.PUBLICATION_PHOTO -> listOf(payloadAs<QueuedPhoto>().toDomain())
+    else -> emptyList()
+}
+
 // Sin tipos de java.time en el JSON: días como 1 (lunes) a 7 y horas en minutos desde la medianoche.
 
 @Serializable

@@ -79,6 +79,7 @@ import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.ui.components.DuplicateFlag
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
@@ -95,7 +96,6 @@ import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.util.SubmittedDay

@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.data.repository
 
+import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
 import co.edu.uniquindio.exploracity.domain.model.Category
@@ -136,6 +137,9 @@ internal val samplePublicSubmissions: Map<String, PublicSubmission> = mapOf(
 
 /** «Residente · Bogotá · desde marzo» (26.a). */
 internal val sampleMemberSince: YearMonth = YearMonth.of(2026, 3)
+
+/** El correo de 28.a; vive en la cuenta, no en el perfil. */
+internal val sampleAccount = Account("ana.rios@correo.com")
 
 /**
  * Las 9 insignias de «Insignias · 2 de 9». Las cuatro primeras son las del diseño (26.a y 27.a), con sus textos de

@@ -24,10 +24,10 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.navigation.AuthGraph
 import co.edu.uniquindio.exploracity.navigation.ExploraNavHost
-import co.edu.uniquindio.exploracity.navigation.Login
 import co.edu.uniquindio.exploracity.navigation.MainGraph
 import co.edu.uniquindio.exploracity.navigation.TopLevelDestination
 import co.edu.uniquindio.exploracity.navigation.navigateToTab
+import co.edu.uniquindio.exploracity.navigation.openLogin
 import co.edu.uniquindio.exploracity.navigation.routesWithBottomBar
 import co.edu.uniquindio.exploracity.navigation.topLevelDestinations
 import co.edu.uniquindio.exploracity.ui.components.ExploraNavigationBar
@@ -72,9 +72,9 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
                 role = newRole
                 navController.navigate(MainGraph) { popUpTo<AuthGraph> { inclusive = true } }
             },
-            onLogout = {
+            onLogout = { notice ->
                 role = UserRole.USER
-                navController.navigate(Login) { popUpTo<MainGraph> { inclusive = true } }
+                navController.openLogin(notice)
             },
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         )

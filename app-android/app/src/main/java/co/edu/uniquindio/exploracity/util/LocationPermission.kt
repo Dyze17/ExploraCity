@@ -19,6 +19,17 @@ val LOCATION_PERMISSIONS = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Man
 fun Context.hasLocationPermission(): Boolean =
     LOCATION_PERMISSIONS.any { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
 
+/** 29 · Qué permiso de ubicación tiene la app. Solo se pide mientras se usa: nunca en segundo plano. */
+enum class LocationAccess { PRECISE, APPROXIMATE, DENIED }
+
+fun Context.locationAccess(): LocationAccess = when {
+    isGranted(Manifest.permission.ACCESS_FINE_LOCATION) -> LocationAccess.PRECISE
+    isGranted(Manifest.permission.ACCESS_COARSE_LOCATION) -> LocationAccess.APPROXIMATE
+    else -> LocationAccess.DENIED
+}
+
+private fun Context.isGranted(permission: String) = ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+
 /**
  * true si el sistema volverá a mostrar el diálogo tras una negativa. Después de pedirlo al menos una vez,
  * false significa que se negó para siempre y solo se puede dar desde la ficha de la app en Ajustes.

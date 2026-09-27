@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.UserLevel
 import co.edu.uniquindio.exploracity.domain.model.inDisplayOrder
 import co.edu.uniquindio.exploracity.ui.components.BadgeCard
@@ -64,7 +65,6 @@ import co.edu.uniquindio.exploracity.ui.theme.ContainerColors
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.viewmodel.OwnProfileContent

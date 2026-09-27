@@ -33,10 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.iconRes
 import co.edu.uniquindio.exploracity.ui.theme.CategoryColors
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import kotlin.math.sqrt
 

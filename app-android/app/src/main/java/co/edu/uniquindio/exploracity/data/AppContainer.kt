@@ -6,9 +6,15 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import co.edu.uniquindio.exploracity.data.connectivity.AndroidConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.local.AndroidDocumentWriter
+import co.edu.uniquindio.exploracity.data.local.AppPreferences
+import co.edu.uniquindio.exploracity.data.local.DataStoreAppPreferences
 import co.edu.uniquindio.exploracity.data.local.DataStoreDraftRepository
+import co.edu.uniquindio.exploracity.data.local.DocumentWriter
 import co.edu.uniquindio.exploracity.data.local.DraftRepository
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
+import co.edu.uniquindio.exploracity.data.local.LocalSessionManager
+import co.edu.uniquindio.exploracity.data.local.SessionManager
 import co.edu.uniquindio.exploracity.data.location.AddressResolver
 import co.edu.uniquindio.exploracity.data.location.GeocoderAddressResolver
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
@@ -18,8 +24,10 @@ import co.edu.uniquindio.exploracity.data.photos.AndroidPhotoStore
 import co.edu.uniquindio.exploracity.data.photos.FakePhotoUploader
 import co.edu.uniquindio.exploracity.data.photos.PhotoStore
 import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
+import co.edu.uniquindio.exploracity.data.repository.AccountRepository
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
+import co.edu.uniquindio.exploracity.data.repository.FakeAccountRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.FakeDuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
@@ -32,6 +40,7 @@ import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyAccountRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyDuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
@@ -56,6 +65,8 @@ import kotlinx.coroutines.launch
 
 /** Un solo archivo de DataStore por proceso: el delegado lo garantiza. */
 private val Context.draftsDataStore: DataStore<Preferences> by preferencesDataStore(name = "borradores")
+
+private val Context.preferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "preferencias")
 
 /**
  * Dependencias de la app (inyección manual). El «servidor» todavía es un repositorio en memoria
@@ -132,8 +143,22 @@ class AppContainer(context: Context) {
         }
     }
 
-    val userRepository: UserRepository =
-        OfflineUserRepository(FakeUserRepository(server, publicationServer, currentUser), database.profileDao(), connectivity)
+    private val userServer = FakeUserRepository(server, publicationServer, currentUser)
+
+    val userRepository: UserRepository = OfflineUserRepository(userServer, database.profileDao(), connectivity)
+
+    /** 29 · El correo de la sesión y «Descargar mis datos». */
+    val accountRepository: AccountRepository =
+        OnlineOnlyAccountRepository(FakeAccountRepository(server, publicationServer, userServer), connectivity)
+
+    /** 29A · Cerrar sesión borra lo de la cuenta y deja los borradores. */
+    val sessionManager: SessionManager = LocalSessionManager(database, photoStore, cancelSending = scheduler::cancel)
+
+    /** Preferencias del teléfono (el tema de 29), aparte de la cuenta. */
+    val preferences: AppPreferences = DataStoreAppPreferences(context.preferencesDataStore)
+
+    /** 29 · Guarda «Descargar mis datos» donde la persona elija. */
+    val documentWriter: DocumentWriter = AndroidDocumentWriter(context)
     val publicationRepository: PublicationRepository = OnlineOnlyPublicationRepository(publicationServer, connectivity)
 
     /** Borradores del formulario de publicación (15–19), en DataStore. */

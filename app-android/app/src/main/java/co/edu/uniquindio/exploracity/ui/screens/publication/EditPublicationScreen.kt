@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.ui.screens.publication
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.InputTransformation
@@ -71,6 +71,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationLimits
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
@@ -94,7 +95,6 @@ import co.edu.uniquindio.exploracity.ui.screens.publish.ScheduleFields
 import co.edu.uniquindio.exploracity.ui.screens.publish.rememberPhotoAccess
 import co.edu.uniquindio.exploracity.ui.screens.publish.rememberPinLocationAccess
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.viewmodel.Done
 import co.edu.uniquindio.exploracity.viewmodel.EditContent

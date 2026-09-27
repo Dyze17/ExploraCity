@@ -38,6 +38,11 @@ class WorkManagerScheduler(private val context: Context) : PendingScheduler {
         WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
+    /** Al cerrar sesión (29A): lo que quedaba en la cola ya no se envía. */
+    fun cancel() {
+        WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+    }
+
     companion object {
         const val WORK_NAME = "enviar-pendientes"
     }

@@ -1,9 +1,6 @@
 package co.edu.uniquindio.exploracity.data.local
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
@@ -15,7 +12,6 @@ import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -105,14 +101,5 @@ class DataStoreDraftRepositoryTest {
         dataStore.edit { it[stringPreferencesKey("borrador:nueva")] = "{no es json" }
 
         assertNull(repository.load(DraftKey.New))
-    }
-
-    private class MemoryDataStore : DataStore<Preferences> {
-        private val state = MutableStateFlow(emptyPreferences())
-
-        override val data: Flow<Preferences> = state
-
-        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-            transform(state.value).also { state.value = it }
     }
 }
