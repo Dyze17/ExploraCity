@@ -51,7 +51,8 @@ class FakePoiRepository(
     // Votos, visitas y comentarios de la persona en esta sesión: el feed y el detalle ven el mismo total.
     private val votes = pois.associate { it.id to it.votes }.toMutableMap()
     private val voted = mutableSetOf<String>()
-    private val visited = mutableSetOf<String>()
+    /** Con la experiencia que dejó (14.b): va en «Descargar mis datos» (29). */
+    private val visited = mutableMapOf<String, VisitExperience>()
     private val comments = mutableMapOf<String, MutableList<Comment>>()
     private var sentComments = 0
 
@@ -65,6 +66,19 @@ class FakePoiRepository(
 
     /** Todos los lugares al día, sin la latencia del feed: los usa el servidor de publicaciones (22–24). */
     internal fun places(): List<Poi> = current()
+
+    /** Temporal: lo que hizo la persona de la sesión, para «Descargar mis datos» (29). La API lo arma desde su base. */
+    internal fun activity(): UserActivity {
+        val places = current().associateBy { it.id }
+        return UserActivity(
+            votes = voted.mapNotNull { places[it] },
+            visits = visited.mapNotNull { (id, experience) -> places[id]?.let { it to experience } },
+            comments = comments.flatMap { (id, list) ->
+                val poi = places[id] ?: return@flatMap emptyList()
+                list.filter { it.author.id == currentUser.id }.map { poi to it }
+            },
+        )
+    }
 
     override suspend fun poiDetails(id: String): PoiDetails? {
         delay(latency)
@@ -86,7 +100,7 @@ class FakePoiRepository(
     /** Opción A de Daniel (24/09/2026): los puntos por visitar los decide el backend; aquí no hay. */
     override suspend fun markVisited(id: String, experience: VisitExperience): VisitResult {
         delay(actionLatency)
-        visited += id
+        visited[id] = experience
         return VisitResult(pointsAwarded = 0)
     }
 
@@ -216,3 +230,10 @@ val samplePois: List<Poi> = listOf(
     poi("plaza-de-toros", "Plaza Cultural La Santamaría", ENTERTAINMENT, 4.6127, -74.0680, 33, 6, summary = "Antigua plaza de toros, hoy escenario cultural.", finalized = true),
     poi("hacienda-santa-barbara", "Hacienda Santa Bárbara", HISTORY, 4.6970, -74.0400, 26, 4, summary = "Casa de hacienda colonial en Usaquén."),
 ).sortedBy { it.distanceMeters }
+
+/** Votos, visitas y comentarios de una persona, con el lugar de cada uno. */
+internal class UserActivity(
+    val votes: List<Poi>,
+    val visits: List<Pair<Poi, VisitExperience>>,
+    val comments: List<Pair<Poi, Comment>>,
+)

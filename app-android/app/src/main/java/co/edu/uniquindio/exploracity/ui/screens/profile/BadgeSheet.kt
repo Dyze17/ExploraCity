@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.sampleBadges
 import co.edu.uniquindio.exploracity.domain.model.Badge
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraProgressBar
 import co.edu.uniquindio.exploracity.ui.components.NoNavigationBarScrim
@@ -59,7 +60,6 @@ import co.edu.uniquindio.exploracity.ui.theme.ContainerColors
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.ScrimAlpha
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 
 /**

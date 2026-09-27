@@ -20,8 +20,8 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.data.repository.samplePois
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.util.formatDistance
 import org.junit.Assert.assertTrue
 import org.junit.Rule

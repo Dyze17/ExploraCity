@@ -9,15 +9,13 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 
 /**
  * Si el tema aplicado es oscuro, según la preferencia de Ajustes (29), no solo el del sistema. Lo usan las
  * superficies que no pinta Material, como el mapa (8).
  */
 val LocalDarkTheme = staticCompositionLocalOf { false }
-
-/** Preferencia de Ajustes (29): Claro / Oscuro / Sistema. */
-enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
 @Composable
 fun ExploraCityTheme(

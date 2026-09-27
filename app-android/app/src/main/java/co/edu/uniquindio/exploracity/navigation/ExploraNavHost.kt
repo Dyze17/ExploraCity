@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -15,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
+import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
@@ -23,6 +25,7 @@ import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
 import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
 import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
+import co.edu.uniquindio.exploracity.ui.screens.legal.LegalDocumentsScreen
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
 import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
@@ -33,6 +36,7 @@ import co.edu.uniquindio.exploracity.ui.screens.publication.MyPublicationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.RejectedPublicationRoute
 import co.edu.uniquindio.exploracity.ui.screens.publish.PublishFormRoute
 import co.edu.uniquindio.exploracity.ui.screens.publish.PublishSentScreen
+import co.edu.uniquindio.exploracity.ui.screens.settings.SettingsRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
 import co.edu.uniquindio.exploracity.viewmodel.PublishExit
@@ -46,7 +50,7 @@ fun ExploraNavHost(
     navController: NavHostController,
     role: UserRole,
     onLogin: (UserRole) -> Unit,
-    onLogout: () -> Unit,
+    onLogout: (SessionNotice?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NavHost(navController = navController, startDestination = AuthGraph, modifier = modifier) {
@@ -75,6 +79,15 @@ fun NavController.navigateToTab(tab: TopLevelDestination) {
 }
 
 private fun NavController.back(): () -> Unit = { popBackStack() }
+
+/** Marca en la entrada del inicio de sesión (3) para avisar una vez «Cerraste sesión». */
+private const val SESSION_NOTICE_KEY = "aviso_sesion"
+
+/** Sale de la app al inicio de sesión (3) sin dejar nada detrás, con [notice] para decirlo allí. */
+fun NavController.openLogin(notice: SessionNotice?) {
+    navigate(Login) { popUpTo<MainGraph> { inclusive = true } }
+    if (notice != null) currentBackStackEntry?.savedStateHandle?.set(SESSION_NOTICE_KEY, notice.name)
+}
 
 /**
  * Marca en la entrada de 22 (no en el SavedStateHandle de su ViewModel, que es otro) para avisar una vez, al volver de 23
@@ -128,7 +141,8 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
                 ),
             )
         }
-        composable<Login> {
+        composable<Login> { entry ->
+            val notice by entry.savedStateHandle.getStateFlow<String?>(SESSION_NOTICE_KEY, null).collectAsStateWithLifecycle()
             PlaceholderScreen(
                 "3", "Inicio de sesión",
                 listOf(
@@ -137,6 +151,11 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
                     link("¿Olvidaste tu contraseña?") { nav.navigate(RecoverPassword) },
                     link("Crear una cuenta") { nav.navigate(Register) },
                 ),
+                notice = when (SessionNotice.entries.firstOrNull { it.name == notice }) {
+                    SessionNotice.SIGNED_OUT -> stringResource(R.string.session_signed_out)
+                    null -> null
+                },
+                onNoticeShown = { entry.savedStateHandle[SESSION_NOTICE_KEY] = null },
             )
         }
         composable<Register> {
@@ -151,12 +170,7 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
             )
         }
         composable<LegalDocuments> { entry ->
-            val tab = entry.toRoute<LegalDocuments>().tab
-            PlaceholderScreen(
-                "4A", if (tab == LegalTab.POLICY) "Documentos legales · Política" else "Documentos legales · Aviso de privacidad",
-                listOf(link("Entendido", nav.back())),
-                onBack = nav.back(),
-            )
+            LegalDocumentsScreen(initialTab = entry.toRoute<LegalDocuments>().tab, onBack = nav.back())
         }
         composable<RecoverPassword> {
             PlaceholderScreen("5", "Recuperar contraseña", listOf(link("Enviar enlace") { nav.navigate(RecoveryEmailSent) }), onBack = nav.back())
@@ -280,7 +294,7 @@ private fun NavGraphBuilder.notificationsGraph(nav: NavController) {
     }
 }
 
-private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Unit) {
+private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionNotice?) -> Unit) {
     navigation<ProfileGraph>(startDestination = Profile) {
         composable<Profile> {
             OwnProfileRoute(
@@ -324,22 +338,23 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Uni
             )
         }
         composable<Settings> {
-            PlaceholderScreen(
-                "29", "Ajustes",
-                listOf(
-                    link("Política de tratamiento de datos") { nav.navigate(LegalDocuments(LegalTab.POLICY)) },
-                    link("Aviso de privacidad") { nav.navigate(LegalDocuments(LegalTab.PRIVACY_NOTICE)) },
-                    link("Cerrar sesión", onLogout),
-                    link("Eliminar mi cuenta") { nav.navigate(DeleteAccount) },
-                    link("Catálogo del sistema de diseño (desarrollo)") { nav.navigate(DesignSystemCatalog) },
-                ),
+            SettingsRoute(
                 onBack = nav.back(),
+                onOpenPolicy = { nav.navigate(LegalDocuments(LegalTab.POLICY)) },
+                onOpenPrivacyNotice = { nav.navigate(LegalDocuments(LegalTab.PRIVACY_NOTICE)) },
+                onChangeEmail = { nav.navigate(ChangeEmail) },
+                onDeleteAccount = { nav.navigate(DeleteAccount) },
+                onSignedOut = { onLogout(SessionNotice.SIGNED_OUT) },
+                onOpenDesignCatalog = { nav.navigate(DesignSystemCatalog) },
             )
+        }
+        composable<ChangeEmail> {
+            PlaceholderScreen("sin número (llega con 1–6)", stringResource(R.string.change_email_title), emptyList(), onBack = nav.back())
         }
         composable<DeleteAccount> {
             PlaceholderScreen(
                 "30", "Eliminar cuenta",
-                listOf(link("Eliminar cuenta (demo)", onLogout), link("Mejor no, volver", nav.back())),
+                listOf(link("Eliminar cuenta (demo)") { onLogout(null) }, link("Mejor no, volver", nav.back())),
                 onBack = nav.back(),
             )
         }

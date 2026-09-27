@@ -105,6 +105,12 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 
 @Serializable data object Settings // 29
 
+/** Sin número en el diseño: «Cambiar correo» de Ajustes › Cuenta. Su flujo (enlace de verificación) llega con 1–6. */
+@Serializable data object ChangeEmail
+
+/** Aviso que el inicio de sesión (3) muestra una vez al llegar desde la app. */
+@Keep @Serializable enum class SessionNotice { SIGNED_OUT }
+
 @Serializable data object DeleteAccount // 30
 
 @Serializable data object ModerationGraph

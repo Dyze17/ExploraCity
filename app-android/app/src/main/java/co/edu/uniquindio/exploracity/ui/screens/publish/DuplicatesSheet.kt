@@ -64,6 +64,7 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateRules
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.ui.components.DuplicateCandidateCard
 import co.edu.uniquindio.exploracity.ui.components.DuplicateFlag
@@ -82,7 +83,6 @@ import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.LocalDarkTheme
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.ScrimAlpha
-import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.util.hasMapsApiKey
 import co.edu.uniquindio.exploracity.viewmodel.DuplicateReview

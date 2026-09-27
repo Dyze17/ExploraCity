@@ -46,6 +46,8 @@ android {
 
     buildFeatures {
         compose = true
+        // BuildConfig.DEBUG: el muestrario del sistema de diseño solo aparece en Ajustes en las compilaciones de desarrollo.
+        buildConfig = true
     }
 
     // Robolectric necesita los recursos (fuentes, textos) para medir la UI en las pruebas JVM, y en JDK 25
