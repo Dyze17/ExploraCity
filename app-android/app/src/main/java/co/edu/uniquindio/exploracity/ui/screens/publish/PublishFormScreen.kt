@@ -1,12 +1,6 @@
 package co.edu.uniquindio.exploracity.ui.screens.publish
 
-import android.content.ActivityNotFoundException
-import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,7 +54,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
-import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
@@ -77,17 +69,12 @@ import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
-import co.edu.uniquindio.exploracity.util.LocationPurpose
-import co.edu.uniquindio.exploracity.util.rememberLocationPermissionRequester
-import co.edu.uniquindio.exploracity.util.shouldShowLocationRationale
 import co.edu.uniquindio.exploracity.viewmodel.DraftField
 import co.edu.uniquindio.exploracity.viewmodel.PublishContent
 import co.edu.uniquindio.exploracity.viewmodel.PublishExit
 import co.edu.uniquindio.exploracity.viewmodel.PublishUiState
 import co.edu.uniquindio.exploracity.viewmodel.PublishViewModel
 import co.edu.uniquindio.exploracity.viewmodel.Suggestion
-import java.time.DayOfWeek
-import java.time.LocalTime
 
 /** 15–19 · Formulario de publicación, conectado a su ViewModel. [onOpenPlace] abre un lugar parecido (17A → 13). */
 @Composable
@@ -106,49 +93,16 @@ fun PublishFormRoute(
     // El gesto de volver retrocede un paso; en el primero, cierra (con 15A si hay algo escrito).
     BackHandler(enabled = state.content == PublishContent.Editing) { viewModel.onBack() }
 
-    // 17 · Permiso de ubicación: «Usar mi ubicación» y el aviso de 17.b. Si Android ya no muestra su diálogo, el aviso
-    // lleva a Ajustes; se revisa al negarlo y al volver a la app.
-    val activity = LocalActivity.current
-    var canAskLocation by remember { mutableStateOf(true) }
-    val location = rememberLocationPermissionRequester { purpose, granted ->
-        if (purpose != LocationPurpose.PLACE_PIN) return@rememberLocationPermissionRequester
-        if (granted) {
-            viewModel.onUseMyLocation()
-        } else {
-            canAskLocation = activity?.shouldShowLocationRationale() == true
-            viewModel.onLocationDenied()
-        }
-    }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        canAskLocation = activity?.shouldShowLocationRationale() == true
-        // Vuelve de «Ver este lugar» (17A → 13): la hoja reaparece como estaba.
-        viewModel.onBackFromPlace()
-    }
-    // 19 · Cámara (la app de cámara del teléfono, sin pedir permiso) y galería (el selector de fotos de Android).
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> viewModel.onCameraResult(taken) }
-    val photosLeft = state.draft.photosLeft
-    val pickMany = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(photosLeft.coerceAtLeast(2))) { uris ->
-        viewModel.onGalleryPicked(uris.map(Uri::toString))
-    }
-    val pickOne = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { viewModel.onGalleryPicked(listOf(it.toString())) }
-    }
-    val takePhoto = {
-        viewModel.onCameraShot()?.let { shot ->
-            try {
-                camera.launch(shot.toUri())
-            } catch (e: ActivityNotFoundException) {
-                viewModel.onCameraUnavailable()
-            }
-        }
-    }
-    val pickPhotos = {
-        val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-        when {
-            photosLeft >= 2 -> pickMany.launch(request)
-            photosLeft == 1 -> pickOne.launch(request)
-        }
-    }
+    val location = rememberPinLocationAccess(onGranted = viewModel::onUseMyLocation, onDenied = viewModel::onLocationDenied)
+    // Vuelve de «Ver este lugar» (17A → 13): la hoja reaparece como estaba.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onBackFromPlace() }
+    val photos = rememberPhotoAccess(
+        photosLeft = state.draft.photosLeft,
+        onCameraShot = viewModel::onCameraShot,
+        onCameraResult = viewModel::onCameraResult,
+        onCameraUnavailable = viewModel::onCameraUnavailable,
+        onPicked = viewModel::onGalleryPicked,
+    )
 
     // Con el permiso ya concedido, el paso 3 empieza donde está la persona y el pin cuenta como puesto.
     val onLocationStep = state.content == PublishContent.Editing && state.step == PublishStep.LOCATION
@@ -172,33 +126,41 @@ fun PublishFormRoute(
             onDescriptionBlur = viewModel::onDescriptionBlur,
             onCategoryChange = viewModel::onCategoryChange,
             onRetrySuggestion = viewModel::onRetrySuggestion,
-            onPinMoved = viewModel::onPinMoved,
-            onPinTargetShown = viewModel::onPinTargetShown,
-            onUseMyLocation = { location.request(LocationPurpose.PLACE_PIN) },
-            onAllowLocation = { location.allow(LocationPurpose.PLACE_PIN) },
-            onAddressQueryChange = viewModel::onAddressQueryChange,
-            onSearchAddress = viewModel::onSearchAddress,
-            onDuplicatesDismiss = viewModel::onDuplicatesDismiss,
-            onNotSamePlace = viewModel::onNotSamePlace,
-            onBackToSimilar = viewModel::onBackToSimilar,
-            onDuplicateNoteChange = viewModel::onDuplicateNoteChange,
-            onConfirmDifferent = viewModel::onConfirmDifferent,
-            onOpenSimilar = { id ->
-                viewModel.onLeaveForPlace()
-                onOpenPlace(id)
-            },
-            onDayToggle = viewModel::onDayToggle,
-            onOpensChange = viewModel::onOpensChange,
-            onClosesChange = viewModel::onClosesChange,
-            onHoursUnknownChange = viewModel::onHoursUnknownChange,
-            onPriceChange = viewModel::onPriceChange,
-            onTakePhoto = { takePhoto() },
-            onPickPhotos = pickPhotos,
-            onRetryPhoto = viewModel::onRetryPhoto,
-            onRemovePhoto = viewModel::onRemovePhoto,
+            pin = PinCallbacks(
+                onPinMoved = viewModel::onPinMoved,
+                onPinTargetShown = viewModel::onPinTargetShown,
+                onUseMyLocation = location.useMyLocation,
+                onAllowLocation = location.allow,
+                onAddressQueryChange = viewModel::onAddressQueryChange,
+                onSearchAddress = viewModel::onSearchAddress,
+            ),
+            duplicates = DuplicateCallbacks(
+                onDismiss = viewModel::onDuplicatesDismiss,
+                onNotSamePlace = viewModel::onNotSamePlace,
+                onBackToSimilar = viewModel::onBackToSimilar,
+                onNoteChange = viewModel::onDuplicateNoteChange,
+                onConfirmDifferent = viewModel::onConfirmDifferent,
+                onOpenSimilar = { id ->
+                    viewModel.onLeaveForPlace()
+                    onOpenPlace(id)
+                },
+            ),
+            schedule = ScheduleCallbacks(
+                onDayToggle = viewModel::onDayToggle,
+                onOpensChange = viewModel::onOpensChange,
+                onClosesChange = viewModel::onClosesChange,
+                onHoursUnknownChange = viewModel::onHoursUnknownChange,
+                onPriceChange = viewModel::onPriceChange,
+            ),
+            photos = PhotoCallbacks(
+                onTakePhoto = photos.takePhoto,
+                onPickPhotos = photos.pickPhotos,
+                onRetry = viewModel::onRetryPhoto,
+                onRemove = viewModel::onRemovePhoto,
+            ),
         ),
         cityCenter = viewModel.cityCenter,
-        canAskLocation = canAskLocation,
+        canAskLocation = location.canAskAgain,
     )
 }
 
@@ -216,27 +178,10 @@ class PublishCallbacks(
     val onDescriptionBlur: () -> Unit = {},
     val onCategoryChange: (Category) -> Unit = {},
     val onRetrySuggestion: () -> Unit = {},
-    val onPinMoved: (GeoPoint, Boolean) -> Unit = { _, _ -> },
-    val onPinTargetShown: (GeoPoint) -> Unit = {},
-    val onUseMyLocation: () -> Unit = {},
-    val onAllowLocation: () -> Unit = {},
-    val onAddressQueryChange: (String) -> Unit = {},
-    val onSearchAddress: () -> Unit = {},
-    val onDuplicatesDismiss: () -> Unit = {},
-    val onNotSamePlace: () -> Unit = {},
-    val onBackToSimilar: () -> Unit = {},
-    val onDuplicateNoteChange: (String) -> Unit = {},
-    val onConfirmDifferent: () -> Unit = {},
-    val onOpenSimilar: (String) -> Unit = {},
-    val onDayToggle: (DayOfWeek) -> Unit = {},
-    val onOpensChange: (LocalTime) -> Unit = {},
-    val onClosesChange: (LocalTime) -> Unit = {},
-    val onHoursUnknownChange: (Boolean) -> Unit = {},
-    val onPriceChange: (PriceRange) -> Unit = {},
-    val onTakePhoto: () -> Unit = {},
-    val onPickPhotos: () -> Unit = {},
-    val onRetryPhoto: (String) -> Unit = {},
-    val onRemovePhoto: (String) -> Unit = {},
+    val pin: PinCallbacks = PinCallbacks(),
+    val duplicates: DuplicateCallbacks = DuplicateCallbacks(),
+    val schedule: ScheduleCallbacks = ScheduleCallbacks(),
+    val photos: PhotoCallbacks = PhotoCallbacks(),
 )
 
 @get:StringRes
@@ -295,7 +240,17 @@ fun PublishFormScreen(
                 StepIndicator(step, stepLabel, errors = if (state.showErrors) state.stepErrors.size else 0)
                 if (step == PublishStep.LOCATION) {
                     // El mapa ocupa lo que sobra: no va dentro de una columna desplazable.
-                    LocationStep(state, callbacks, cityCenter, canAskLocation, Modifier.weight(1f).fillMaxWidth().padding(bottom = 12.dp))
+                    LocationStep(
+                        location = state.draft.location,
+                        category = state.draft.category,
+                        pin = state.pin,
+                        callbacks = callbacks.pin,
+                        cityCenter = cityCenter,
+                        canAskLocation = canAskLocation,
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 12.dp),
+                        showError = state.showLocationError,
+                        errorFocusRequest = state.errorFocusRequest,
+                    )
                 } else {
                     // Cada paso empieza arriba: sin esto, el 5 abría con el desplazamiento que tenía el 4.
                     val scroll = key(step) { rememberScrollState() }
@@ -306,8 +261,8 @@ fun PublishFormScreen(
                         when (step) {
                             PublishStep.BASICS -> BasicsStep(state, callbacks)
                             PublishStep.CATEGORY -> CategoryStep(state, callbacks)
-                            PublishStep.SCHEDULE -> ScheduleStep(state, callbacks)
-                            PublishStep.PHOTOS -> PhotosStep(state, callbacks)
+                            PublishStep.SCHEDULE -> ScheduleStep(state, callbacks.schedule)
+                            PublishStep.PHOTOS -> PhotosStep(state, callbacks.photos)
                             // Va aparte, arriba: el mapa no cabe en una columna desplazable.
                             PublishStep.LOCATION -> Unit
                         }
@@ -316,14 +271,14 @@ fun PublishFormScreen(
                 ActionBar(
                     continueText = stringResource(
                         when {
-                            state.searchingNearby -> R.string.publish_searching_nearby
+                            state.pin.searchingNearby -> R.string.publish_searching_nearby
                             state.sending -> R.string.publish_sending
                             step == PublishStep.LOCATION -> R.string.publish_confirm_location
                             step.next == null -> R.string.publish_send
                             else -> R.string.publish_continue
                         },
                     ),
-                    loading = state.searchingNearby || state.sending,
+                    loading = state.pin.searchingNearby || state.sending,
                     onBack = callbacks.onBack,
                     onContinue = callbacks.onContinue,
                 )
@@ -332,7 +287,7 @@ fun PublishFormScreen(
     }
     if (state.closeDialog) SaveDraftDialog(state.draft, callbacks)
     // 17A/17B: se esconde mientras se ve un lugar parecido (13) y reaparece al volver.
-    DuplicatesSheet(state.duplicates?.takeUnless { state.awayForPlace }, state.draft.location, callbacks)
+    DuplicatesSheet(state.pin.duplicates?.takeUnless { state.pin.awayForPlace }, state.draft.location, callbacks.duplicates)
 }
 
 /**

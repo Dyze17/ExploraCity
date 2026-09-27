@@ -15,9 +15,10 @@ import kotlin.time.Duration.Companion.milliseconds
 interface DuplicateFinder {
     /**
      * Lugares a menos de 50 m de [location] con un nombre parecido a [title], del más cercano al más lejano (como máximo
-     * 3). Lanza excepción si falla la red.
+     * 3), sin contar [excludeId]: la publicación que se está editando o reenviando no es parecida a sí misma. Lanza
+     * excepción si falla la red.
      */
-    suspend fun similarPlaces(title: String, location: GeoPoint): List<SimilarPlace>
+    suspend fun similarPlaces(title: String, location: GeoPoint, excludeId: String? = null): List<SimilarPlace>
 }
 
 /**
@@ -30,11 +31,12 @@ class FakeDuplicateFinder(
     private val latency: Duration = 350.milliseconds,
 ) : DuplicateFinder {
 
-    override suspend fun similarPlaces(title: String, location: GeoPoint): List<SimilarPlace> {
+    override suspend fun similarPlaces(title: String, location: GeoPoint, excludeId: String?): List<SimilarPlace> {
         delay(latency)
         val public = pois.places().map { SimilarPlace(it.id, it.title, it.category, it.status, it.location, 0, it.photoUrl) }
         val pending = publications.pendingOnes().map { SimilarPlace(it.id, it.title, it.category, it.status, it.location, 0, it.photoUrl) }
         return (public + pending)
+            .filter { it.id != excludeId }
             .map { it.copy(distanceMeters = location.distanceTo(it.location)) }
             .filter { it.distanceMeters <= DuplicateRules.RADIUS_METERS && titleSimilarity(title, it.title) >= SIMILARITY_THRESHOLD }
             .sortedBy { it.distanceMeters }
@@ -52,9 +54,9 @@ class OnlineOnlyDuplicateFinder(
     private val remote: DuplicateFinder,
     private val connectivity: ConnectivityObserver,
 ) : DuplicateFinder {
-    override suspend fun similarPlaces(title: String, location: GeoPoint): List<SimilarPlace> {
+    override suspend fun similarPlaces(title: String, location: GeoPoint, excludeId: String?): List<SimilarPlace> {
         if (!connectivity.isOnline.value) throw OfflineException()
-        return remote.similarPlaces(title, location)
+        return remote.similarPlaces(title, location, excludeId)
     }
 }
 

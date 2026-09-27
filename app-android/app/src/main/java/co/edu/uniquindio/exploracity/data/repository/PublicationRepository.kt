@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.domain.model.PhotoRules
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.SubmitResult
 import kotlinx.coroutines.delay
@@ -91,20 +92,18 @@ class FakePublicationRepository(
     override suspend fun update(id: String, changes: PublicationChanges): OwnPublication {
         delay(actionLatency)
         val clean = changes.trimmed()
-        require(clean.isValid) { "Título o descripción fuera de los límites" }
+        require(clean.isValid) { "Hay campos fuera de los límites" }
+        require(clean.photos.all { it.uploaded }) { "Las fotos nuevas deben terminar de subir antes de guardar" }
         val hiddenOne = hidden.value.firstOrNull { it.publication.id == id }?.publication
         val updated = if (hiddenOne != null) {
             check(hiddenOne.status == PublicationStatus.PENDING) { "Solo se editan las pendientes y las verificadas: $id" }
-            hiddenOne.copy(title = clean.title, category = clean.category, description = clean.description)
+            hiddenOne.applying(clean)
         } else {
             val public = publicOnes().firstOrNull { it.id == id } ?: error("Publicación desconocida: $id")
             check(public.status == PublicationStatus.VERIFIED) { "Solo se editan las pendientes y las verificadas: $id" }
             // Vuelve a verificación: sale del feed y se envía de nuevo ahora.
             pois.remove(id)
-            public.copy(
-                title = clean.title,
-                category = clean.category,
-                description = clean.description,
+            public.applying(clean).copy(
                 status = PublicationStatus.PENDING,
                 submittedAt = clock.instant(),
                 votes = 0,
@@ -117,8 +116,7 @@ class FakePublicationRepository(
 
     override suspend fun submit(submission: PublicationSubmission): SubmitResult {
         delay(actionLatency)
-        val uploaded = submission.photos.count { it.uploaded }
-        require(uploaded >= PhotoRules.MIN) { "Hace falta al menos una foto subida" }
+        require(submission.photos.count { it.uploaded } >= PhotoRules.MIN) { "Hace falta al menos una foto subida" }
         val resubmitId = submission.resubmitId
         if (resubmitId != null) {
             val rejected = hidden.value.firstOrNull { it.publication.id == resubmitId }?.publication
@@ -132,9 +130,11 @@ class FakePublicationRepository(
             category = submission.category,
             status = PublicationStatus.PENDING,
             location = submission.location,
-            photos = uploaded,
+            photos = submission.photos.mapNotNull { photo -> photo.remoteUrl?.let { PublishedPhoto(photo.id, it) } },
             submittedAt = clock.instant(),
             description = submission.description,
+            hours = submission.hours,
+            price = submission.price,
             possibleDuplicate = submission.possibleDuplicate,
         )
         // Reenviar reemplaza a la rechazada: vuelve a pendiente, sin el motivo.
@@ -149,7 +149,8 @@ class FakePublicationRepository(
                 if (seed.publication.id != publicationId) {
                     seed
                 } else {
-                    PublicationSeed(seed.publication.copy(photos = seed.publication.photos + 1), seed.duplicateOfId)
+                    val photo = PublishedPhoto(photoUrl.substringAfterLast('/').substringBeforeLast('.'), photoUrl)
+                    PublicationSeed(seed.publication.copy(photos = seed.publication.photos + photo), seed.duplicateOfId)
                 }
             }
         }
@@ -175,7 +176,9 @@ class FakePublicationRepository(
                 category = poi.category,
                 status = poi.status,
                 location = poi.location,
-                photos = details.photos.size,
+                photos = samplePublishedPhotos(poi.id, details.photos.size),
+                hours = details.hours,
+                price = poi.price,
                 submittedAt = clock.instant() - (submission?.submittedAgo ?: Duration.ZERO).toJavaDuration(),
                 description = details.description,
                 photoUrl = poi.photoUrl,
@@ -229,6 +232,21 @@ class OnlineOnlyPublicationRepository(
         if (!connectivity.isOnline.value) throw OfflineException()
     }
 }
+
+/**
+ * 23 · La publicación con los cambios guardados. Si se movió el pin, la marca de posible duplicado es la de la
+ * búsqueda del lugar nuevo (17A/17B); si no, se conserva la que tenía.
+ */
+private fun OwnPublication.applying(changes: PublicationChanges): OwnPublication = copy(
+    title = changes.title,
+    category = changes.category,
+    description = changes.description,
+    location = changes.location,
+    hours = changes.openingHours,
+    price = changes.price,
+    photos = changes.photos.mapNotNull { photo -> photo.remoteUrl?.let { PublishedPhoto(photo.id, it) } },
+    possibleDuplicate = if (changes.location == location) possibleDuplicate else changes.duplicateCheck?.possibleDuplicate == true,
+)
 
 /** README · «primera publicación +20 (insignia)». */
 private const val FIRST_PUBLICATION_POINTS = 20

@@ -60,8 +60,6 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.location.ApproximateAddress
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
-import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
-import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraSearchBar
@@ -84,8 +82,7 @@ import co.edu.uniquindio.exploracity.util.rememberTouchExplorationEnabled
 import co.edu.uniquindio.exploracity.viewmodel.AddressSearch
 import co.edu.uniquindio.exploracity.viewmodel.DraftField
 import co.edu.uniquindio.exploracity.viewmodel.PinAddress
-import co.edu.uniquindio.exploracity.viewmodel.PublishContent
-import co.edu.uniquindio.exploracity.viewmodel.PublishUiState
+import co.edu.uniquindio.exploracity.viewmodel.PinState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.MapStyleOptions
@@ -110,22 +107,37 @@ private const val NUDGE_DEGREES = 0.0001
 /** El mapa nunca queda más bajo que esto: con fuente grande se desplazan los textos de arriba y de abajo. */
 private val MinMapHeight = 200.dp
 
+/** Lo que se hace desde el mapa del pin (17 en el formulario, «Cambiar ubicación» en 23). */
+class PinCallbacks(
+    val onPinMoved: (GeoPoint, Boolean) -> Unit = { _, _ -> },
+    val onPinTargetShown: (GeoPoint) -> Unit = {},
+    val onUseMyLocation: () -> Unit = {},
+    /** 17.b · «Dar permiso» o «Abrir Ajustes». */
+    val onAllowLocation: () -> Unit = {},
+    val onAddressQueryChange: (String) -> Unit = {},
+    val onSearchAddress: () -> Unit = {},
+)
+
 /**
- * 17 · Paso 3, ubicación. Se arrastra el mapa bajo un pin fijo (17.a lo dibuja levantado, con su sombra): al soltarlo
+ * 17 · El mapa con el pin. Se arrastra el mapa bajo un pin fijo (17.a lo dibuja levantado, con su sombra): al soltarlo
  * queda puesto y se anuncia la dirección aproximada. «Usar mi ubicación» lo lleva donde está la persona; sin permiso
- * (17.b) aparecen el aviso y la búsqueda por dirección. Con TalkBack, cuatro botones lo mueven unos 11 m.
+ * (17.b) aparecen el aviso y la búsqueda por dirección. Con TalkBack, cuatro botones lo mueven unos 11 m. Es el paso 3
+ * del formulario y el editor de «Cambiar ubicación» (23). [showError] es el resumen de 21 sin pin.
  */
 @Composable
 internal fun LocationStep(
-    state: PublishUiState,
-    callbacks: PublishCallbacks,
+    location: GeoPoint?,
+    category: Category?,
+    pin: PinState,
+    callbacks: PinCallbacks,
     cityCenter: GeoPoint,
     canAskLocation: Boolean,
     modifier: Modifier = Modifier,
+    showError: Boolean = false,
+    errorFocusRequest: Int = 0,
 ) {
-    val draft = state.draft
     val camera = rememberCameraPositionState {
-        val start = draft.location
+        val start = location
         position = CameraPosition.fromLatLngZoom((start ?: cityCenter).toLatLng(), if (start != null) PIN_ZOOM else CITY_ZOOM)
     }
     val currentOnPinMoved by rememberUpdatedState(callbacks.onPinMoved)
@@ -143,8 +155,8 @@ internal fun LocationStep(
             }
         }
     }
-    LaunchedEffect(state.pinTarget) {
-        val target = state.pinTarget ?: return@LaunchedEffect
+    LaunchedEffect(pin.pinTarget) {
+        val target = pin.pinTarget ?: return@LaunchedEffect
         try {
             camera.animate(CameraUpdateFactory.newLatLngZoom(target.toLatLng(), max(camera.position.zoom, PIN_ZOOM)))
         } finally {
@@ -153,16 +165,16 @@ internal fun LocationStep(
     }
     // 21 · «Confirmar ubicación» sin pin lleva el foco al pin (solo a los pedidos de ahora, no a los de otros pasos).
     val pinFocus = remember { FocusRequester() }
-    val initialFocusRequest = remember { state.errorFocusRequest }
-    LaunchedEffect(state.errorFocusRequest) {
-        if (state.errorFocusRequest != initialFocusRequest && state.stepErrors.firstOrNull() == DraftField.LOCATION) pinFocus.requestFocus()
+    val initialFocusRequest = remember { errorFocusRequest }
+    LaunchedEffect(errorFocusRequest) {
+        if (errorFocusRequest != initialFocusRequest && showError) pinFocus.requestFocus()
     }
     val touchExploration = rememberTouchExplorationEnabled()
     // Con fuente grande lo que flota sobre el mapa lo taparía: la indicación sin pin sube a los textos de arriba, la
     // etiqueta del barrio se quita (la tarjeta de abajo la dice) y «Usar mi ubicación» queda solo con su icono.
     val largeFont = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     // En 17.b el aviso y la búsqueda achican el mapa: ahí la indicación también va arriba, para no tapar el pin.
-    val hintAbove = draft.location == null && (largeFont || state.locationDenied)
+    val hintAbove = location == null && (largeFont || pin.locationDenied)
 
     MapStepLayout(
         modifier = modifier,
@@ -172,10 +184,10 @@ internal fun LocationStep(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 StepHeading(stringResource(R.string.publish_location_heading), stringResource(R.string.publish_location_intro))
-                if (state.showLocationError) ErrorSummary(listOf(DraftField.LOCATION))
-                if (state.locationDenied) {
+                if (showError) ErrorSummary(listOf(DraftField.LOCATION))
+                if (pin.locationDenied) {
                     LocationDeniedBanner(canAskLocation, callbacks.onAllowLocation)
-                    AddressSearchField(state, callbacks)
+                    AddressSearchField(pin, callbacks)
                 }
                 if (hintAbove) MapHint(inline = true)
             }
@@ -183,10 +195,11 @@ internal fun LocationStep(
         map = {
             PinMap(
                 camera = camera,
-                draft = draft,
-                address = state.address,
+                location = location,
+                category = category,
+                address = pin.address,
                 lifted = dragging,
-                showUseMyLocation = !state.locationDenied,
+                showUseMyLocation = !pin.locationDenied,
                 onUseMyLocation = callbacks.onUseMyLocation,
                 pinFocus = pinFocus,
                 largeFont = largeFont,
@@ -201,11 +214,11 @@ internal fun LocationStep(
             ) {
                 if (touchExploration) {
                     NudgeButtons(stacked = largeFont) { dLat, dLng ->
-                        val from = draft.location ?: camera.position.target.toGeoPoint()
+                        val from = location ?: camera.position.target.toGeoPoint()
                         callbacks.onPinMoved(GeoPoint(from.latitude + dLat, from.longitude + dLng), true)
                     }
                 }
-                draft.location?.let { AddressCard(it, state.address) }
+                location?.let { AddressCard(it, pin.address) }
             }
         },
     )
@@ -247,7 +260,8 @@ private fun MapStepLayout(
 @Composable
 private fun PinMap(
     camera: CameraPositionState,
-    draft: PublicationDraft,
+    location: GeoPoint?,
+    category: Category?,
     address: PinAddress?,
     lifted: Boolean,
     showUseMyLocation: Boolean,
@@ -286,8 +300,8 @@ private fun PinMap(
         } else {
             MissingMapsKey()
         }
-        CenterPin(draft, lifted, pinFocus)
-        val placed = draft.location != null
+        CenterPin(category, placed = location != null, lifted, pinFocus)
+        val placed = location != null
         val area = (address as? PinAddress.Found)?.address?.area
         when {
             largeFont || hintAbove -> Unit
@@ -304,10 +318,9 @@ private fun PinMap(
  * arrastra el mapa se levanta y deja ver el punto exacto. Para el lector es un elemento con foco propio.
  */
 @Composable
-private fun CenterPin(draft: PublicationDraft, lifted: Boolean, focusRequester: FocusRequester) {
-    val category = draft.category
+private fun CenterPin(category: Category?, placed: Boolean, lifted: Boolean, focusRequester: FocusRequester) {
     val lift by animateDpAsState(if (lifted) 10.dp else 0.dp, label = "pin")
-    val description = stringResource(if (draft.location != null) R.string.publish_pin_placed else R.string.publish_pin_unplaced)
+    val description = stringResource(if (placed) R.string.publish_pin_placed else R.string.publish_pin_unplaced)
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Box(Modifier.size(10.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f), CircleShape))
         Box(
@@ -433,7 +446,7 @@ private fun NudgeButton(label: Int, rotation: Float, onClick: () -> Unit) {
  * las coordenadas no, para no alargar el anuncio.
  */
 @Composable
-private fun AddressCard(location: GeoPoint, address: PinAddress?) {
+internal fun AddressCard(location: GeoPoint, address: PinAddress?) {
     val explora = MaterialTheme.exploraColors
     val coordinates = remember(location) {
         String.format(Locale.forLanguageTag("es-CO"), "%.5f · %.5f", location.latitude, location.longitude)
@@ -509,11 +522,11 @@ private fun LocationDeniedBanner(canAskAgain: Boolean, onAllow: () -> Unit) {
 
 /** 17.b · «Buscar una dirección o barrio»: la tecla Buscar del teclado lleva el pin al resultado. */
 @Composable
-private fun AddressSearchField(state: PublishUiState, callbacks: PublishCallbacks) {
-    val searching = state.addressSearch == AddressSearch.Searching
+private fun AddressSearchField(pin: PinState, callbacks: PinCallbacks) {
+    val searching = pin.addressSearch == AddressSearch.Searching
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ExploraSearchBar(
-            value = state.addressQuery,
+            value = pin.addressQuery,
             onValueChange = callbacks.onAddressQueryChange,
             placeholder = stringResource(R.string.publish_address_search),
             onSearch = callbacks.onSearchAddress,
@@ -523,7 +536,7 @@ private fun AddressSearchField(state: PublishUiState, callbacks: PublishCallback
                 null
             },
         )
-        val message = when (val search = state.addressSearch) {
+        val message = when (val search = pin.addressSearch) {
             is AddressSearch.NotFound -> stringResource(R.string.publish_address_search_not_found, search.query)
             AddressSearch.Offline -> stringResource(R.string.publish_address_search_offline)
             AddressSearch.Failed -> stringResource(R.string.publish_address_search_failed)
@@ -558,14 +571,8 @@ private fun DeniedPreview() {
         Column(Modifier.background(MaterialTheme.colorScheme.surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             LocationDeniedBanner(canAskAgain = false, onAllow = {})
             AddressSearchField(
-                PublishUiState(
-                    content = PublishContent.Editing,
-                    draft = PublicationDraft(category = Category.GASTRONOMY, step = PublishStep.LOCATION),
-                    locationDenied = true,
-                    addressQuery = "Calle 85",
-                    addressSearch = AddressSearch.NotFound("Calle 85"),
-                ),
-                PublishCallbacks(),
+                PinState(locationDenied = true, addressQuery = "Calle 85", addressSearch = AddressSearch.NotFound("Calle 85")),
+                PinCallbacks(),
             )
         }
     }

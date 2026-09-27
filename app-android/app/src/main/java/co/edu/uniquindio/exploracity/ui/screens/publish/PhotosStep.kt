@@ -60,6 +60,7 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.viewmodel.DraftField
 import co.edu.uniquindio.exploracity.viewmodel.PhotoProblem
+import co.edu.uniquindio.exploracity.viewmodel.PhotoStatus
 import co.edu.uniquindio.exploracity.viewmodel.PhotoUpload
 import co.edu.uniquindio.exploracity.viewmodel.PublishUiState
 import co.edu.uniquindio.exploracity.viewmodel.SendError
@@ -69,8 +70,7 @@ import co.edu.uniquindio.exploracity.viewmodel.SendError
  * con %, error recuperable) y el lector oye el progreso cada 25 %. Con una foto subida ya se puede enviar.
  */
 @Composable
-internal fun PhotosStep(state: PublishUiState, callbacks: PublishCallbacks) {
-    val draft = state.draft
+internal fun PhotosStep(state: PublishUiState, callbacks: PhotoCallbacks) {
     val cameraFocus = remember { FocusRequester() }
     LaunchedEffect(state.errorFocusRequest) {
         if (state.errorFocusRequest != 0 && state.stepErrors.firstOrNull() == DraftField.PHOTOS) cameraFocus.requestFocus()
@@ -78,29 +78,47 @@ internal fun PhotosStep(state: PublishUiState, callbacks: PublishCallbacks) {
     StepHeading(stringResource(R.string.publish_photos_heading), stringResource(R.string.publish_photos_intro))
     if (state.showPhotosError) ErrorSummary(listOf(DraftField.PHOTOS))
     state.sendError?.let { SendErrorBanner(it) }
-    state.photoProblem?.let { ProblemNote(it) }
-    if (draft.photos.isEmpty() && state.preparingPhotos == 0) {
+    PhotosSection(state.draft.photos, state.photoStatus, callbacks, cameraFocus)
+}
+
+/** Lo que se hace con las fotos (paso 5 del formulario y edición, 23). */
+class PhotoCallbacks(
+    val onTakePhoto: () -> Unit = {},
+    val onPickPhotos: () -> Unit = {},
+    val onRetry: (String) -> Unit = {},
+    val onRemove: (String) -> Unit = {},
+)
+
+/**
+ * Las fotos (de 1 a 5, la primera es la portada) con su estado, o 19.a si aún no hay ninguna. [cameraFocus] recibe el
+ * foco del resumen de 21. Las ya publicadas (23) no tienen archivo en el teléfono: se ven como «Foto 1», «Foto 2»…
+ */
+@Composable
+internal fun PhotosSection(photos: List<DraftPhoto>, status: PhotoStatus, callbacks: PhotoCallbacks, cameraFocus: FocusRequester = remember { FocusRequester() }) {
+    status.problem?.let { ProblemNote(it) }
+    if (photos.isEmpty() && status.preparing == 0) {
         EmptyPicker(callbacks, cameraFocus)
         Note(R.drawable.ic_info, stringResource(R.string.publish_photos_rules))
     } else {
         Text(
-            pluralStringResource(R.plurals.publish_photos_count, draft.photos.size.coerceAtLeast(1), draft.photos.size.coerceAtLeast(1)),
+            pluralStringResource(R.plurals.publish_photos_count, photos.size.coerceAtLeast(1), photos.size.coerceAtLeast(1)),
             style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.W700),
             color = MaterialTheme.exploraColors.textSecondary,
         )
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            draft.photos.forEachIndexed { index, photo ->
-                PhotoRow(photo, index, draft.photos.size, state.uploads[photo.id], callbacks)
+            photos.forEachIndexed { index, photo ->
+                PhotoRow(photo, index, photos.size, status.uploads[photo.id], callbacks)
             }
-            repeat(state.preparingPhotos) { PreparingRow() }
+            repeat(status.preparing) { PreparingRow() }
         }
-        if (draft.photosLeft > 0) AddMore(draft.photosLeft, callbacks) else Note(R.drawable.ic_info, stringResource(R.string.publish_photos_full, PhotoRules.MAX))
+        val left = (PhotoRules.MAX - photos.size).coerceAtLeast(0)
+        if (left > 0) AddMore(left, callbacks) else Note(R.drawable.ic_info, stringResource(R.string.publish_photos_full, PhotoRules.MAX))
     }
 }
 
 /** 19.a · Sin fotos: «Toma una foto ahora o elige una de tu galería», con los dos botones. */
 @Composable
-private fun EmptyPicker(callbacks: PublishCallbacks, cameraFocus: FocusRequester) {
+private fun EmptyPicker(callbacks: PhotoCallbacks, cameraFocus: FocusRequester) {
     val scheme = MaterialTheme.colorScheme
     val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     Column(
@@ -146,8 +164,10 @@ private fun EmptyPicker(callbacks: PublishCallbacks, cameraFocus: FocusRequester
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpload?, callbacks: PublishCallbacks) {
+private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpload?, callbacks: PhotoCallbacks) {
     val scheme = MaterialTheme.colorScheme
+    // Las ya publicadas no traen nombre de archivo (23).
+    val name = photo.name.ifEmpty { stringResource(R.string.publish_photo_published, index + 1) }
     val explora = MaterialTheme.exploraColors
     val shape = RoundedCornerShape(16.dp)
     val failed = upload == PhotoUpload.Failed
@@ -162,7 +182,7 @@ private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpl
     val spokenStatus = if (upload is PhotoUpload.Uploading) stringResource(R.string.publish_photo_uploading, upload.percent / 25 * 25) else status
     val spoken = listOfNotNull(
         stringResource(R.string.publish_photo_position, index + 1, total),
-        photo.name,
+        name,
         stringResource(R.string.publish_photo_cover).lowercase().takeIf { cover },
     ).joinToString(", ")
     Row(
@@ -182,7 +202,7 @@ private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpl
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(photo.name, style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.W700), color = scheme.onSurface)
+                Text(name, style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.W700), color = scheme.onSurface)
                 if (cover) {
                     Text(
                         stringResource(R.string.publish_photo_cover),
@@ -210,14 +230,14 @@ private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpl
                 }
             }
             if (failed) {
-                ExploraButton(stringResource(R.string.action_retry), onClick = { callbacks.onRetryPhoto(photo.id) }, style = ExploraButtonStyle.DESTRUCTIVE_TEXT, icon = R.drawable.ic_refresh)
+                ExploraButton(stringResource(R.string.action_retry), onClick = { callbacks.onRetry(photo.id) }, style = ExploraButtonStyle.DESTRUCTIVE_TEXT, icon = R.drawable.ic_refresh)
             }
         }
         val uploading = upload is PhotoUpload.Uploading
-        IconButton(onClick = { callbacks.onRemovePhoto(photo.id) }) {
+        IconButton(onClick = { callbacks.onRemove(photo.id) }) {
             Icon(
                 painterResource(if (uploading) R.drawable.ic_close else R.drawable.ic_delete),
-                contentDescription = stringResource(if (uploading) R.string.publish_photo_cancel else R.string.publish_photo_remove, photo.name),
+                contentDescription = stringResource(if (uploading) R.string.publish_photo_cancel else R.string.publish_photo_remove, name),
                 tint = explora.iconSecondary,
             )
         }
@@ -268,7 +288,7 @@ private fun ProgressBar(percent: Int) {
 
 /** «Agregar otra foto (2 disponibles)»: abre un menú con la cámara y la galería. */
 @Composable
-private fun AddMore(left: Int, callbacks: PublishCallbacks) {
+private fun AddMore(left: Int, callbacks: PhotoCallbacks) {
     var open by remember { mutableStateOf(false) }
     Box {
         ExploraButton(

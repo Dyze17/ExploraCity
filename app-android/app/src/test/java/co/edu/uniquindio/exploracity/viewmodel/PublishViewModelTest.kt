@@ -298,6 +298,8 @@ class PublishViewModelTest {
         assertEquals("Mirador de La Peña", vm.state.value.draft.title)
         assertEquals(Category.NATURE, vm.state.value.draft.category)
         assertEquals("El pin empieza donde estaba", GeoPoint(4.5905, -74.0590), vm.state.value.draft.location)
+        assertEquals("Trae también precio y fotos", PriceRange.FREE, vm.state.value.draft.price)
+        assertEquals(2, vm.state.value.draft.photos.size)
         vm.onTitleChange("Mirador de La Peña, sendero")
         advanceUntilIdle()
         assertEquals(basics, drafts.saved[DraftKey.New])
@@ -349,10 +351,10 @@ class PublishViewModelTest {
         vm.onPinMoved(entrance)
 
         assertEquals(entrance, vm.state.value.draft.location)
-        assertEquals(PinAddress.Loading, vm.state.value.address)
-        assertNull("Arrastrar ya movió el mapa", vm.state.value.pinTarget)
+        assertEquals(PinAddress.Loading, vm.state.value.pin.address)
+        assertNull("Arrastrar ya movió el mapa", vm.state.value.pin.pinTarget)
         advanceUntilIdle()
-        assertEquals(PinAddress.Found(addresses.address), vm.state.value.address)
+        assertEquals(PinAddress.Found(addresses.address), vm.state.value.pin.address)
         assertEquals(entrance, drafts.saved[DraftKey.New]?.location)
     }
 
@@ -360,7 +362,7 @@ class PublishViewModelTest {
     fun `al retomar el paso 3 con el pin puesto busca su dirección`() = runTest(dispatcher) {
         val vm = onLocationStep(entrance)
 
-        assertEquals(PinAddress.Found(addresses.address), vm.state.value.address)
+        assertEquals(PinAddress.Found(addresses.address), vm.state.value.pin.address)
     }
 
     @Test
@@ -368,10 +370,10 @@ class PublishViewModelTest {
         val vm = onLocationStep(entrance)
 
         vm.onContinue()
-        assertTrue(vm.state.value.searchingNearby)
+        assertTrue(vm.state.value.pin.searchingNearby)
         advanceUntilIdle()
 
-        assertFalse(vm.state.value.searchingNearby)
+        assertFalse(vm.state.value.pin.searchingNearby)
         assertEquals(PublishStep.SCHEDULE, vm.state.value.step)
         assertEquals(DuplicateCheck(entrance), vm.state.value.draft.duplicateCheck)
         assertFalse(vm.state.value.draft.possibleDuplicate)
@@ -389,7 +391,7 @@ class PublishViewModelTest {
         advanceTimeBy(2.milliseconds)
 
         assertEquals(PublishStep.SCHEDULE, vm.state.value.step)
-        assertNull(vm.state.value.duplicates)
+        assertNull(vm.state.value.pin.duplicates)
         assertTrue(vm.state.value.draft.duplicateCheck?.failed == true)
     }
 
@@ -416,7 +418,7 @@ class PublishViewModelTest {
 
         assertEquals(1, finder.calls)
         assertEquals(PublishStep.LOCATION, vm.state.value.step)
-        assertEquals(DuplicateReview(listOf(similar)), vm.state.value.duplicates)
+        assertEquals(DuplicateReview(listOf(similar)), vm.state.value.pin.duplicates)
     }
 
     @Test
@@ -427,12 +429,12 @@ class PublishViewModelTest {
         advanceUntilIdle()
 
         vm.onNotSamePlace()
-        assertTrue(vm.state.value.duplicates?.different == true)
+        assertTrue(vm.state.value.pin.duplicates?.different == true)
         vm.onDuplicateNoteChange("  Es el local del segundo piso.  ")
         vm.onConfirmDifferent()
         advanceUntilIdle()
 
-        assertNull(vm.state.value.duplicates)
+        assertNull(vm.state.value.pin.duplicates)
         assertEquals(PublishStep.SCHEDULE, vm.state.value.step)
         val check = drafts.saved[DraftKey.New]?.duplicateCheck
         assertEquals(DuplicateCheck(entrance, listOf("la-puerta-falsa"), "Es el local del segundo piso."), check)
@@ -448,10 +450,10 @@ class PublishViewModelTest {
 
         vm.onNotSamePlace()
         vm.onBackToSimilar()
-        assertEquals(false, vm.state.value.duplicates?.different)
+        assertEquals(false, vm.state.value.pin.duplicates?.different)
         vm.onDuplicatesDismiss()
 
-        assertNull(vm.state.value.duplicates)
+        assertNull(vm.state.value.pin.duplicates)
         assertEquals(PublishStep.LOCATION, vm.state.value.step)
         assertEquals(entrance, vm.state.value.draft.location)
         assertNull(vm.state.value.draft.duplicateCheck)
@@ -480,7 +482,7 @@ class PublishViewModelTest {
         advanceUntilIdle()
         assertEquals(2, finder.calls)
         assertEquals(PublishStep.LOCATION, vm.state.value.step)
-        assertEquals("Conserva la nota que ya había escrito", "Es otro local", vm.state.value.duplicates?.note)
+        assertEquals("Conserva la nota que ya había escrito", "Es otro local", vm.state.value.pin.duplicates?.note)
     }
 
     @Test
@@ -493,8 +495,8 @@ class PublishViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PublishStep.CATEGORY, vm.state.value.step)
-        assertFalse(vm.state.value.searchingNearby)
-        assertNull(vm.state.value.duplicates)
+        assertFalse(vm.state.value.pin.searchingNearby)
+        assertNull(vm.state.value.pin.duplicates)
     }
 
     @Test
@@ -517,11 +519,11 @@ class PublishViewModelTest {
         advanceUntilIdle()
 
         assertEquals(here, vm.state.value.draft.location)
-        assertEquals(here, vm.state.value.pinTarget)
+        assertEquals(here, vm.state.value.pin.pinTarget)
         vm.onPinTargetShown(entrance)
-        assertEquals("Solo se da por mostrado el destino que llegó", here, vm.state.value.pinTarget)
+        assertEquals("Solo se da por mostrado el destino que llegó", here, vm.state.value.pin.pinTarget)
         vm.onPinTargetShown(here)
-        assertNull(vm.state.value.pinTarget)
+        assertNull(vm.state.value.pin.pinTarget)
     }
 
     @Test
@@ -530,20 +532,20 @@ class PublishViewModelTest {
         val vm = onLocationStep()
 
         vm.onLocationDenied()
-        assertTrue(vm.state.value.locationDenied)
+        assertTrue(vm.state.value.pin.locationDenied)
         vm.onAddressQueryChange("Calle 85 con 15")
         vm.onSearchAddress()
-        assertEquals(AddressSearch.Searching, vm.state.value.addressSearch)
+        assertEquals(AddressSearch.Searching, vm.state.value.pin.addressSearch)
         advanceUntilIdle()
 
-        assertEquals(AddressSearch.Idle, vm.state.value.addressSearch)
+        assertEquals(AddressSearch.Idle, vm.state.value.pin.addressSearch)
         assertEquals(entrance, vm.state.value.draft.location)
-        assertEquals(entrance, vm.state.value.pinTarget)
+        assertEquals(entrance, vm.state.value.pin.pinTarget)
 
         vm.onAddressQueryChange("Calle que no existe")
         vm.onSearchAddress()
         advanceUntilIdle()
-        assertEquals(AddressSearch.NotFound("Calle que no existe"), vm.state.value.addressSearch)
+        assertEquals(AddressSearch.NotFound("Calle que no existe"), vm.state.value.pin.addressSearch)
         assertEquals(entrance, vm.state.value.draft.location)
     }
 
@@ -555,12 +557,12 @@ class PublishViewModelTest {
 
         vm.onPinMoved(entrance)
         advanceUntilIdle()
-        assertEquals(PinAddress.Offline, vm.state.value.address)
+        assertEquals(PinAddress.Offline, vm.state.value.pin.address)
 
         addresses.offline = false
         connectivity.online = true
         advanceUntilIdle()
-        assertEquals(PinAddress.Found(addresses.address), vm.state.value.address)
+        assertEquals(PinAddress.Found(addresses.address), vm.state.value.pin.address)
     }
 
     // 18 · Paso 4, horario y precio
@@ -652,10 +654,10 @@ class PublishViewModelTest {
 
         vm.onGalleryPicked(listOf("content://galeria/patio.jpg", "content://galeria/barra.jpg"))
         advanceTimeBy(600.milliseconds)
-        assertEquals(PhotoUpload.Uploading(50), vm.state.value.uploads["foto-1"])
+        assertEquals(PhotoUpload.Uploading(50), vm.state.value.photoStatus.uploads["foto-1"])
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.uploads.isEmpty())
+        assertTrue(vm.state.value.photoStatus.uploads.isEmpty())
         assertEquals(listOf("fake://foto-1", "fake://foto-2"), drafts.saved[DraftKey.New]?.photos?.map { it.remoteUrl })
         assertEquals("patio.jpg", vm.state.value.draft.photos.first().name)
     }
@@ -670,7 +672,7 @@ class PublishViewModelTest {
 
         assertEquals(5, vm.state.value.draft.photos.size)
         assertEquals(0, vm.state.value.draft.photosLeft)
-        assertEquals(PhotoProblem.UNREADABLE, vm.state.value.photoProblem)
+        assertEquals(PhotoProblem.UNREADABLE, vm.state.value.photoStatus.problem)
     }
 
     @Test
@@ -681,7 +683,7 @@ class PublishViewModelTest {
 
         connectivity.online = false
         advanceUntilIdle()
-        assertEquals(PhotoUpload.Failed, vm.state.value.uploads["foto-1"])
+        assertEquals(PhotoUpload.Failed, vm.state.value.photoStatus.uploads["foto-1"])
         assertEquals(1, vm.state.value.draft.photos.size)
 
         connectivity.online = true
@@ -699,7 +701,7 @@ class PublishViewModelTest {
         advanceUntilIdle()
 
         assertTrue(vm.state.value.draft.photos.isEmpty())
-        assertTrue(vm.state.value.uploads.isEmpty())
+        assertTrue(vm.state.value.photoStatus.uploads.isEmpty())
         assertEquals(listOf("foto-1"), photos.deleted)
     }
 
@@ -755,14 +757,14 @@ class PublishViewModelTest {
         runCurrent()
 
         // Aún subiendo las dos: espera a la primera y envía.
-        assertEquals(PhotoUpload.Uploading(0), vm.state.value.uploads["foto-1"])
+        assertEquals(PhotoUpload.Uploading(0), vm.state.value.photoStatus.uploads["foto-1"])
         vm.onContinue()
         advanceTimeBy(1500.milliseconds)
         advanceTimeBy(400.milliseconds)
 
         assertTrue(vm.state.value.exit is PublishExit.Sent)
         val sent = publications.myPublications().first()
-        assertEquals(1, sent.photos)
+        assertEquals(1, sent.photos.size)
         assertEquals(listOf("foto-2"), outbox.photos[sent.id]?.map { it.id })
         assertTrue("La foto que falta conserva su archivo", "foto-2" !in photos.deleted)
     }
@@ -862,87 +864,6 @@ class PublishViewModelTest {
 
         override suspend fun clear(key: DraftKey) {
             saved.remove(key)
-        }
-    }
-
-    /** Búsqueda de parecidos con respuesta, demora y fallo a mano; cuenta las búsquedas. */
-    private class FakeFinder : DuplicateFinder {
-        var result: List<SimilarPlace> = emptyList()
-        var latency: Duration = 100.milliseconds
-        var error: Exception? = null
-        var calls = 0
-
-        override suspend fun similarPlaces(title: String, location: GeoPoint): List<SimilarPlace> {
-            calls++
-            delay(latency)
-            error?.let { throw it }
-            return result
-        }
-    }
-
-    /** Direcciones de prueba: todo punto está en Chapinero; la búsqueda encuentra lo que haya en [places]. */
-    private class FakeAddresses : AddressResolver {
-        val address = ApproximateAddress("Cl. 45 #19-32", "Chapinero", "Bogotá")
-        val places = mutableMapOf<String, GeoPoint>()
-        var offline = false
-
-        override suspend fun addressOf(point: GeoPoint): ApproximateAddress {
-            delay(200.milliseconds)
-            if (offline) throw OfflineException()
-            return address
-        }
-
-        override suspend fun search(query: String, bounds: GeoBounds): GeoPoint? {
-            delay(200.milliseconds)
-            return places[query]
-        }
-    }
-
-    /** Fotos de prueba: cualquier dirección se «comprime» al instante; guarda lo que se borra. */
-    private class FakePhotos : PhotoStore {
-        val deleted = mutableListOf<String>()
-        var unreadable = setOf<String>()
-        private var next = 0
-
-        override suspend fun import(uri: String, fallbackName: String?): DraftPhoto? {
-            if (uri in unreadable) return null
-            next++
-            return DraftPhoto("foto-$next", "/fotos/foto-$next.jpg", uri.substringAfterLast('/'))
-        }
-
-        override fun newCameraShot(): String = "content://camara/foto-${next + 1}.jpg"
-
-        override suspend fun delete(photo: DraftPhoto) {
-            deleted += photo.id
-        }
-    }
-
-    /** Subida de prueba: 1 s por foto (o lo de [slow]) de 25 en 25 %; sin red, o si está en [failing], falla. */
-    private class FakeUploads(private val connectivity: FakeConnectivity) : PhotoUploader {
-        val slow = mutableMapOf<String, Duration>()
-        val failing = mutableSetOf<String>()
-
-        override fun upload(photo: DraftPhoto): Flow<UploadProgress> = flow {
-            val total = slow[photo.id] ?: 1.seconds
-            for (percent in 0..100 step 25) {
-                if (!connectivity.online || photo.id in failing) throw OfflineException()
-                emit(UploadProgress.Sending(percent))
-                if (percent < 100) delay(total / 4)
-            }
-            emit(UploadProgress.Done("fake://${photo.id}"))
-        }
-    }
-
-    private class MemoryOutbox : PublicationOutbox {
-        val publications = mutableListOf<PublicationSubmission>()
-        val photos = mutableMapOf<String, List<DraftPhoto>>()
-
-        override suspend fun enqueue(submission: PublicationSubmission) {
-            publications += submission
-        }
-
-        override suspend fun enqueuePhotos(publicationId: String, photos: List<DraftPhoto>) {
-            if (photos.isNotEmpty()) this.photos[publicationId] = photos
         }
     }
 }

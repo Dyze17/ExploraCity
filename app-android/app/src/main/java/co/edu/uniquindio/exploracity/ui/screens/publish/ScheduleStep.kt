@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.domain.model.DraftHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
@@ -80,23 +81,60 @@ private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm", 
 /** Cuál de las dos horas se está eligiendo. */
 private enum class TimeField { OPENS, CLOSES }
 
+/** Lo que se hace con el horario y el precio (paso 4 del formulario y edición, 23). */
+class ScheduleCallbacks(
+    val onDayToggle: (DayOfWeek) -> Unit = {},
+    val onOpensChange: (LocalTime) -> Unit = {},
+    val onClosesChange: (LocalTime) -> Unit = {},
+    val onHoursUnknownChange: (Boolean) -> Unit = {},
+    val onPriceChange: (PriceRange) -> Unit = {},
+)
+
 /**
  * 18 · Horario y rango de precio. El horario es sugerido: «No tengo el horario exacto» libera el paso. El cierre debe
  * ser posterior a la apertura, con el mensaje junto al campo. El precio es opcional y se quita tocándolo otra vez.
  */
 @Composable
-internal fun ScheduleStep(state: PublishUiState, callbacks: PublishCallbacks) {
+internal fun ScheduleStep(state: PublishUiState, callbacks: ScheduleCallbacks) {
+    StepHeading(stringResource(R.string.publish_schedule_heading), stringResource(R.string.publish_schedule_intro))
+    if (state.showErrors && state.stepErrors.isNotEmpty()) ErrorSummary(state.stepErrors, closesBeforeOpens = state.closesBeforeOpens)
     val draft = state.draft
-    val hours = draft.hours
-    val enabled = !draft.hoursUnknown
+    ScheduleFields(
+        hours = draft.hours,
+        hoursUnknown = draft.hoursUnknown,
+        price = draft.price,
+        showError = state::showScheduleError,
+        closesBeforeOpens = state.closesBeforeOpens,
+        firstError = state.stepErrors.firstOrNull(),
+        errorFocusRequest = state.errorFocusRequest,
+        callbacks = callbacks,
+    )
+}
+
+/**
+ * Días, horas, «No tengo el horario exacto» y rango de precio. [showError] dice qué campos marcar en rojo; el foco va a
+ * [firstError] cada vez que cambia [errorFocusRequest].
+ */
+@Composable
+internal fun ScheduleFields(
+    hours: DraftHours,
+    hoursUnknown: Boolean,
+    price: PriceRange?,
+    showError: (DraftField) -> Boolean,
+    closesBeforeOpens: Boolean,
+    callbacks: ScheduleCallbacks,
+    firstError: DraftField? = null,
+    errorFocusRequest: Int = 0,
+) {
+    val enabled = !hoursUnknown
     val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     var picking by rememberSaveable { mutableStateOf<TimeField?>(null) }
     val daysFocus = remember { FocusRequester() }
     val opensFocus = remember { FocusRequester() }
     val closesFocus = remember { FocusRequester() }
-    LaunchedEffect(state.errorFocusRequest) {
-        if (state.errorFocusRequest == 0) return@LaunchedEffect
-        when (state.stepErrors.firstOrNull()) {
+    LaunchedEffect(errorFocusRequest) {
+        if (errorFocusRequest == 0) return@LaunchedEffect
+        when (firstError) {
             DraftField.DAYS -> daysFocus.requestFocus()
             DraftField.OPENS -> opensFocus.requestFocus()
             DraftField.CLOSES -> closesFocus.requestFocus()
@@ -104,11 +142,8 @@ internal fun ScheduleStep(state: PublishUiState, callbacks: PublishCallbacks) {
         }
     }
 
-    StepHeading(stringResource(R.string.publish_schedule_heading), stringResource(R.string.publish_schedule_intro))
-    if (state.showErrors && state.stepErrors.isNotEmpty()) ErrorSummary(state.stepErrors, closesBeforeOpens = state.closesBeforeOpens)
-
     Section(stringResource(R.string.publish_schedule_days)) {
-        DayToggles(hours.days, enabled, state.showScheduleError(DraftField.DAYS), daysFocus, callbacks.onDayToggle)
+        DayToggles(hours.days, enabled, showError(DraftField.DAYS), daysFocus, callbacks.onDayToggle)
     }
 
     val opens = @Composable { modifier: Modifier ->
@@ -116,7 +151,7 @@ internal fun ScheduleStep(state: PublishUiState, callbacks: PublishCallbacks) {
             label = stringResource(R.string.publish_schedule_opens),
             time = hours.opens,
             enabled = enabled,
-            error = if (state.showScheduleError(DraftField.OPENS)) stringResource(R.string.publish_schedule_opens_missing) else null,
+            error = if (showError(DraftField.OPENS)) stringResource(R.string.publish_schedule_opens_missing) else null,
             pickLabel = stringResource(R.string.publish_schedule_pick_opens),
             onPick = { picking = TimeField.OPENS },
             modifier = modifier.focusRequester(opensFocus),
@@ -124,8 +159,8 @@ internal fun ScheduleStep(state: PublishUiState, callbacks: PublishCallbacks) {
     }
     val closesError = when {
         !enabled -> null
-        state.closesBeforeOpens -> stringResource(R.string.publish_schedule_closes_before)
-        state.showScheduleError(DraftField.CLOSES) -> stringResource(R.string.publish_schedule_closes_missing)
+        closesBeforeOpens -> stringResource(R.string.publish_schedule_closes_before)
+        showError(DraftField.CLOSES) -> stringResource(R.string.publish_schedule_closes_missing)
         else -> null
     }
     val closes = @Composable { modifier: Modifier ->
@@ -150,11 +185,11 @@ internal fun ScheduleStep(state: PublishUiState, callbacks: PublishCallbacks) {
             closes(Modifier.weight(1f))
         }
     }
-    UnknownHours(draft.hoursUnknown, callbacks.onHoursUnknownChange)
+    UnknownHours(hoursUnknown, callbacks.onHoursUnknownChange)
 
     Section(stringResource(R.string.publish_schedule_price)) {
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            PriceOrder.forEach { price -> PriceOption(price, selected = draft.price == price, onClick = { callbacks.onPriceChange(price) }) }
+            PriceOrder.forEach { option -> PriceOption(option, selected = price == option, onClick = { callbacks.onPriceChange(option) }) }
         }
     }
 

@@ -112,9 +112,13 @@ class FakePublicationRepositoryTest {
         val users = FakeUserRepository(pois, publications)
         val before = users.ownProfile().publications
 
+        val sendero = requireNotNull(publications.publication("sendero-la-vieja"))
         val updated = publications.update(
             "sendero-la-vieja",
-            PublicationChanges("  Sendero La Vieja  ", Category.NATURE, "Caminata entre bosque de niebla; mejor subir temprano y con buenos zapatos."),
+            PublicationChanges.of(sendero).copy(
+                title = "  Sendero La Vieja  ",
+                description = "Caminata entre bosque de niebla; mejor subir temprano y con buenos zapatos.",
+            ),
         )
 
         assertEquals(PublicationStatus.PENDING, updated.status)

@@ -56,6 +56,7 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.Rejection
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RequiredFix
@@ -500,7 +501,7 @@ private val previewRejected = OwnPublication(
     category = Category.NATURE,
     status = PublicationStatus.REJECTED,
     location = GeoPoint(4.5905, -74.0590),
-    photos = 2,
+    photos = List(2) { PublishedPhoto("foto-$it", "") },
     submittedAt = previewNow.minus(4, ChronoUnit.DAYS),
     rejection = Rejection(
         reason = RejectionReason.PHOTO,
@@ -521,7 +522,7 @@ private val previewDuplicate = OwnPublication(
     category = Category.GASTRONOMY,
     status = PublicationStatus.REJECTED,
     location = GeoPoint(4.59791, -74.0746),
-    photos = 1,
+    photos = List(1) { PublishedPhoto("foto-$it", "") },
     submittedAt = previewNow.minus(1, ChronoUnit.DAYS),
     rejection = Rejection(
         reason = RejectionReason.DUPLICATE,

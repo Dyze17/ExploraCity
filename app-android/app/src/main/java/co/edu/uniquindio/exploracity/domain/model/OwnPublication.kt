@@ -63,10 +63,14 @@ data class OwnPublication(
     val category: Category,
     val status: PublicationStatus,
     val location: GeoPoint,
-    val photos: Int,
+    /** En orden; la primera es la portada. */
+    val photos: List<PublishedPhoto>,
     val submittedAt: Instant,
     val description: String = "",
     val photoUrl: String? = null,
+    /** 18 · null si no indicó horario («No tengo el horario exacto»). */
+    val hours: OpeningHours? = null,
+    val price: PriceRange? = null,
     /** Votos y comentarios: solo las públicas (verificadas y finalizadas) los reciben. */
     val votes: Int = 0,
     val comments: Int = 0,
@@ -94,11 +98,27 @@ object PublicationLimits {
     fun descriptionMissing(description: String): Int = (DESCRIPTION_MIN - description.trim().length).coerceAtLeast(0)
 }
 
+/** Una foto ya publicada: su dirección en el servidor de imágenes. */
+data class PublishedPhoto(val id: String, val url: String)
+
 /**
- * 23 · Lo que se puede cambiar de una publicación ya enviada. Los espacios de los extremos no cuentan: un título de
- * cinco espacios no es un título.
+ * 23 · Lo que se puede cambiar de una publicación ya enviada: todo lo de los pasos 1 a 5. Los espacios de los extremos
+ * no cuentan: un título de cinco espacios no es un título. Las fotos ya publicadas llegan con su dirección
+ * ([DraftPhoto.remoteUrl]); las nuevas, sin ella hasta que terminan de subir.
  */
-data class PublicationChanges(val title: String, val category: Category, val description: String) {
+data class PublicationChanges(
+    val title: String,
+    val category: Category,
+    val description: String,
+    val location: GeoPoint,
+    val hours: DraftHours = DraftHours(),
+    /** «No tengo el horario exacto»: el lugar queda sin horario. */
+    val hoursUnknown: Boolean = true,
+    val price: PriceRange? = null,
+    val photos: List<DraftPhoto> = emptyList(),
+    /** 17A/17B · Solo si se movió el pin: la búsqueda de parecidos del lugar nuevo. */
+    val duplicateCheck: DuplicateCheck? = null,
+) {
     val titleLength: Int get() = title.trim().length
 
     val descriptionLength: Int get() = description.trim().length
@@ -108,12 +128,45 @@ data class PublicationChanges(val title: String, val category: Category, val des
 
     val descriptionMissing: Int get() = PublicationLimits.descriptionMissing(description)
 
-    val isValid: Boolean get() = titleMissing == 0 && descriptionMissing == 0
+    /** 18 · El horario que se guarda: null con «No tengo el horario exacto». */
+    val openingHours: OpeningHours? get() = if (hoursUnknown) null else hours.complete
 
-    /** Sin los espacios de los extremos, como se guarda. */
-    fun trimmed(): PublicationChanges = copy(title = title.trim(), description = description.trim())
+    /** 18 · Sin la casilla, hace falta el horario completo, con el cierre después de la apertura. */
+    val hoursValid: Boolean get() = hoursUnknown || hours.complete != null
+
+    val photosValid: Boolean get() = photos.size >= PhotoRules.MIN
+
+    val isValid: Boolean get() = titleMissing == 0 && descriptionMissing == 0 && hoursValid && photosValid
+
+    /** Cuántas fotos más caben. */
+    val photosLeft: Int get() = (PhotoRules.MAX - photos.size).coerceAtLeast(0)
+
+    /**
+     * Como se guarda y como se compara: sin los espacios de los extremos y, con «No tengo el horario exacto», sin el
+     * horario a medio elegir (se conserva en el formulario por si la desmarca).
+     */
+    fun trimmed(): PublicationChanges = copy(
+        title = title.trim(),
+        description = description.trim(),
+        hours = if (hoursUnknown) DraftHours() else hours,
+    )
 
     companion object {
-        fun of(publication: OwnPublication) = PublicationChanges(publication.title, publication.category, publication.description)
+        fun of(publication: OwnPublication): PublicationChanges {
+            val hours = publication.hours
+            return PublicationChanges(
+                title = publication.title,
+                category = publication.category,
+                description = publication.description,
+                location = publication.location,
+                hours = hours?.let { DraftHours(it.days, it.opens, it.closes) } ?: DraftHours(),
+                hoursUnknown = hours == null,
+                price = publication.price,
+                photos = publication.photos.map { it.toDraftPhoto() },
+            )
+        }
     }
 }
+
+/** Una foto publicada como foto del formulario: ya subida, sin archivo en el teléfono. */
+fun PublishedPhoto.toDraftPhoto(): DraftPhoto = DraftPhoto(id = id, path = "", name = "", remoteUrl = url)

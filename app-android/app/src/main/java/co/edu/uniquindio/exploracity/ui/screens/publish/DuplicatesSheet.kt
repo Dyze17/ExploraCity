@@ -103,6 +103,18 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 import kotlinx.coroutines.launch
 import kotlin.math.cos
 
+/** Lo que se hace desde la hoja de parecidos (17A/17B). */
+class DuplicateCallbacks(
+    /** Deslizar la hoja hacia abajo o «Atrás» en 17A. */
+    val onDismiss: () -> Unit = {},
+    val onNotSamePlace: () -> Unit = {},
+    val onBackToSimilar: () -> Unit = {},
+    val onNoteChange: (String) -> Unit = {},
+    val onConfirmDifferent: () -> Unit = {},
+    /** «Ver este lugar» (13). */
+    val onOpenSimilar: (String) -> Unit = {},
+)
+
 /**
  * 17A · «¿Ya existe este lugar?» y 17B · «Es un lugar distinto», dos estados de la misma hoja (el conteo de 5 pasos no
  * cambia). No bloquea: deslizarla hacia abajo vuelve al paso 3 con el pin donde estaba. Abierta mientras [review] no
@@ -110,7 +122,7 @@ import kotlin.math.cos
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun DuplicatesSheet(review: DuplicateReview?, location: GeoPoint?, callbacks: PublishCallbacks) {
+internal fun DuplicatesSheet(review: DuplicateReview?, location: GeoPoint?, callbacks: DuplicateCallbacks, draftSaved: Boolean = true) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var lastShown by remember { mutableStateOf<DuplicateReview?>(null) }
     LaunchedEffect(review) {
@@ -127,7 +139,7 @@ internal fun DuplicatesSheet(review: DuplicateReview?, location: GeoPoint?, call
     val scope = rememberCoroutineScope()
     val maxHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() * 0.9f }
     ModalBottomSheet(
-        onDismissRequest = callbacks.onDuplicatesDismiss,
+        onDismissRequest = callbacks.onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -147,6 +159,7 @@ internal fun DuplicatesSheet(review: DuplicateReview?, location: GeoPoint?, call
                 onNotSamePlace = callbacks.onNotSamePlace,
                 // La hoja baja antes de abrir el lugar: no queda encima del detalle mientras cambia la pantalla.
                 onOpen = { id -> scope.launch { sheetState.hide() }.invokeOnCompletion { callbacks.onOpenSimilar(id) } },
+                draftSaved = draftSaved,
                 modifier = contentModifier,
             )
         }
@@ -160,6 +173,7 @@ private fun SimilarPlacesContent(
     here: GeoPoint,
     onNotSamePlace: () -> Unit,
     onOpen: (String) -> Unit,
+    draftSaved: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val title = stringResource(R.string.duplicate_sheet_title)
@@ -190,6 +204,7 @@ private fun SimilarPlacesContent(
         }
         Spacer(Modifier.height(12.dp))
         ExploraButton(stringResource(R.string.duplicate_not_same), onClick = onNotSamePlace, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp))
+        if (!draftSaved) return@Column
         Spacer(Modifier.height(10.dp))
         Row(
             Modifier.align(Alignment.CenterHorizontally),
@@ -212,12 +227,12 @@ private fun SimilarPlacesContent(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DifferentPlaceContent(review: DuplicateReview, callbacks: PublishCallbacks, modifier: Modifier = Modifier) {
+private fun DifferentPlaceContent(review: DuplicateReview, callbacks: DuplicateCallbacks, modifier: Modifier = Modifier) {
     val title = stringResource(R.string.duplicate_different_title)
     val titleFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { titleFocus.requestFocus() }
     val noteState = rememberTextFieldState(review.note)
-    val currentOnNote by rememberUpdatedState(callbacks.onDuplicateNoteChange)
+    val currentOnNote by rememberUpdatedState(callbacks.onNoteChange)
     LaunchedEffect(noteState) { snapshotFlow { noteState.text.toString() }.collect { currentOnNote(it) } }
     Column(modifier.fillMaxWidth().semantics { paneTitle = title }.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 20.dp)) {
         SheetHandle(Modifier.align(Alignment.CenterHorizontally))
@@ -406,7 +421,7 @@ private val previewPlaces = listOf(
 private fun SimilarPlacesPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) {
         Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
-            SimilarPlacesContent(DuplicateReview(previewPlaces), GeoPoint(4.5975, -74.0745), onNotSamePlace = {}, onOpen = {})
+            SimilarPlacesContent(DuplicateReview(previewPlaces), GeoPoint(4.5975, -74.0745), onNotSamePlace = {}, onOpen = {}, draftSaved = true)
         }
     }
 }
@@ -418,7 +433,7 @@ private fun DifferentPlacePreview() {
         Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
             DifferentPlaceContent(
                 DuplicateReview(previewPlaces, different = true, note = "Es el local del segundo piso, con entrada por la calle 10."),
-                PublishCallbacks(),
+                DuplicateCallbacks(),
             )
         }
     }

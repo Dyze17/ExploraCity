@@ -106,6 +106,23 @@ internal data class SavedDuplicateCheck(
 
 private val draftJson = Json { ignoreUnknownKeys = true }
 
+/**
+ * El borrador como JSON, en el mismo formato que DataStore. La edición (23) guarda así su formulario en el estado de la
+ * pantalla, para que sobreviva si Android cierra la app.
+ */
+object DraftJson {
+    fun encode(draft: PublicationDraft): String = draftJson.encodeToString(draft.toSaved())
+
+    /** null si no se puede leer (de una versión anterior, por ejemplo). */
+    fun decode(json: String): PublicationDraft? = try {
+        draftJson.decodeFromString<SavedDraft>(json).toDomain()
+    } catch (e: SerializationException) {
+        null
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+}
+
 private fun GeoPoint.toSaved() = SavedPoint(latitude, longitude)
 
 private fun SavedPoint.toDomain() = GeoPoint(latitude, longitude)
