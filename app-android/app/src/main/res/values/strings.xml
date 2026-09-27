@@ -479,7 +479,7 @@
     <string name="publish_address_title">Dirección aproximada</string>
     <string name="publish_address_loading">Buscando la dirección…</string>
     <string name="publish_address_none">Este punto no tiene una dirección conocida. Guardamos sus coordenadas.</string>
-    <string name="publish_address_offline">Sin conexión: la dirección aparecerá cuando vuelva la red. Las coordenadas ya quedaron guardadas.</string>
+    <string name="publish_address_offline">Sin conexión: la dirección aparecerá cuando vuelva la red. Con las coordenadas basta para ubicar el lugar.</string>
     <string name="publish_address_unavailable">No pudimos traer la dirección. Guardamos las coordenadas del punto.</string>
     <string name="publish_coordinates_spoken">Coordenadas: %1$s</string>
     <string name="publish_location_denied_title">No tenemos permiso de ubicación</string>
@@ -537,6 +537,7 @@
     <string name="publish_photo_failed">No se pudo subir. Tu foto y el formulario siguen guardados.</string>
     <string name="publish_photo_waiting">En espera</string>
     <string name="publish_photo_preparing">Preparando la foto…</string>
+    <string name="publish_photo_published">Foto %1$d</string>
     <string name="publish_photo_position">Foto %1$d de %2$d</string>
     <string name="publish_photo_cover">Portada</string>
     <string name="publish_photo_cancel">Cancelar la subida de %1$s</string>
@@ -614,6 +615,14 @@
     <string name="edit_save_fix_title">corrige el título</string>
     <string name="edit_save_fix_description">corrige la descripción</string>
     <string name="edit_save_fix_both">corrige el título y la descripción</string>
+    <string name="edit_save_fix_hours">completa el horario o marca «No tengo el horario exacto»</string>
+    <string name="edit_save_fix_photos">agrega al menos una foto</string>
+    <string name="edit_save_photos">Una foto nueva no terminó de subir. Reinténtala o quítala para guardar.</string>
+    <string name="edit_section_location">Ubicación</string>
+    <string name="edit_section_schedule">Horario y precio</string>
+    <string name="edit_section_photos">Fotos</string>
+    <string name="edit_change_location">Cambiar ubicación</string>
+    <string name="edit_use_location">Usar esta ubicación</string>
     <string name="edit_save_offline">Sin conexión. Tus cambios siguen aquí; guarda cuando vuelva el internet.</string>
     <string name="edit_save_failed">No pudimos guardar. Tus cambios siguen aquí; intenta de nuevo en un momento.</string>
     <string name="edit_discard_title">¿Descartar los cambios?</string>

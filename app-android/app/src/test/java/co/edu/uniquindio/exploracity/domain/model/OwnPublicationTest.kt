@@ -29,7 +29,8 @@ class OwnPublicationTest {
 
     @Test
     fun `al editar cuenta lo que falta para el mínimo, sin los espacios de los extremos (21 · Van 4)`() {
-        val changes = PublicationChanges("  Café ", Category.GASTRONOMY, "Rico")
+        val photo = DraftPhoto("foto-1", "", "", "fake://foto-1")
+        val changes = PublicationChanges("  Café ", Category.GASTRONOMY, "Rico", GeoPoint(4.6, -74.07), photos = listOf(photo))
 
         assertEquals(4, changes.titleLength)
         assertEquals(1, changes.titleMissing)

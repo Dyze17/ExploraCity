@@ -86,18 +86,22 @@ data class PublicationDraft(
             !hours.isEmpty || hoursUnknown || price != null || photos.isNotEmpty()
 
     companion object {
-        /**
-         * «Corregir y reenviar» (24): parte de lo que ya se envió, en el paso que hay que corregir. Horario, precio y fotos
-         * se vuelven a indicar: la publicación propia aún no los trae (llegan con la edición completa, parte 4).
-         */
-        fun from(publication: OwnPublication, step: PublishStep) = PublicationDraft(
-            title = publication.title,
-            description = publication.description,
-            category = publication.category,
-            categoryOrigin = CategoryOrigin.CHOSEN,
-            location = publication.location,
-            step = step,
-        )
+        /** «Corregir y reenviar» (24): parte de todo lo que ya se envió, en el paso que hay que corregir. */
+        fun from(publication: OwnPublication, step: PublishStep): PublicationDraft {
+            val changes = PublicationChanges.of(publication)
+            return PublicationDraft(
+                title = changes.title,
+                description = changes.description,
+                category = changes.category,
+                categoryOrigin = CategoryOrigin.CHOSEN,
+                location = changes.location,
+                hours = changes.hours,
+                hoursUnknown = changes.hoursUnknown,
+                price = changes.price,
+                photos = changes.photos,
+                step = step,
+            )
+        }
     }
 }
 

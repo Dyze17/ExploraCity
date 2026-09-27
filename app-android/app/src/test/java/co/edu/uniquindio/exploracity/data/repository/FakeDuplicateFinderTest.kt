@@ -46,6 +46,15 @@ class FakeDuplicateFinderTest {
     }
 
     @Test
+    fun `la publicación que se edita no es parecida a sí misma`() = runTest {
+        // Murales de la calle 26 (pendiente) está en 4.6155, -74.0790; se mueve unos 20 m.
+        val moved = GeoPoint(4.61568, -74.0790)
+        assertEquals(listOf("murales-calle-26"), finder.similarPlaces("Murales de la calle 26", moved).map { it.id })
+
+        assertTrue(finder.similarPlaces("Murales de la calle 26", moved, excludeId = "murales-calle-26").isEmpty())
+    }
+
+    @Test
     fun `sin red no se busca`() = runTest {
         val offline = OnlineOnlyDuplicateFinder(finder, FakeConnectivity(online = false))
 

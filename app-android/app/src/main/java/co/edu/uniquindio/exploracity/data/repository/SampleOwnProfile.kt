@@ -5,12 +5,17 @@ import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
+import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.Rejection
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RequiredFix
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalTime
 import java.time.YearMonth
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -21,6 +26,10 @@ import kotlin.time.toJavaDuration
 // Temporal hasta que exista la API: lo que solo ve Ana de sí misma (24, 26 y 27). Sus lugares públicos son los de
 // currentUserPlaces; aquí están los que aún no se ven en el feed. Con 3 verificadas cuadran el «3 de 10» de 27.a y el
 // aviso «3 lugares verificados · te faltan 7» (25).
+
+/** Fotos de prueba de una publicación: el servidor falso no tiene las imágenes, solo sus direcciones. */
+internal fun samplePublishedPhotos(publicationId: String, count: Int): List<PublishedPhoto> =
+    (1..count).map { PublishedPhoto("$publicationId-$it", "fake://fotos/$publicationId-$it.jpg") }
 
 /** Publicación propia que el feed no muestra (pendiente o rechazada). Un duplicado guarda el id del original. */
 internal class PublicationSeed(val publication: OwnPublication, val duplicateOfId: String? = null)
@@ -40,7 +49,9 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 category = Category.GASTRONOMY,
                 status = PublicationStatus.PENDING,
                 location = GeoPoint(4.5966, -74.0718),
-                photos = 3,
+                photos = samplePublishedPhotos("panaderia-la-candelaria", 3),
+                hours = OpeningHours(DayOfWeek.entries.toSet() - DayOfWeek.SUNDAY, LocalTime.of(6, 0), LocalTime.of(19, 0)),
+                price = PriceRange.LOW,
                 submittedAt = ago(2.hours),
                 description = "Pan de yuca y almojábanas recién horneadas desde las 6 de la mañana, a una cuadra del Chorro de Quevedo.",
                 // Ana confirmó que es otro lugar que uno cercano (17B): el moderador la ve como posible duplicado.
@@ -54,7 +65,8 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 category = Category.CULTURE,
                 status = PublicationStatus.PENDING,
                 location = GeoPoint(4.6155, -74.0790),
-                photos = 4,
+                photos = samplePublishedPhotos("murales-calle-26", 4),
+                price = PriceRange.FREE,
                 submittedAt = ago(1.days),
                 description = "Tramo de murales entre la carrera 5 y la 13; se recorre a pie en media hora y de día hay buena luz para fotos.",
             ),
@@ -66,7 +78,8 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 category = Category.NATURE,
                 status = PublicationStatus.REJECTED,
                 location = GeoPoint(4.5905, -74.0590),
-                photos = 2,
+                photos = samplePublishedPhotos("mirador-de-la-pena", 2),
+                price = PriceRange.FREE,
                 submittedAt = ago(4.days),
                 description = "Mirador en la subida de La Peña con vista al centro. Se llega por un sendero corto desde el barrio.",
                 rejection = Rejection(
@@ -90,7 +103,9 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 category = Category.GASTRONOMY,
                 status = PublicationStatus.REJECTED,
                 location = GeoPoint(4.59791, -74.0746),
-                photos = 1,
+                photos = samplePublishedPhotos("puerta-falsa-tamales", 1),
+                hours = OpeningHours(DayOfWeek.entries.toSet(), LocalTime.of(7, 0), LocalTime.of(22, 0)),
+                price = PriceRange.LOW,
                 submittedAt = ago(1.days),
                 description = "Los tamales santafereños y el chocolate con queso de siempre, en la esquina de la catedral.",
                 rejection = Rejection(

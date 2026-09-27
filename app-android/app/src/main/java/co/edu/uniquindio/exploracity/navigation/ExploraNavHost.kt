@@ -307,7 +307,12 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: () -> Uni
             )
         }
         composable<EditPublication> {
-            EditPublicationRoute(onLeave = nav.back(), onDone = { message -> nav.openMyPublications(message) })
+            EditPublicationRoute(
+                onLeave = nav.back(),
+                onDone = { message -> nav.openMyPublications(message) },
+                // 17A · «Ver este lugar» desde «Cambiar ubicación»: al volver, la edición sigue intacta.
+                onOpenPlace = { id -> nav.navigate(PoiDetail(id)) },
+            )
         }
         composable<RejectedPublication> {
             RejectedPublicationRoute(

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.InputTransformation
@@ -58,6 +59,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
@@ -67,6 +70,7 @@ import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationLimits
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
@@ -81,6 +85,14 @@ import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.ui.screens.publish.DuplicateCallbacks
+import co.edu.uniquindio.exploracity.ui.screens.publish.PhotoCallbacks
+import co.edu.uniquindio.exploracity.ui.screens.publish.PhotosSection
+import co.edu.uniquindio.exploracity.ui.screens.publish.PinCallbacks
+import co.edu.uniquindio.exploracity.ui.screens.publish.ScheduleCallbacks
+import co.edu.uniquindio.exploracity.ui.screens.publish.ScheduleFields
+import co.edu.uniquindio.exploracity.ui.screens.publish.rememberPhotoAccess
+import co.edu.uniquindio.exploracity.ui.screens.publish.rememberPinLocationAccess
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ThemeMode
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
@@ -92,11 +104,15 @@ import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
 import co.edu.uniquindio.exploracity.viewmodel.SaveError
 import java.time.Instant
 
-/** 23 · Editar publicación, conectada a su ViewModel. Al guardar o eliminar vuelve a Mis publicaciones (22) con el aviso. */
+/**
+ * 23 · Editar publicación, conectada a su ViewModel. Al guardar o eliminar vuelve a Mis publicaciones (22) con el aviso.
+ * [onOpenPlace] abre un lugar parecido desde el mapa (17A → 13).
+ */
 @Composable
 fun EditPublicationRoute(
     onLeave: () -> Unit,
     onDone: (PublicationMessage) -> Unit,
+    onOpenPlace: (String) -> Unit,
     viewModel: EditPublicationViewModel = viewModel(factory = EditPublicationViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -110,10 +126,22 @@ fun EditPublicationRoute(
             is Done.WithMessage -> currentOnDone(done.message)
         }
     }
-    // Con cambios, el gesto de volver pregunta antes de perderlos.
-    BackHandler(enabled = state.changed) { viewModel.onBack() }
+    // Con cambios, el gesto de volver pregunta antes de perderlos; con el mapa abierto, lo cierra.
+    BackHandler(enabled = state.changed || state.locationEditor != null) { viewModel.onBack() }
+    val location = rememberPinLocationAccess(onGranted = viewModel::onUseMyLocation, onDenied = viewModel::onLocationDenied)
+    // Vuelve de «Ver este lugar» (17A → 13): la hoja reaparece como estaba.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onBackFromPlace() }
+    val photos = rememberPhotoAccess(
+        photosLeft = state.form?.photosLeft ?: 0,
+        onCameraShot = viewModel::onCameraShot,
+        onCameraResult = viewModel::onCameraResult,
+        onCameraUnavailable = viewModel::onCameraUnavailable,
+        onPicked = viewModel::onGalleryPicked,
+    )
     EditPublicationScreen(
         state = state,
+        cityCenter = viewModel.cityCenter,
+        canAskLocation = location.canAskAgain,
         callbacks = EditCallbacks(
             onBack = viewModel::onBack,
             onRetry = viewModel::onRetry,
@@ -129,6 +157,41 @@ fun EditPublicationRoute(
             onOpenDelete = viewModel::onOpenDelete,
             onDismissDelete = viewModel::onDismissDelete,
             onConfirmDelete = viewModel::onConfirmDelete,
+            onOpenLocationEditor = viewModel::onOpenLocationEditor,
+            onCloseLocationEditor = viewModel::onCloseLocationEditor,
+            onConfirmLocation = viewModel::onConfirmLocation,
+            pin = PinCallbacks(
+                onPinMoved = viewModel::onPinMoved,
+                onPinTargetShown = viewModel::onPinTargetShown,
+                onUseMyLocation = location.useMyLocation,
+                onAllowLocation = location.allow,
+                onAddressQueryChange = viewModel::onAddressQueryChange,
+                onSearchAddress = viewModel::onSearchAddress,
+            ),
+            duplicates = DuplicateCallbacks(
+                onDismiss = viewModel::onDuplicatesDismiss,
+                onNotSamePlace = viewModel::onNotSamePlace,
+                onBackToSimilar = viewModel::onBackToSimilar,
+                onNoteChange = viewModel::onDuplicateNoteChange,
+                onConfirmDifferent = viewModel::onConfirmDifferent,
+                onOpenSimilar = { id ->
+                    viewModel.onLeaveForPlace()
+                    onOpenPlace(id)
+                },
+            ),
+            schedule = ScheduleCallbacks(
+                onDayToggle = viewModel::onDayToggle,
+                onOpensChange = viewModel::onOpensChange,
+                onClosesChange = viewModel::onClosesChange,
+                onHoursUnknownChange = viewModel::onHoursUnknownChange,
+                onPriceChange = viewModel::onPriceChange,
+            ),
+            photos = PhotoCallbacks(
+                onTakePhoto = photos.takePhoto,
+                onPickPhotos = photos.pickPhotos,
+                onRetry = viewModel::onRetryPhoto,
+                onRemove = viewModel::onRemovePhoto,
+            ),
         ),
     )
 }
@@ -148,17 +211,49 @@ class EditCallbacks(
     val onOpenDelete: () -> Unit = {},
     val onDismissDelete: () -> Unit = {},
     val onConfirmDelete: () -> Unit = {},
+    val onOpenLocationEditor: () -> Unit = {},
+    val onCloseLocationEditor: () -> Unit = {},
+    val onConfirmLocation: () -> Unit = {},
+    val pin: PinCallbacks = PinCallbacks(),
+    val duplicates: DuplicateCallbacks = DuplicateCallbacks(),
+    val schedule: ScheduleCallbacks = ScheduleCallbacks(),
+    val photos: PhotoCallbacks = PhotoCallbacks(),
 )
 
 /**
- * 23.a · Título, categoría y descripción con el aviso de que guardar la devuelve a verificación, y «Eliminar
- * publicación» al final. «Guardar» se habilita solo con cambios válidos y, deshabilitado, dice por qué.
+ * 23.a · Título, categoría y descripción con el aviso de que guardar la devuelve a verificación; luego ubicación,
+ * horario y precio y fotos, como en el formulario (17–19), y «Eliminar publicación» al final. «Guardar» se habilita
+ * solo con cambios válidos y, deshabilitado, dice por qué. «Cambiar ubicación» abre el mapa a pantalla completa.
  */
 @Composable
-fun EditPublicationScreen(state: EditPublicationUiState, callbacks: EditCallbacks, modifier: Modifier = Modifier) {
+fun EditPublicationScreen(
+    state: EditPublicationUiState,
+    callbacks: EditCallbacks,
+    modifier: Modifier = Modifier,
+    cityCenter: GeoPoint = GeoPoint(4.6097, -74.0817),
+    canAskLocation: Boolean = true,
+) {
     val snackbarHostState = remember { SnackbarHostState() }
     SaveErrorEffect(state.saveError, snackbarHostState, callbacks.onSaveErrorShown)
     val form = state.form
+    // Fuera del «if»: al volver del mapa, el formulario sigue donde estaba.
+    val formScroll = rememberScrollState()
+    val editor = state.locationEditor
+    if (editor != null && form != null) {
+        EditLocationScreen(
+            editor = editor,
+            state = state,
+            form = form,
+            pinCallbacks = callbacks.pin,
+            duplicateCallbacks = callbacks.duplicates,
+            onClose = callbacks.onCloseLocationEditor,
+            onConfirm = callbacks.onConfirmLocation,
+            cityCenter = cityCenter,
+            canAskLocation = canAskLocation,
+            modifier = modifier,
+        )
+        return
+    }
 
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxSize()) {
@@ -171,7 +266,7 @@ fun EditPublicationScreen(state: EditPublicationUiState, callbacks: EditCallback
                 val original = state.original
                 when (state.content) {
                     EditContent.Loading -> EditSkeleton()
-                    is EditContent.Loaded -> if (original != null && form != null) EditForm(original, form, state, callbacks)
+                    is EditContent.Loaded -> if (original != null && form != null) EditForm(original, form, state, callbacks, formScroll)
                     EditContent.NotFound -> Centered {
                         EmptyState(
                             icon = R.drawable.ic_delete,
@@ -222,6 +317,8 @@ private fun SaveButton(state: EditPublicationUiState, form: PublicationChanges, 
         form.titleMissing > 0 && form.descriptionMissing > 0 -> stringResource(R.string.edit_save_fix_both)
         form.titleMissing > 0 -> stringResource(R.string.edit_save_fix_title)
         form.descriptionMissing > 0 -> stringResource(R.string.edit_save_fix_description)
+        !form.hoursValid -> stringResource(R.string.edit_save_fix_hours)
+        !form.photosValid -> stringResource(R.string.edit_save_fix_photos)
         else -> null
     }
     ExploraButton(
@@ -239,11 +336,13 @@ private fun SaveErrorEffect(error: SaveError?, hostState: SnackbarHostState, onS
     val currentOnShown by rememberUpdatedState(onShown)
     val offline = stringResource(R.string.edit_save_offline)
     val failed = stringResource(R.string.edit_save_failed)
+    val photos = stringResource(R.string.edit_save_photos)
     LaunchedEffect(error) {
         val text = when (error) {
             null -> return@LaunchedEffect
             SaveError.OFFLINE -> offline
             SaveError.FAILED -> failed
+            SaveError.PHOTOS -> photos
         }
         // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
         hostState.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Long)
@@ -252,12 +351,12 @@ private fun SaveErrorEffect(error: SaveError?, hostState: SnackbarHostState, onS
 }
 
 @Composable
-private fun EditForm(original: OwnPublication, form: PublicationChanges, state: EditPublicationUiState, callbacks: EditCallbacks) {
+private fun EditForm(original: OwnPublication, form: PublicationChanges, state: EditPublicationUiState, callbacks: EditCallbacks, scroll: ScrollState) {
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scroll)
             .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp + bottom),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -265,6 +364,23 @@ private fun EditForm(original: OwnPublication, form: PublicationChanges, state: 
         TitleField(form, state.showTitleError, callbacks)
         CategoryField(form.category, callbacks.onCategoryChange)
         DescriptionField(form, state.showDescriptionError, callbacks)
+
+        EditSectionTitle(stringResource(R.string.edit_section_location))
+        EditLocationSummary(form, state.pin.address, callbacks.onOpenLocationEditor)
+
+        EditSectionTitle(stringResource(R.string.edit_section_schedule))
+        ScheduleFields(
+            hours = form.hours,
+            hoursUnknown = form.hoursUnknown,
+            price = form.price,
+            showError = state::showScheduleError,
+            closesBeforeOpens = state.closesBeforeOpens,
+            callbacks = callbacks.schedule,
+        )
+
+        EditSectionTitle(stringResource(R.string.edit_section_photos))
+        PhotosSection(form.photos, state.photoStatus, callbacks.photos)
+
         ExploraButton(
             stringResource(R.string.rejected_delete),
             onClick = callbacks.onOpenDelete,
@@ -476,7 +592,7 @@ private val previewPublication = OwnPublication(
     category = Category.GASTRONOMY,
     status = PublicationStatus.VERIFIED,
     location = GeoPoint(4.6383, -74.0655),
-    photos = 3,
+    photos = List(3) { PublishedPhoto("foto-$it", "") },
     submittedAt = Instant.now(),
     description = "Café de barrio con tostión propia y patio interior.",
     votes = 48,
@@ -502,7 +618,7 @@ private fun EditErrorDarkPreview() {
         EditPublicationScreen(
             EditPublicationUiState(
                 EditContent.Loaded(previewPublication),
-                form = PublicationChanges("Café", Category.GASTRONOMY, "Rico"),
+                form = PublicationChanges.of(previewPublication).copy(title = "Café", description = "Rico"),
                 titleTouched = true,
                 descriptionTouched = true,
             ),

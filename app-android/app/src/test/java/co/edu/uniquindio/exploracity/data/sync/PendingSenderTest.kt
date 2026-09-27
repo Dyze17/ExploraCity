@@ -222,7 +222,7 @@ class PendingSenderTest {
 
         val sent = publicationServer.myPublications().first()
         assertEquals("Café Las Acacias", sent.title)
-        assertEquals(2, sent.photos)
+        assertEquals(2, sent.photos.size)
         assertTrue("La marca de posible duplicado viaja en la cola", sent.possibleDuplicate)
         assertEquals(listOf("foto-1", "foto-2"), photoFiles.deleted)
         assertEquals(0, database.pendingActionsDao().count())
@@ -247,7 +247,7 @@ class PendingSenderTest {
 
         assertTrue(sender().flush())
 
-        assertEquals(2, publicationServer.publication(result.publicationId)?.photos)
+        assertEquals(2, publicationServer.publication(result.publicationId)?.photos?.size)
         assertEquals(listOf("foto-2"), photoFiles.deleted)
     }
 

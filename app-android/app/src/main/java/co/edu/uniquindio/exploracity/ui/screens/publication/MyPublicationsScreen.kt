@@ -78,6 +78,7 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.ui.components.DuplicateFlag
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
@@ -562,7 +563,7 @@ private fun previewPublication(id: String, title: String, category: Category, st
         category = category,
         status = status,
         location = GeoPoint(4.6, -74.07),
-        photos = 3,
+        photos = List(3) { PublishedPhoto("foto-$it", "") },
         submittedAt = previewNow.minus(daysAgo, ChronoUnit.DAYS),
         votes = if (status == PublicationStatus.VERIFIED) 132 else 0,
         comments = if (status == PublicationStatus.VERIFIED) 31 else 0,

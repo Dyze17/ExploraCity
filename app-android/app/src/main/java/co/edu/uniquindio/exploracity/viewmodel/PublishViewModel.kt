@@ -177,24 +177,10 @@ data class PublishUiState(
     /** Cambia cada vez que hay que llevar el foco al primer campo con error (21). */
     val errorFocusRequest: Int = 0,
     val suggestion: Suggestion = Suggestion.Idle,
-    /** 17 · Dirección del pin; null mientras no esté puesto. */
-    val address: PinAddress? = null,
-    /** 17 · El mapa debe llevar el pin aquí («Usar mi ubicación», búsqueda, ajuste fino). */
-    val pinTarget: GeoPoint? = null,
-    /** 17.b · Se negó el permiso de ubicación: aviso, búsqueda por dirección y pin a mano. */
-    val locationDenied: Boolean = false,
-    val addressQuery: String = "",
-    val addressSearch: AddressSearch = AddressSearch.Idle,
-    /** 17 · «Buscando lugares cercanos…» dentro del botón. */
-    val searchingNearby: Boolean = false,
-    val duplicates: DuplicateReview? = null,
-    /** 17A · Se abrió «Ver este lugar»: la hoja se esconde mientras tanto y vuelve al regresar. */
-    val awayForPlace: Boolean = false,
-    /** 19 · Subidas en curso o fallidas, por id de foto; las subidas no están aquí. */
-    val uploads: Map<String, PhotoUpload> = emptyMap(),
-    /** 19 · Fotos elegidas que aún se están comprimiendo («Preparando la foto…»). */
-    val preparingPhotos: Int = 0,
-    val photoProblem: PhotoProblem? = null,
+    /** 17 · El mapa del paso 3: dirección, ubicación, búsqueda por dirección y parecidos (17A/17B). */
+    val pin: PinState = PinState(),
+    /** 19 · Cómo van las fotos que aún no están en el servidor. */
+    val photoStatus: PhotoStatus = PhotoStatus(),
     /** 19 → 20 · «Enviar a verificación» en curso (espera la primera foto si hace falta). */
     val sending: Boolean = false,
     val sendError: SendError? = null,
@@ -224,7 +210,7 @@ data class PublishUiState(
                 )
             }
             // Una foto que se está preparando ya cuenta: «Enviar» la espera.
-            PublishStep.PHOTOS -> listOfNotNull(DraftField.PHOTOS.takeIf { draft.photos.size < PhotoRules.MIN && preparingPhotos == 0 })
+            PublishStep.PHOTOS -> listOfNotNull(DraftField.PHOTOS.takeIf { draft.photos.size < PhotoRules.MIN && photoStatus.preparing == 0 })
         }
 
     val showTitleError: Boolean get() = (titleTouched || showErrors) && draft.titleMissing > 0
@@ -288,23 +274,36 @@ class PublishViewModel(
 
     private var saveJob: Job? = null
     private var suggestionJob: Job? = null
-    private var addressJob: Job? = null
-    private var searchJob: Job? = null
-    private var nearbyJob: Job? = null
     private var sendJob: Job? = null
-    private val uploadJobs = mutableMapOf<String, Job>()
+
+    /** 17 · El pin del paso 3, guardado en el borrador. */
+    private val pin = PinPicker(
+        scope = viewModelScope,
+        places = places,
+        read = { _state.value.pin },
+        write = { change -> _state.update { it.copy(pin = change(it.pin)) } },
+        location = { _state.value.draft.location },
+        onLocationChange = { point -> updateDraft { it.copy(location = point) } },
+        enabled = { _state.value.content == PublishContent.Editing },
+    )
+
+    /** 19 · Las fotos del paso 5, guardadas en el borrador. */
+    private val photos = FormPhotos(
+        scope = viewModelScope,
+        store = delivery.photos,
+        uploader = delivery.uploader,
+        connectivity = places.connectivity,
+        savedState = savedState,
+        read = { _state.value.photoStatus },
+        write = { change -> _state.update { it.copy(photoStatus = change(it.photoStatus)) } },
+        photos = { _state.value.draft.photos },
+        updatePhotos = { change -> updateDraft { it.copy(photos = change(it.photos)) } },
+        awaitReady = { _state.first { it.content == PublishContent.Editing } },
+        onChanged = { _state.update { it.copy(sendError = null) } },
+    )
 
     init {
         load()
-        // Al volver la red: la dirección que se prometió (17) y las fotos que no pudieron subir (19).
-        viewModelScope.launch {
-            places.connectivity.isOnline.drop(1).filter { it }.collect {
-                val state = _state.value
-                val location = state.draft.location
-                if (state.address == PinAddress.Offline && location != null) resolveAddress(location)
-                state.draft.photos.filter { state.uploads[it.id] == PhotoUpload.Failed }.forEach(::startUpload)
-            }
-        }
     }
 
     fun onRetry() = load()
@@ -343,7 +342,7 @@ class PublishViewModel(
      */
     fun onContinue() {
         val state = _state.value
-        if (state.content != PublishContent.Editing || state.searchingNearby || state.sending) return
+        if (state.content != PublishContent.Editing || state.pin.searchingNearby || state.sending) return
         if (state.stepErrors.isNotEmpty()) {
             _state.update {
                 it.copy(showErrors = true, titleTouched = true, descriptionTouched = true, errorFocusRequest = it.errorFocusRequest + 1)
@@ -362,102 +361,37 @@ class PublishViewModel(
     fun onBack() {
         if (_state.value.sending) return
         val previous = _state.value.step.previous ?: return onClose()
-        nearbyJob?.cancel()
-        _state.update { it.copy(searchingNearby = false) }
+        pin.cancelNearby()
         moveTo(previous)
     }
 
-    /**
-     * 17 · La persona puso el pin en [point]: al soltarlo tras arrastrar el mapa, con los botones de ajuste fino o al
-     * elegir un resultado. Con [moveMap] el mapa lo sigue. Se guarda con el borrador y se busca su dirección.
-     */
-    fun onPinMoved(point: GeoPoint, moveMap: Boolean = false) {
-        if (_state.value.content != PublishContent.Editing) return
-        if (moveMap) _state.update { it.copy(pinTarget = point) }
-        if (point == _state.value.draft.location) return
-        // Los parecidos que se buscaban eran los del punto anterior.
-        nearbyJob?.cancel()
-        _state.update { it.copy(searchingNearby = false) }
-        updateDraft { it.copy(location = point) }
-        resolveAddress(point)
-    }
+    /** 17 · El pin quedó en [point] (arrastrar, ajuste fino o un resultado); con [moveMap] el mapa lo sigue. */
+    fun onPinMoved(point: GeoPoint, moveMap: Boolean = false) = pin.onPinMoved(point, moveMap)
 
-    /** El mapa ya llevó el pin a [target]; si mientras tanto llegó otro destino, ese sigue pendiente. */
-    fun onPinTargetShown(target: GeoPoint) = _state.update { if (it.pinTarget == target) it.copy(pinTarget = null) else it }
+    fun onPinTargetShown(target: GeoPoint) = pin.onPinTargetShown(target)
 
-    /** «Usar mi ubicación» con el permiso concedido (o al entrar al paso 3 si ya lo estaba). */
-    fun onUseMyLocation() {
-        _state.update { it.copy(locationDenied = false) }
-        viewModelScope.launch {
-            val here = try {
-                places.locationProvider.currentLocation()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // Sin ubicación el pin sigue donde estaba y se puede mover a mano.
-                null
-            }
-            if (here != null) onPinMoved(here, moveMap = true)
-        }
-    }
+    fun onUseMyLocation() = pin.onUseMyLocation()
 
-    /** 17.b · Se negó el permiso: el pin queda donde está y aparecen el aviso y la búsqueda por dirección. */
-    fun onLocationDenied() = _state.update { it.copy(locationDenied = true) }
+    fun onLocationDenied() = pin.onLocationDenied()
 
-    fun onAddressQueryChange(query: String) = _state.update {
-        it.copy(addressQuery = query, addressSearch = if (it.addressSearch == AddressSearch.Searching) it.addressSearch else AddressSearch.Idle)
-    }
+    fun onAddressQueryChange(query: String) = pin.onAddressQueryChange(query)
 
-    /** 17.b · Busca lo escrito dentro de la ciudad y, si lo encuentra, lleva el pin allí. */
-    fun onSearchAddress() {
-        val query = _state.value.addressQuery.trim()
-        if (query.isEmpty() || _state.value.addressSearch == AddressSearch.Searching) return
-        searchJob?.cancel()
-        _state.update { it.copy(addressSearch = AddressSearch.Searching) }
-        searchJob = viewModelScope.launch {
-            val outcome = try {
-                withTimeoutOrNull(ADDRESS_TIMEOUT) { Located(places.addresses.search(query, places.cityBounds)) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: OfflineException) {
-                _state.update { it.copy(addressSearch = AddressSearch.Offline) }
-                return@launch
-            } catch (e: Exception) {
-                null
-            }
-            val point = outcome?.point
-            _state.update {
-                it.copy(
-                    addressSearch = when {
-                        outcome == null -> AddressSearch.Failed
-                        point == null -> AddressSearch.NotFound(query)
-                        else -> AddressSearch.Idle
-                    },
-                )
-            }
-            if (point != null) onPinMoved(point, moveMap = true)
-        }
-    }
+    fun onSearchAddress() = pin.onSearchAddress()
 
-    /** 17A · Deslizar la hoja hacia abajo o «Atrás»: vuelve al paso 3 con el pin donde estaba. */
-    fun onDuplicatesDismiss() = _state.update { it.copy(duplicates = null) }
+    fun onDuplicatesDismiss() = pin.onDuplicatesDismiss()
 
-    /** 17A · «Es otro lugar, continuar» → 17B en la misma hoja. */
-    fun onNotSamePlace() = _state.update { state -> state.copy(duplicates = state.duplicates?.copy(different = true)) }
+    fun onNotSamePlace() = pin.onNotSamePlace()
 
-    /** 17B · «Volver a los lugares parecidos» o la flecha. */
-    fun onBackToSimilar() = _state.update { state -> state.copy(duplicates = state.duplicates?.copy(different = false)) }
+    fun onBackToSimilar() = pin.onBackToSimilar()
 
-    fun onDuplicateNoteChange(note: String) = _state.update { state -> state.copy(duplicates = state.duplicates?.copy(note = note)) }
+    fun onDuplicateNoteChange(note: String) = pin.onDuplicateNoteChange(note)
 
     /** 17B · «Continuar»: paso 4 con la marca «posible duplicado» y la nota en el borrador. */
-    fun onConfirmDifferent() {
-        val review = _state.value.duplicates ?: return
-        val location = _state.value.draft.location ?: return
-        _state.update { it.copy(duplicates = null) }
-        updateDraft { it.copy(duplicateCheck = DuplicateCheck(location, review.places.map(SimilarPlace::id), review.note.trim())) }
-        moveTo(PublishStep.SCHEDULE)
-    }
+    fun onConfirmDifferent() = pin.onConfirmDifferent()
+
+    fun onLeaveForPlace() = pin.onLeaveForPlace()
+
+    fun onBackFromPlace() = pin.onBackFromPlace()
 
     /** 18 · Un día de atención: tocarlo lo marca o lo desmarca. */
     fun onDayToggle(day: DayOfWeek) = updateDraft { draft ->
@@ -475,50 +409,18 @@ class PublishViewModel(
     /** 18 · El precio es opcional: tocar el elegido lo quita. */
     fun onPriceChange(price: PriceRange) = updateDraft { it.copy(price = if (it.price == price) null else price) }
 
-    /**
-     * 19 · «Cámara»: dónde escribirá la foto la app de cámara; null si ya hay 5. Se recuerda en [savedState] porque
-     * Android puede cerrar la app mientras la cámara está abierta.
-     */
-    fun onCameraShot(): String? {
-        if (_state.value.draft.photosLeft == 0) return null
-        return delivery.photos.newCameraShot().also { savedState[CAMERA_SHOT_KEY] = it }
-    }
+    /** 19 · «Cámara»: dónde escribirá la foto la app de cámara; null si ya hay 5. */
+    fun onCameraShot(): String? = photos.onCameraShot()
 
-    /** 19 · Volvió de la cámara: con foto, se comprime y se sube; si canceló, no pasa nada. */
-    fun onCameraResult(taken: Boolean) {
-        val shot = savedState.remove<String>(CAMERA_SHOT_KEY) ?: return
-        if (taken) importPhotos(listOf(shot))
-    }
+    fun onCameraResult(taken: Boolean) = photos.onCameraResult(taken)
 
-    /** 19 · No hay app de cámara: se explica y queda la galería. */
-    fun onCameraUnavailable() {
-        savedState.remove<String>(CAMERA_SHOT_KEY)
-        _state.update { it.copy(photoProblem = PhotoProblem.NO_CAMERA) }
-    }
+    fun onCameraUnavailable() = photos.onCameraUnavailable()
 
-    /** 19 · Fotos elegidas en la galería (el selector ya limita cuántas). */
-    fun onGalleryPicked(uris: List<String>) = importPhotos(uris)
+    fun onGalleryPicked(uris: List<String>) = photos.onGalleryPicked(uris)
 
-    fun onPhotoProblemShown() = _state.update { it.copy(photoProblem = null) }
+    fun onRetryPhoto(id: String) = photos.onRetry(id)
 
-    /** 19 · «Reintentar» de una foto que no pudo subir. */
-    fun onRetryPhoto(id: String) {
-        _state.value.draft.photos.firstOrNull { it.id == id }?.let(::startUpload)
-    }
-
-    /** 19 · Quitar una foto (o cancelar su subida): se borra también del teléfono. */
-    fun onRemovePhoto(id: String) {
-        val photo = _state.value.draft.photos.firstOrNull { it.id == id } ?: return
-        uploadJobs.remove(id)?.cancel()
-        _state.update { it.copy(uploads = it.uploads - id, sendError = null) }
-        updateDraft { draft -> draft.copy(photos = draft.photos.filterNot { it.id == id }) }
-        viewModelScope.launch { delivery.photos.delete(photo) }
-    }
-
-    /** 17A · «Ver este lugar»: el formulario queda intacto y la hoja vuelve al regresar. */
-    fun onLeaveForPlace() = _state.update { it.copy(awayForPlace = true) }
-
-    fun onBackFromPlace() = _state.update { it.copy(awayForPlace = false) }
+    fun onRemovePhoto(id: String) = photos.onRemove(id)
 
     /** Cerrar (X): con algo escrito pregunta (15A); si no, sale. */
     fun onClose() {
@@ -534,7 +436,7 @@ class PublishViewModel(
     fun onSaveAndClose() {
         viewModelScope.launch {
             saveJob?.cancel()
-            nearbyJob?.cancel()
+            pin.cancelNearby()
             val draft = _state.value.draft
             if (draft.hasContent) drafts.save(key, draft) else drafts.clear(key)
             _state.update { it.copy(closeDialog = false, exit = PublishExit.Closed) }
@@ -546,13 +448,12 @@ class PublishViewModel(
         viewModelScope.launch {
             saveJob?.cancel()
             suggestionJob?.cancel()
-            // Una búsqueda que terminara después guardaría otra vez el borrador.
-            nearbyJob?.cancel()
-            searchJob?.cancel()
-            uploadJobs.values.forEach(Job::cancel)
+            // Una búsqueda o una subida que terminara después guardaría otra vez el borrador.
+            pin.cancelAll()
+            photos.stopAll()
             drafts.clear(key)
             // Las fotos comprimidas del borrador tampoco se necesitan ya.
-            _state.value.draft.photos.forEach { delivery.photos.delete(it) }
+            photos.deleteFiles(_state.value.draft.photos)
             _state.update { it.copy(closeDialog = false, exit = PublishExit.Closed) }
         }
     }
@@ -567,108 +468,19 @@ class PublishViewModel(
         updateDraft { it.copy(step = step) }
         if (step == PublishStep.CATEGORY && _state.value.draft.category == null) startSuggestion(overrideChoice = false)
         val location = _state.value.draft.location
-        if (step == PublishStep.LOCATION && location != null && _state.value.address == null) resolveAddress(location)
-    }
-
-    /** 17 · La dirección aproximada del pin; la anterior se descarta si el pin se movió. */
-    private fun resolveAddress(point: GeoPoint) {
-        addressJob?.cancel()
-        _state.update { it.copy(address = PinAddress.Loading) }
-        addressJob = viewModelScope.launch {
-            val address = try {
-                withTimeoutOrNull(ADDRESS_TIMEOUT) { places.addresses.addressOf(point)?.let { PinAddress.Found(it) } ?: PinAddress.NotFound }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: OfflineException) {
-                PinAddress.Offline
-            } catch (e: Exception) {
-                null
-            }
-            _state.update { it.copy(address = address ?: PinAddress.Unavailable) }
-        }
+        if (step == PublishStep.LOCATION && location != null && _state.value.pin.address == null) pin.resolveAddress(location)
     }
 
     /**
-     * 17 · Busca parecidos a menos de 50 m, como máximo 500 ms: con parecidos abre 17A; sin ellos, o si falla o tarda,
-     * pasa al paso 4 sin aviso (el fallo queda en el borrador para que el servidor repita la búsqueda).
+     * 17 · Busca parecidos del pin: con parecidos abre 17A; sin ellos, o si falla o tarda, pasa al paso 4 sin aviso (el
+     * fallo queda en el borrador para que el servidor repita la búsqueda). Si ya había una nota para este lugar, se conserva.
      */
     private fun searchNearby() {
         val draft = _state.value.draft
-        val location = draft.location ?: return
-        _state.update { it.copy(searchingNearby = true) }
-        nearbyJob = viewModelScope.launch {
-            val found = try {
-                withTimeoutOrNull(NEARBY_TIMEOUT) { places.duplicateFinder.similarPlaces(draft.title.trim(), location) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                null
-            }
-            _state.update { it.copy(searchingNearby = false) }
-            when {
-                found.isNullOrEmpty() -> {
-                    updateDraft { it.copy(duplicateCheck = DuplicateCheck(location, failed = found == null)) }
-                    moveTo(PublishStep.SCHEDULE)
-                }
-                else -> {
-                    // Si ya había escrito una nota para este lugar (volvió a moverlo), se conserva.
-                    val note = draft.duplicateCheck?.note.orEmpty()
-                    _state.update { it.copy(duplicates = DuplicateReview(found, note = note)) }
-                }
-            }
+        pin.searchNearby(draft.title, draft.duplicateCheck?.note.orEmpty(), excludeId = resubmitId) { check ->
+            updateDraft { it.copy(duplicateCheck = check) }
+            moveTo(PublishStep.SCHEDULE)
         }
-    }
-
-    /** 19 · Comprime y agrega las fotos (hasta 5) y empieza a subirlas; espera al borrador si aún se está leyendo. */
-    private fun importPhotos(uris: List<String>) {
-        if (uris.isEmpty()) return
-        _state.update { it.copy(photoProblem = null, preparingPhotos = it.preparingPhotos + uris.size) }
-        viewModelScope.launch {
-            _state.first { it.content == PublishContent.Editing }
-            var unreadable = false
-            for (uri in uris) {
-                val photo = if (_state.value.draft.photosLeft > 0) delivery.photos.import(uri) else null
-                _state.update { it.copy(preparingPhotos = it.preparingPhotos - 1) }
-                if (photo == null) {
-                    // Más de 5: el selector ya las limita; si pasa, sobran en silencio.
-                    if (_state.value.draft.photosLeft > 0) unreadable = true
-                    continue
-                }
-                updateDraft { it.copy(photos = it.photos + photo) }
-                _state.update { it.copy(sendError = null) }
-                startUpload(photo)
-            }
-            if (unreadable) _state.update { it.copy(photoProblem = PhotoProblem.UNREADABLE) }
-        }
-    }
-
-    /** 19 · Sube una foto informando el progreso; al terminar guarda su dirección en el borrador. */
-    private fun startUpload(photo: DraftPhoto) {
-        uploadJobs.remove(photo.id)?.cancel()
-        setUpload(photo.id, PhotoUpload.Uploading(0))
-        uploadJobs[photo.id] = viewModelScope.launch {
-            try {
-                delivery.uploader.upload(photo).collect { progress ->
-                    when (progress) {
-                        is UploadProgress.Sending -> setUpload(photo.id, PhotoUpload.Uploading(progress.percent))
-                        is UploadProgress.Done -> {
-                            setUpload(photo.id, null)
-                            updateDraft { draft ->
-                                draft.copy(photos = draft.photos.map { if (it.id == photo.id) it.copy(remoteUrl = progress.url) else it })
-                            }
-                        }
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                setUpload(photo.id, PhotoUpload.Failed)
-            }
-        }
-    }
-
-    private fun setUpload(id: String, upload: PhotoUpload?) = _state.update {
-        it.copy(uploads = if (upload == null) it.uploads - id else it.uploads + (id to upload))
     }
 
     /**
@@ -680,8 +492,8 @@ class PublishViewModel(
         _state.update { it.copy(sending = true, sendError = null) }
         sendJob = viewModelScope.launch {
             val ready = _state.first { state ->
-                state.preparingPhotos == 0 &&
-                    (state.draft.photos.any(DraftPhoto::uploaded) || state.draft.photos.none { state.uploads[it.id] is PhotoUpload.Uploading })
+                state.photoStatus.preparing == 0 &&
+                    (state.draft.photos.any(DraftPhoto::uploaded) || state.draft.photos.none { state.photoStatus.uploads[it.id] is PhotoUpload.Uploading })
             }
             val draft = ready.draft
             val submission = PublicationSubmission.from(draft, resubmitId)
@@ -712,17 +524,16 @@ class PublishViewModel(
             }
             // Las que no alcanzaron a subir siguen en segundo plano, con su archivo.
             val later = draft.photos.filterNot(DraftPhoto::uploaded)
-            later.forEach { uploadJobs.remove(it.id)?.cancel() }
+            photos.stop(later.map(DraftPhoto::id))
             delivery.outbox.enqueuePhotos(result.publicationId, later)
             finish(SentSummary(submission.title, submission.possibleDuplicate, queued = false, result.firstPublicationPoints))
-            uploaded.forEach { delivery.photos.delete(it) }
+            photos.deleteFiles(uploaded)
         }
     }
 
     /** Sin red: la publicación completa, con sus fotos del teléfono, pasa a la cola de envío (B1 de Daniel). */
     private suspend fun queue(submission: PublicationSubmission) {
-        uploadJobs.values.forEach(Job::cancel)
-        uploadJobs.clear()
+        photos.stopAll()
         delivery.outbox.enqueue(submission)
         finish(SentSummary(submission.title, submission.possibleDuplicate, queued = true))
     }
@@ -777,8 +588,6 @@ class PublishViewModel(
 
     private class Found(val category: Category?)
 
-    private class Located(val point: GeoPoint?)
-
     private fun load() {
         _state.update { it.copy(content = PublishContent.Loading) }
         viewModelScope.launch {
@@ -807,9 +616,9 @@ class PublishViewModel(
             _state.update { it.copy(content = PublishContent.Editing, draft = draft, suggestion = suggestion) }
             if (draft.step == PublishStep.CATEGORY && category == null) startSuggestion(overrideChoice = false)
             val location = draft.location
-            if (draft.step == PublishStep.LOCATION && location != null) resolveAddress(location)
+            if (draft.step == PublishStep.LOCATION && location != null) pin.resolveAddress(location)
             // Las fotos que no alcanzaron a subir (se cerró la app) siguen donde quedaron.
-            draft.photos.filterNot(DraftPhoto::uploaded).forEach(::startUpload)
+            photos.uploadPending()
         }
     }
 
@@ -817,16 +626,8 @@ class PublishViewModel(
         /** README · «tiempo límite 5 s»: después se sigue con la elección manual (16.c). */
         val SUGGESTION_TIMEOUT = 5.seconds
 
-        /** README · Duplicados: «máx. 500 ms»; después se sigue al paso 4 sin aviso. */
-        val NEARBY_TIMEOUT = 500.milliseconds
-
-        /** La dirección del pin o la búsqueda por dirección: después se muestran solo las coordenadas. */
-        val ADDRESS_TIMEOUT = 8.seconds
-
         /** Espera tras el último cambio antes de guardar el borrador: no escribe en disco con cada tecla. */
         val SAVE_DELAY = 400.milliseconds
-
-        private const val CAMERA_SHOT_KEY = "foto_de_camara"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

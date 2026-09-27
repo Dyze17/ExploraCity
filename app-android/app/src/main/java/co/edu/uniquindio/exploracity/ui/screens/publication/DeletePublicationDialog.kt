@@ -107,7 +107,7 @@ fun DeletePublicationDialog(
 private fun deleteConsequences(publication: OwnPublication): String {
     val parts = buildList {
         add(stringResource(R.string.delete_publication_part_publication))
-        publication.photos.takeIf { it > 0 }?.let { add(pluralStringResource(R.plurals.delete_publication_part_photos, it, it)) }
+        publication.photos.size.takeIf { it > 0 }?.let { add(pluralStringResource(R.plurals.delete_publication_part_photos, it, it)) }
         publication.comments.takeIf { it > 0 }?.let { add(pluralStringResource(R.plurals.delete_publication_part_comments, it, it)) }
         publication.votes.takeIf { it > 0 }?.let { add(pluralStringResource(R.plurals.delete_publication_part_votes, it, it)) }
     }

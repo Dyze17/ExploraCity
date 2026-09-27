@@ -7,18 +7,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -33,9 +38,20 @@ import kotlin.math.roundToInt
 @Composable
 fun PhotoThumbnail(path: String, modifier: Modifier = Modifier, size: Dp = 72.dp) {
     val sizePx = with(LocalDensity.current) { size.roundToPx() }
-    val bitmap by produceState<ImageBitmap?>(null, path, sizePx) { value = withContext(Dispatchers.IO) { decodeThumbnail(path, sizePx) } }
-    Box(modifier.size(size).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        bitmap?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+    val bitmap by produceState<ImageBitmap?>(null, path, sizePx) {
+        value = if (path.isEmpty()) null else withContext(Dispatchers.IO) { decodeThumbnail(path, sizePx) }
+    }
+    Box(
+        modifier.size(size).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        contentAlignment = Alignment.Center,
+    ) {
+        val image = bitmap
+        if (image != null) {
+            Image(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else if (path.isEmpty()) {
+            // Ya publicada (23): la imagen está en el servidor y aún no se descarga.
+            Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(28.dp))
+        }
     }
 }
 
