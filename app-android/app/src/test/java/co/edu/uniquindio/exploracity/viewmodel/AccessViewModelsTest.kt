@@ -80,6 +80,43 @@ class AccessViewModelsTest {
     }
 
     @Test
+    fun `la marca se ve al menos 1,5 s aunque el destino se sepa al momento`() = runTest(dispatcher) {
+        val vm = splash()
+
+        advanceTimeBy(1.4.seconds)
+        assertEquals(SplashState.Loading, vm.state.value)
+        advanceTimeBy(0.2.seconds)
+
+        assertEquals(SplashState.Done(SplashDestination.ONBOARDING), vm.state.value)
+    }
+
+    @Test
+    fun `el mínimo no se suma a lo que tarda el servidor`() = runTest(dispatcher) {
+        sessions.current.value = UserRole.USER
+        auth.resumeDelay = 1.8.seconds
+        val vm = splash()
+
+        advanceTimeBy(1.7.seconds)
+        assertEquals(SplashState.Loading, vm.state.value)
+        advanceTimeBy(0.2.seconds)
+
+        assertEquals(SplashState.Done(SplashDestination.FEED), vm.state.value)
+    }
+
+    @Test
+    fun `reintentar desde 1c también muestra la marca un momento`() = runTest(dispatcher) {
+        sessions.current.value = UserRole.USER
+        connectivity.online = false
+        val vm = splash()
+        advanceUntilIdle()
+
+        vm.onRetry()
+        advanceTimeBy(1.seconds)
+
+        assertEquals(SplashState.Loading, vm.state.value)
+    }
+
+    @Test
     fun `si el servidor tarda más de 2 s sigue igual al feed`() = runTest(dispatcher) {
         sessions.current.value = UserRole.USER
         auth.resumeDelay = 10.seconds
