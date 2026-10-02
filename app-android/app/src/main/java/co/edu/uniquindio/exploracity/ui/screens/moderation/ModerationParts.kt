@@ -3,18 +3,14 @@ package co.edu.uniquindio.exploracity.ui.screens.moderation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -37,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewUrgency
+import co.edu.uniquindio.exploracity.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.ui.components.CategoryTag
 import co.edu.uniquindio.exploracity.ui.components.DuplicateFlag
 import co.edu.uniquindio.exploracity.ui.components.PhotoThumbnail
@@ -164,22 +163,23 @@ internal fun ReviewCard(item: ReviewItem, now: Instant, onOpen: () -> Unit, modi
         add(stringResource(R.string.moderation_card_description, item.title, category, waiting, authorName, photos))
         if (duplicate != null) add(stringResource(R.string.moderation_card_duplicate_spoken))
     }.joinToString(", ")
+    val stripe = item.urgency(now).colors().stripe
     Row(
         modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
             .exploraShadow(ExploraElevation.Card, shape, explora.shadow)
             .clip(shape)
             .background(scheme.surfaceContainerLowest)
+            // La franja de urgencia se dibuja detrás: la tarjeta crece con su contenido (fuente grande, chips en dos líneas).
+            .drawBehind { drawRect(stripe, size = Size(STRIPE_WIDTH.toPx(), size.height)) }
             .clickable(onClick = onOpen)
             .clearAndSetSemantics {
                 contentDescription = spoken
                 role = Role.Button
             },
     ) {
-        Box(Modifier.width(4.dp).fillMaxHeight().background(item.urgency(now).colors().stripe))
         Row(
-            Modifier.weight(1f).padding(start = 10.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+            Modifier.weight(1f).padding(start = STRIPE_WIDTH + 10.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -187,7 +187,7 @@ internal fun ReviewCard(item: ReviewItem, now: Instant, onOpen: () -> Unit, modi
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(item.title, style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp), color = scheme.onSurface)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (duplicate != null) DuplicateFlag() else CategoryTag(item.category)
+                    if (duplicate != null) DuplicateFlag(size = BadgeSize.SMALL) else CategoryTag(item.category)
                     UrgencyChip(item, now)
                 }
                 Text(authorLine, style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 17.sp), color = explora.textSecondary)
@@ -196,3 +196,5 @@ internal fun ReviewCard(item: ReviewItem, now: Instant, onOpen: () -> Unit, modi
         }
     }
 }
+
+private val STRIPE_WIDTH = 4.dp

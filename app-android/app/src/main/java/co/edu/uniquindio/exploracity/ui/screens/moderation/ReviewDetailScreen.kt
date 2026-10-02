@@ -220,11 +220,14 @@ fun ReviewDetailScreen(
                 null
             }
             ExploraTopAppBar(title = stringResource(R.string.review_title), subtitle = subtitle, onBack = callbacks.onBack)
-            if (state.offline && item != null) AccessOfflineNotice(stringResource(R.string.review_offline))
+            // Con fuente grande el aviso se desplaza con el contenido: fijo, junto a la barra de botones, dejaba poco para leer.
+            val largeFont = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
+            val offlineNotice = state.offline && item != null
+            if (offlineNotice && !largeFont) AccessOfflineNotice(stringResource(R.string.review_offline))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (state.content) {
                     ReviewContent.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                    is ReviewContent.Loaded -> if (item != null) Review(item, current, callbacks)
+                    is ReviewContent.Loaded -> if (item != null) Review(item, current, callbacks, offlineNotice = offlineNotice && largeFont)
                     ReviewContent.Gone -> Centered {
                         EmptyState(
                             icon = R.drawable.ic_done_all,
@@ -251,23 +254,26 @@ fun ReviewDetailScreen(
                         ) { RetryButton(callbacks.onRetry) }
                     }
                 }
+                // Justo encima de la barra de botones, mida lo que mida: con fuente grande los botones se apilan.
+                val bottomInset = if (item == null) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier
+                ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).then(bottomInset))
             }
             if (item != null) ActionBar(state, callbacks)
         }
-        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp).windowInsetsPadding(WindowInsets.navigationBars))
     }
     if (item != null) VerifySheetHost(item, state, callbacks)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Review(item: ReviewItem, now: Instant, callbacks: ReviewDetailCallbacks) {
+private fun Review(item: ReviewItem, now: Instant, callbacks: ReviewDetailCallbacks, offlineNotice: Boolean) {
     var viewer by rememberSaveable { mutableStateOf<Int?>(null) }
     var bigMap by rememberSaveable { mutableStateOf(false) }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (offlineNotice) Box(Modifier.clip(MaterialTheme.shapes.medium)) { AccessOfflineNotice(stringResource(R.string.review_offline)) }
         // El aviso de duplicado va primero: el lector lo oye antes que el resto.
         item.duplicate?.let { DuplicateBanner(item, callbacks.onCompare) }
         Gallery(item, onOpen = { viewer = it })
@@ -552,11 +558,14 @@ private fun AuthorCard(item: ReviewItem) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         InitialsAvatar(author.author, size = 40.dp)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // Con fuente grande el nivel va debajo del nombre: al lado, el historial quedaba letra por letra.
+        val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (stacked) 6.dp else 2.dp)) {
             Text(author.author.name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             Text(history, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary)
+            if (stacked) LevelChip(author.author.level)
         }
-        LevelChip(author.author.level)
+        if (!stacked) LevelChip(author.author.level)
     }
 }
 

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -71,6 +73,7 @@ import co.edu.uniquindio.exploracity.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.viewmodel.ModerationQueueUiState
@@ -137,8 +140,12 @@ fun ModerationQueueScreen(state: ModerationQueueUiState, callbacks: ModerationQu
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxSize()) {
             val queue = (state.content as? QueueContent.Loaded)?.queue
+            // Con fuente grande los filtros se desplazan con la lista: fijos le dejaban media pantalla.
+            val filtersInList = LocalDensity.current.fontScale > FontScaleThresholds.StackRows && state.visible.isNotEmpty()
             Header(state, queue, current)
-            if (queue != null && !state.empty) Filters(state, callbacks)
+            if (queue != null && !state.empty && !filtersInList) {
+                Filters(state, callbacks, Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
+            }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (val content = state.content) {
                     QueueContent.Loading -> Loading()
@@ -174,7 +181,7 @@ fun ModerationQueueScreen(state: ModerationQueueUiState, callbacks: ModerationQu
                                 )
                             }
                         }
-                        else -> QueueList(state, current, callbacks)
+                        else -> QueueList(state, current, callbacks, filtersInList)
                     }
                 }
             }
@@ -184,6 +191,7 @@ fun ModerationQueueScreen(state: ModerationQueueUiState, callbacks: ModerationQu
 }
 
 /** «Moderación» con cuántas esperan, la antigüedad de lo guardado (32.c) o «Nada pendiente» (37). */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Header(state: ModerationQueueUiState, queue: ReviewQueue?, now: Instant) {
     val savedAt = queue?.savedAt
@@ -193,12 +201,14 @@ private fun Header(state: ModerationQueueUiState, queue: ReviewQueue?, now: Inst
         state.empty -> stringResource(R.string.moderation_nothing_pending)
         else -> pluralStringResource(R.plurals.moderation_waiting, state.items.size, state.items.size)
     }
-    Row(
+    // Con fuente grande, «Moderador» va debajo: al lado partía el título en dos.
+    FlowRow(
         Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
+        Column {
             Text(
                 stringResource(R.string.moderation_title),
                 style = MaterialTheme.typography.headlineSmall.copy(fontFamily = Outfit, fontWeight = FontWeight.W600, fontSize = 22.sp),
@@ -214,17 +224,14 @@ private fun Header(state: ModerationQueueUiState, queue: ReviewQueue?, now: Inst
 /** «Pendientes · 7», «Posibles duplicados · 2» (filtros de una sola elección), «Resueltas» y el orden. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Filters(state: ModerationQueueUiState, callbacks: ModerationQueueCallbacks) {
+private fun Filters(state: ModerationQueueUiState, callbacks: ModerationQueueCallbacks, modifier: Modifier = Modifier) {
     val filtersLabel = stringResource(R.string.moderation_filters)
-    FlowRow(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            Modifier.selectableGroup().semantics { contentDescription = filtersLabel },
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Los dos filtros pasan a otra línea si no caben (fuente grande): juntos partían el texto letra por letra.
+        FlowRow(
+            Modifier.fillMaxWidth().selectableGroup().semantics { contentDescription = filtersLabel },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             QueueChip(
                 stringResource(R.string.moderation_filter_all, state.items.size),
@@ -239,17 +246,23 @@ private fun Filters(state: ModerationQueueUiState, callbacks: ModerationQueueCal
                 )
             }
         }
-        if (!state.readOnly) {
-            ExploraButton(stringResource(R.string.moderation_resolved), onClick = callbacks.onOpenResolved, style = ExploraButtonStyle.SECONDARY)
-        }
-        val sortDescription = stringResource(R.string.moderation_sort_description)
-        Row(
-            Modifier.heightIn(min = 48.dp).clearAndSetSemantics { contentDescription = sortDescription },
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(painterResource(R.drawable.ic_swap_vert), null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp.scaledWithFont()))
-            Text(stringResource(R.string.moderation_sort), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.tertiary)
+            if (!state.readOnly) {
+                ExploraButton(stringResource(R.string.moderation_resolved), onClick = callbacks.onOpenResolved, style = ExploraButtonStyle.SECONDARY)
+            }
+            val sortDescription = stringResource(R.string.moderation_sort_description)
+            Row(
+                Modifier.heightIn(min = 48.dp).clearAndSetSemantics { contentDescription = sortDescription },
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(painterResource(R.drawable.ic_swap_vert), null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp.scaledWithFont()))
+                Text(stringResource(R.string.moderation_sort), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.tertiary)
+            }
         }
     }
 }
@@ -276,14 +289,22 @@ private fun QueueChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun QueueList(state: ModerationQueueUiState, now: Instant, callbacks: ModerationQueueCallbacks) {
-    val savedAt = (state.content as? QueueContent.Loaded)?.queue?.savedAt
+private fun QueueList(state: ModerationQueueUiState, now: Instant, callbacks: ModerationQueueCallbacks, filtersInList: Boolean) {
+    val offline = (state.content as? QueueContent.Loaded)?.queue?.savedAt != null
+    val listState = rememberLazyListState()
+    val firstCard = (if (filtersInList) 1 else 0) + (if (offline) 1 else 0)
+    LaunchedEffect(offline) {
+        // El aviso entra encima de la primera tarjeta y la lista se queda en ella: si estaba arriba, que se vea.
+        if (offline && listState.firstVisibleItemIndex <= firstCard && listState.firstVisibleItemScrollOffset == 0) listState.scrollToItem(0)
+    }
     LazyColumn(
         Modifier.fillMaxSize(),
+        state = listState,
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (savedAt != null) {
+        if (filtersInList) item(key = "filters") { Filters(state, callbacks) }
+        if (offline) {
             item(key = "offline") {
                 OfflineBanner(
                     title = stringResource(R.string.offline_title),
@@ -296,7 +317,7 @@ private fun QueueList(state: ModerationQueueUiState, now: Instant, callbacks: Mo
         items(state.visible, key = { it.id }) { item ->
             ReviewCard(item, now, onOpen = { callbacks.onOpenReview(item.id) })
         }
-        if (savedAt != null) item(key = "offline-hint") { OfflineHint() }
+        if (offline) item(key = "offline-hint") { OfflineHint() }
     }
 }
 
