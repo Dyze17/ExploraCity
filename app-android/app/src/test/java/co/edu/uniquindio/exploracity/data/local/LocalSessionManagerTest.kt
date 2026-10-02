@@ -9,7 +9,9 @@ import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
+import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.viewmodel.FakePhotos
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -43,7 +45,9 @@ class LocalSessionManagerTest {
 
     private val drafts = DataStoreDraftRepository(MemoryDataStore())
 
-    private fun session() = LocalSessionManager(database, photos, drafts, cancelSending = { cancelled = true }, io = dispatcher)
+    private val sessions = DataStoreSessionStore(MemoryDataStore())
+
+    private fun session() = LocalSessionManager(database, photos, drafts, sessions, cancelSending = { cancelled = true }, io = dispatcher)
 
     private fun submission(vararg photos: DraftPhoto) = PublicationSubmission(
         title = "Mirador del Tunal",
@@ -74,8 +78,11 @@ class LocalSessionManagerTest {
         database.pendingActionsDao().insert(PendingActionEntity(type = PendingType.VOTE, poiId = "cafe", payload = "{}", createdAtMillis = 0))
         database.profileDao().save(SavedProfileEntity(json = "{}", savedAtMillis = 0))
 
+        sessions.open(UserRole.USER)
+
         session().signOut()
 
+        assertNull("La sesión se cierra", sessions.role.first())
         assertTrue(cancelled)
         assertEquals(0, database.pendingActionsDao().count())
         assertNull(database.profileDao().get())

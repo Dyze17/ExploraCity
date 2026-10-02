@@ -1047,4 +1047,47 @@
     <string name="delete_account_confirm_unavailable">escribe ELIMINAR para habilitarlo</string>
     <string name="delete_account_failed">No pudimos completar la eliminación. Tu cuenta sigue activa; intenta más tarde.</string>
     <string name="session_account_deleted">Tu cuenta fue eliminada.</string>
+
+    <!-- 1 · Splash -->
+    <string name="splash_logo">Logo de ExploraCity</string>
+    <string name="splash_tagline">La ciudad contada por quienes la caminan</string>
+    <string name="splash_loading">Preparando tu ciudad…</string>
+    <string name="splash_offline_title">No pudimos conectarnos</string>
+    <string name="splash_offline_body">Revisa tu conexión a internet e inténtalo de nuevo. También puedes entrar y ver los lugares que ya tenías guardados.</string>
+    <string name="splash_continue_offline">Continuar sin conexión</string>
+
+    <!-- 2 · Onboarding -->
+    <string name="onboarding_skip">Saltar</string>
+    <string name="onboarding_next">Siguiente</string>
+    <string name="onboarding_create_account">Crear mi cuenta</string>
+    <string name="onboarding_have_account">Ya tengo cuenta</string>
+    <string name="onboarding_page">Panel %1$d de %2$d</string>
+    <string name="onboarding_discover_title">Descubre lugares que no salen en las guías</string>
+    <string name="onboarding_discover_body">Turistas y residentes publican sus rincones favoritos: comida, cultura, naturaleza, historia y planes.</string>
+    <string name="onboarding_publish_title">Publica en 5 pasos y la comunidad lo valida</string>
+    <string name="onboarding_publish_body">Un moderador revisa cada lugar antes de publicarlo. Así el mapa se mantiene confiable.</string>
+    <string name="onboarding_levels_title">Sube de nivel: de Turista a Embajador Local</string>
+    <string name="onboarding_levels_body">Gana puntos e insignias cuando tus lugares se verifican y la gente los visita.</string>
+
+    <!-- 3 · Inicio de sesión -->
+    <string name="login_title">Bienvenido de vuelta</string>
+    <string name="login_subtitle">Entra para seguir descubriendo y publicando lugares.</string>
+    <string name="login_email">Correo electrónico</string>
+    <string name="login_email_error">Escribe un correo completo, por ejemplo nombre@correo.com</string>
+    <string name="login_password">Contraseña</string>
+    <string name="login_password_error">Debe tener al menos 8 caracteres.</string>
+    <string name="login_reveal">Mostrar contraseña</string>
+    <string name="login_conceal">Ocultar contraseña</string>
+    <string name="login_forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="login_submit">Iniciar sesión</string>
+    <string name="login_submitting">Entrando…</string>
+    <string name="login_first_time">¿Es tu primera vez?</string>
+    <string name="login_create_account">Crear una cuenta</string>
+    <string name="login_offline">Sin conexión. Necesitas internet para iniciar sesión.</string>
+    <string name="login_offline_reason">necesitas internet para iniciar sesión</string>
+    <string name="login_fix_fields">escribe un correo completo y una contraseña de al menos 8 caracteres</string>
+    <string name="login_credentials_error">El correo o la contraseña no coinciden. Intenta otra vez.</string>
+    <string name="login_failed">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
+    <string name="login_close">Cerrar</string>
+    <string name="login_demo_title">Cuentas de prueba (solo en desarrollo)</string>
 </resources>

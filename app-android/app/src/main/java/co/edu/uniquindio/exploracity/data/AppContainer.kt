@@ -4,17 +4,20 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import co.edu.uniquindio.exploracity.BuildConfig
 import co.edu.uniquindio.exploracity.data.connectivity.AndroidConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.local.AndroidDocumentWriter
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.DataStoreAppPreferences
 import co.edu.uniquindio.exploracity.data.local.DataStoreDraftRepository
+import co.edu.uniquindio.exploracity.data.local.DataStoreSessionStore
 import co.edu.uniquindio.exploracity.data.local.DocumentWriter
 import co.edu.uniquindio.exploracity.data.local.DraftRepository
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
 import co.edu.uniquindio.exploracity.data.local.LocalSessionManager
 import co.edu.uniquindio.exploracity.data.local.SessionManager
+import co.edu.uniquindio.exploracity.data.local.SessionStore
 import co.edu.uniquindio.exploracity.data.location.AddressResolver
 import co.edu.uniquindio.exploracity.data.location.GeocoderAddressResolver
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
@@ -26,9 +29,11 @@ import co.edu.uniquindio.exploracity.data.photos.LocalProfilePhotoHost
 import co.edu.uniquindio.exploracity.data.photos.PhotoStore
 import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
 import co.edu.uniquindio.exploracity.data.repository.AccountRepository
+import co.edu.uniquindio.exploracity.data.repository.AuthRepository
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeAccountRepository
+import co.edu.uniquindio.exploracity.data.repository.FakeAuthRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.FakeDuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
@@ -42,6 +47,7 @@ import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationReposito
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyAccountRepository
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyAuthRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyDuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
@@ -49,12 +55,14 @@ import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.UserRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
+import co.edu.uniquindio.exploracity.data.repository.sampleDemoAccounts
 import co.edu.uniquindio.exploracity.data.sync.PendingSender
 import co.edu.uniquindio.exploracity.data.sync.PublicationDelivery
 import co.edu.uniquindio.exploracity.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.data.sync.RoomPublicationOutbox
 import co.edu.uniquindio.exploracity.data.sync.WorkManagerScheduler
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.DemoAccount
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import kotlinx.coroutines.CancellationException
@@ -68,6 +76,8 @@ import kotlinx.coroutines.launch
 private val Context.draftsDataStore: DataStore<Preferences> by preferencesDataStore(name = "borradores")
 
 private val Context.preferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "preferencias")
+
+private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(name = "sesion")
 
 /**
  * Dependencias de la app (inyección manual). El «servidor» todavía es un repositorio en memoria
@@ -159,7 +169,17 @@ class AppContainer(context: Context) {
     val draftRepository: DraftRepository = DataStoreDraftRepository(context.draftsDataStore)
 
     /** 29A · Cerrar sesión borra lo de la cuenta y deja los borradores. */
-    val sessionManager: SessionManager = LocalSessionManager(database, photoStore, draftRepository, cancelSending = scheduler::cancel)
+    /** 1 y 3 · La sesión abierta; con ella el arranque va directo al feed. */
+    val sessionStore: SessionStore = DataStoreSessionStore(context.sessionDataStore)
+
+    val sessionManager: SessionManager =
+        LocalSessionManager(database, photoStore, draftRepository, sessionStore, cancelSending = scheduler::cancel)
+
+    /** Temporal: el inicio de sesión real irá a la API (JWT y BCrypt en el backend, ADR-06). */
+    val authRepository: AuthRepository = OnlineOnlyAuthRepository(FakeAuthRepository(), connectivity)
+
+    /** 3 · Cuentas de prueba que el inicio de sesión rellena; solo en compilaciones de desarrollo. */
+    val demoAccounts: List<DemoAccount> = if (BuildConfig.DEBUG) sampleDemoAccounts else emptyList()
 
     /** Preferencias del teléfono (el tema de 29), aparte de la cuenta. */
     val preferences: AppPreferences = DataStoreAppPreferences(context.preferencesDataStore)
