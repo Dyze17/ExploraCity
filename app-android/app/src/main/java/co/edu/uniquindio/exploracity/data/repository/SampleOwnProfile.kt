@@ -51,14 +51,17 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 title = "Panadería La Candelaria",
                 category = Category.GASTRONOMY,
                 status = PublicationStatus.PENDING,
-                location = GeoPoint(4.5966, -74.0718),
+                // A unos 30 m del Chorro de Quevedo: es el parecido que Ana descartó en 17B.
+                location = GeoPoint(4.59675, -74.06995),
                 photos = samplePublishedPhotos("panaderia-la-candelaria", 3),
                 hours = OpeningHours(DayOfWeek.entries.toSet() - DayOfWeek.SUNDAY, LocalTime.of(6, 0), LocalTime.of(19, 0)),
                 price = PriceRange.LOW,
                 submittedAt = ago(2.hours),
-                description = "Pan de yuca y almojábanas recién horneadas desde las 6 de la mañana, a una cuadra del Chorro de Quevedo.",
+                description = "Pan de yuca y almojábanas recién horneadas desde las 6 de la mañana, en la esquina del Chorro de Quevedo.",
                 // Ana confirmó que es otro lugar que uno cercano (17B): el moderador la ve como posible duplicado.
                 possibleDuplicate = true,
+                similarIds = listOf("chorro-de-quevedo"),
+                duplicateNote = "Es la panadería de la esquina, no la plazoleta.",
             ),
         ),
         PublicationSeed(

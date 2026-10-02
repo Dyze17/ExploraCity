@@ -6,16 +6,19 @@ import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PhotoRules
 import co.edu.uniquindio.exploracity.domain.model.Poi
+import co.edu.uniquindio.exploracity.domain.model.PoiDetails
+import co.edu.uniquindio.exploracity.domain.model.PoiPhoto
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
-import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
+import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.SubmitResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import java.text.Normalizer
 import java.time.Clock
+import java.time.Instant
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -66,9 +69,29 @@ class FakePublicationRepository(
     /** Estados de las que el feed no muestra: el perfil (26) las cuenta junto a las públicas. */
     val hiddenStatuses: List<PublicationStatus> get() = hidden.value.map { it.publication.status }
 
-    /** Las pendientes, sin la latencia: la búsqueda de parecidos (17) también las compara. */
+    /** Las pendientes, sin la latencia: la búsqueda de parecidos (17) también las compara, y la cola de moderación (32). */
     internal fun pendingOnes(): List<OwnPublication> =
         hidden.value.map { it.publication }.filter { it.status == PublicationStatus.PENDING }
+
+    /**
+     * Temporal: un moderador verificó una pendiente de la persona (34). Sale de las ocultas y entra al feed como suya,
+     * con los puntos de verificarla. Con la API esto lo hace el backend. Devuelve null si ya no estaba pendiente.
+     */
+    internal fun markVerified(id: String): OwnPublication? {
+        val pending = pendingOnes().firstOrNull { it.id == id } ?: return null
+        hidden.update { list -> list.filterNot { it.publication.id == id } }
+        pois.publish(pending.toPublicDetails(currentUser))
+        verifiedNow[id] = clock.instant()
+        return pending.copy(status = PublicationStatus.VERIFIED, pointsEarned = VERIFIED_POINTS)
+    }
+
+    /** Historial con la moderación (33): las públicas (verificadas o finalizadas) y las rechazadas. */
+    internal fun publicCount(): Int = publicOnes().size
+
+    internal fun rejectedCount(): Int = hidden.value.count { it.publication.status == PublicationStatus.REJECTED }
+
+    // Cuándo se verificó cada una en esta sesión: 22 la ordena por esa fecha y suma sus puntos.
+    private val verifiedNow = mutableMapOf<String, Instant>()
 
     override suspend fun myPublications(): List<OwnPublication> {
         delay(latency)
@@ -136,6 +159,8 @@ class FakePublicationRepository(
             hours = submission.hours,
             price = submission.price,
             possibleDuplicate = submission.possibleDuplicate,
+            similarIds = submission.duplicateCheck?.similarIds.orEmpty(),
+            duplicateNote = submission.duplicateCheck?.note?.trim()?.ifEmpty { null },
         )
         // Reenviar reemplaza a la rechazada: vuelve a pendiente, sin el motivo.
         hidden.update { list -> list.filterNot { it.publication.id == id } + PublicationSeed(publication) }
@@ -167,9 +192,10 @@ class FakePublicationRepository(
     }
 
     private fun publicOnes(feed: List<Poi> = pois.places()): List<OwnPublication> =
-        feed.filter { sampleDetails(it).author.id == currentUser.id }.map { poi ->
-            val details = sampleDetails(poi)
+        feed.filter { pois.detailsOf(it).author.id == currentUser.id }.map { poi ->
+            val details = pois.detailsOf(poi)
             val submission = samplePublicSubmissions[poi.id]
+            val verifiedAt = verifiedNow[poi.id]
             OwnPublication(
                 id = poi.id,
                 title = poi.title,
@@ -179,12 +205,12 @@ class FakePublicationRepository(
                 photos = samplePublishedPhotos(poi.id, details.photos.size),
                 hours = details.hours,
                 price = poi.price,
-                submittedAt = clock.instant() - (submission?.submittedAgo ?: Duration.ZERO).toJavaDuration(),
+                submittedAt = verifiedAt ?: (clock.instant() - (submission?.submittedAgo ?: Duration.ZERO).toJavaDuration()),
                 description = details.description,
                 photoUrl = poi.photoUrl,
                 votes = poi.votes,
                 comments = poi.comments,
-                pointsEarned = submission?.pointsEarned ?: 0,
+                pointsEarned = submission?.pointsEarned ?: if (verifiedAt != null) VERIFIED_POINTS else 0,
             )
         }
 }
@@ -246,10 +272,39 @@ private fun OwnPublication.applying(changes: PublicationChanges): OwnPublication
     price = changes.price,
     photos = changes.photos.mapNotNull { photo -> photo.remoteUrl?.let { PublishedPhoto(photo.id, it) } },
     possibleDuplicate = if (changes.location == location) possibleDuplicate else changes.duplicateCheck?.possibleDuplicate == true,
+    similarIds = if (changes.location == location) similarIds else changes.duplicateCheck?.similarIds.orEmpty(),
+    duplicateNote = if (changes.location == location) duplicateNote else changes.duplicateCheck?.note?.trim()?.ifEmpty { null },
 )
 
 /** README · «primera publicación +20 (insignia)». */
 private const val FIRST_PUBLICATION_POINTS = 20
+
+/** README · «publicación verificada +15». */
+internal const val VERIFIED_POINTS = 15
+
+/** La pendiente ya verificada como lugar del feed, con el detalle que verá la comunidad (13). */
+internal fun OwnPublication.toPublicDetails(author: Author): PoiDetails = PoiDetails(
+    poi = Poi(
+        id = id,
+        title = title,
+        category = category,
+        status = PublicationStatus.VERIFIED,
+        location = location,
+        distanceMeters = 0,
+        votes = 0,
+        comments = 0,
+        photoUrl = photos.firstOrNull()?.url,
+        price = price,
+        summary = description.substringBefore('.').take(80),
+    ),
+    description = description,
+    photos = photos.mapIndexed { i, _ -> PoiPhoto(url = null, description = "Foto ${i + 1} de $title") },
+    address = "Bogotá",
+    hours = hours,
+    author = author,
+    voted = false,
+    visited = false,
+)
 
 private val diacriticMarks = Regex("\\p{Mn}+")
 private val nonSlug = Regex("[^a-z0-9]+")

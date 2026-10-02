@@ -40,6 +40,8 @@ import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 import co.edu.uniquindio.exploracity.ui.screens.legal.LegalDocumentsScreen
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
+import co.edu.uniquindio.exploracity.ui.screens.moderation.ModerationQueueRoute
+import co.edu.uniquindio.exploracity.ui.screens.moderation.ReviewDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.EditProfileRoute
@@ -117,6 +119,12 @@ private fun NavController.backToLogin(notice: SessionNotice? = null, email: Stri
     if (notice != null) entry.savedStateHandle[SESSION_NOTICE_KEY] = notice.name
     if (email != null) entry.savedStateHandle[SUGGESTED_EMAIL_KEY] = email
 }
+
+/** Marca en la revisión siguiente (33) con cuántas quedan: «Verificada. Quedan 6 por revisar» (C1). */
+private const val VERIFIED_NOTICE_KEY = "aviso_verificada"
+
+/** Marca en la cola (32) cuando se verificó la última: ya está vacía (37) y lo dice. */
+private const val ALL_REVIEWED_KEY = "cola_revisada"
 
 /** Marca en la entrada de Ajustes (29) con el correo nuevo ya confirmado, para decirlo una vez. */
 private const val EMAIL_CHANGED_KEY = "correo_cambiado"
@@ -445,52 +453,56 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionN
 
 private fun NavGraphBuilder.moderationGraph(nav: NavController) {
     navigation<ModerationGraph>(startDestination = ModerationQueue) {
-        composable<ModerationQueue> {
-            PlaceholderScreen(
-                "32", "Moderación",
-                listOf(
-                    link("Mirador del Alto de la Cruz") { nav.navigate(ReviewDetail("mirador-del-alto")) },
-                    link("Café La Fonda · posible duplicado") { nav.navigate(ReviewDetail("cafe-la-fonda")) },
-                ),
+        composable<ModerationQueue> { entry ->
+            val allReviewed by entry.savedStateHandle.getStateFlow(ALL_REVIEWED_KEY, false).collectAsStateWithLifecycle()
+            ModerationQueueRoute(
+                onOpenReview = { id -> nav.navigate(ReviewDetail(id)) },
+                onOpenResolved = { nav.navigate(ResolvedPublications) },
+                onExplore = { nav.navigateToTab(TopLevelDestination.EXPLORE) },
+                allReviewed = allReviewed,
+                onAllReviewedShown = { entry.savedStateHandle[ALL_REVIEWED_KEY] = false },
             )
         }
         composable<ReviewDetail> { entry ->
             val id = entry.toRoute<ReviewDetail>().publicationId
-            PlaceholderScreen(
-                "33", "Detalle de revisión",
-                listOf(
-                    link("Comparar lugares") { nav.navigate(CompareDuplicates(id)) },
-                    link("Verificar (demo)") { nav.popBackStack<ModerationQueue>(inclusive = false) },
-                    link("Rechazar") { nav.navigate(RejectPublication(id)) },
-                    link("Pasar a finalizada") { nav.navigate(FinalizePublication(id)) },
-                ),
+            val notice by entry.savedStateHandle.getStateFlow<Int?>(VERIFIED_NOTICE_KEY, null).collectAsStateWithLifecycle()
+            ReviewDetailRoute(
                 onBack = nav.back(),
+                onCompare = { nav.navigate(CompareDuplicates(id)) },
+                onReject = { nav.navigate(RejectPublication(id)) },
+                // C1: la siguiente reemplaza a esta; «atrás» vuelve a la cola.
+                onNext = { next, remaining ->
+                    nav.navigate(ReviewDetail(next)) { popUpTo<ReviewDetail> { inclusive = true } }
+                    nav.currentBackStackEntry?.savedStateHandle?.set(VERIFIED_NOTICE_KEY, remaining)
+                },
+                onQueueEmpty = {
+                    nav.popBackStack<ModerationQueue>(inclusive = false)
+                    nav.currentBackStackEntry?.savedStateHandle?.set(ALL_REVIEWED_KEY, true)
+                },
+                verifiedNotice = notice,
+                onNoticeShown = { entry.savedStateHandle[VERIFIED_NOTICE_KEY] = null },
             )
         }
         composable<CompareDuplicates> { entry ->
             val id = entry.toRoute<CompareDuplicates>().publicationId
             PlaceholderScreen(
-                "33A", "Comparar lugares",
-                listOf(
-                    link("Verificar como lugar distinto (demo)") { nav.popBackStack<ModerationQueue>(inclusive = false) },
-                    link("Rechazar por duplicado") { nav.navigate(RejectPublication(id)) },
-                ),
+                "33A", "Comparar lugares (parte 2)",
+                listOf(link("Rechazar por duplicado") { nav.navigate(RejectPublication(id)) }),
                 onBack = nav.back(),
             )
         }
         composable<RejectPublication> {
+            PlaceholderScreen("35", "Rechazar con motivo (parte 2)", emptyList(), onBack = nav.back())
+        }
+        composable<ResolvedPublications> {
             PlaceholderScreen(
-                "35", "Rechazar con motivo",
-                listOf(link("Rechazar (demo)") { nav.popBackStack<ModerationQueue>(inclusive = false) }),
+                "sin número (E1)", "Resueltas (parte 2)",
+                listOf(link("Casa de la Independencia · cambiar estado") { nav.navigate(FinalizePublication("casa-independencia")) }),
                 onBack = nav.back(),
             )
         }
         composable<FinalizePublication> {
-            PlaceholderScreen(
-                "36", "Pasar a finalizada",
-                listOf(link("Pasar a finalizada (demo)") { nav.popBackStack<ModerationQueue>(inclusive = false) }),
-                onBack = nav.back(),
-            )
+            PlaceholderScreen("36", "Pasar a finalizada (parte 2)", emptyList(), onBack = nav.back())
         }
     }
 }

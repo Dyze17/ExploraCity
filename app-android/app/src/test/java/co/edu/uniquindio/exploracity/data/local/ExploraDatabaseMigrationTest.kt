@@ -72,6 +72,21 @@ class ExploraDatabaseMigrationTest {
         database.close()
     }
 
+    @Test
+    fun `de la 4 a la actual conserva el perfil guardado y agrega la cola de moderación vacía`() {
+        createVersion(4) {
+            execSQL("INSERT INTO cache_info (`key`, savedAtMillis) VALUES ('notifications', 2000)")
+        }
+
+        val database = Room.databaseBuilder(context, ExploraDatabase::class.java, NAME).allowMainThreadQueries().build()
+        runBlocking {
+            assertEquals(2000L, database.notificationsDao().savedAt())
+            assertEquals(emptyList<SavedReviewEntity>(), database.reviewsDao().all())
+            assertNull(database.reviewsDao().savedAt())
+        }
+        database.close()
+    }
+
     /** La base tal como la dejaba la versión [version] de la app, con los datos de [fill]. */
     private fun createVersion(version: Int, fill: SQLiteDatabase.() -> Unit) {
         val schema = Json.parseToJsonElement(File("schemas/${ExploraDatabase::class.qualifiedName}/$version.json").readText())

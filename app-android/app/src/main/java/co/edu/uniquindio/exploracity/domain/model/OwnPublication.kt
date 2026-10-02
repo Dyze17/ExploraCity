@@ -78,6 +78,10 @@ data class OwnPublication(
     val pointsEarned: Int = 0,
     /** Pendiente que el autor confirmó como distinta de un lugar cercano: el moderador la revisa como posible duplicado (ADR-14). */
     val possibleDuplicate: Boolean = false,
+    /** 17B · Los lugares parecidos que el autor dijo que son otro: el moderador los compara (33A). */
+    val similarIds: List<String> = emptyList(),
+    /** 17B · «¿En qué se diferencia?», si dejó la nota. */
+    val duplicateNote: String? = null,
     /** Solo en las rechazadas. */
     val rejection: Rejection? = null,
 ) {

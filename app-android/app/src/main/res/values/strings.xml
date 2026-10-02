@@ -1212,4 +1212,170 @@
     </plurals>
     <string name="settings_email_pending">Falta confirmar %1$s</string>
     <string name="settings_email_changed">Listo, tu correo ahora es %1$s</string>
+    <!-- 32 · Cola de pendientes y 37 · Cola vacía -->
+    <string name="moderation_title">Moderación</string>
+    <plurals name="moderation_waiting">
+        <item quantity="one">%d espera revisión</item>
+        <item quantity="many">%d esperan revisión</item>
+        <item quantity="other">%d esperan revisión</item>
+    </plurals>
+    <string name="moderation_updated_ago">Última actualización: %1$s</string>
+    <string name="moderation_nothing_pending">Nada pendiente</string>
+    <string name="moderation_badge">Moderador</string>
+    <string name="moderation_filter_all">Pendientes · %1$d</string>
+    <string name="moderation_filter_duplicates">Posibles duplicados · %1$d</string>
+    <string name="moderation_filters">Filtrar la cola</string>
+    <string name="moderation_resolved">Resueltas</string>
+    <string name="moderation_sort">Más antiguas</string>
+    <string name="moderation_sort_description">Ordenadas de la más antigua a la más reciente</string>
+    <plurals name="moderation_waiting_days">
+        <item quantity="one">Lleva %d día</item>
+        <item quantity="many">Lleva %d días</item>
+        <item quantity="other">Lleva %d días</item>
+    </plurals>
+    <plurals name="moderation_waiting_hours">
+        <item quantity="one">Hace %d hora</item>
+        <item quantity="many">Hace %d horas</item>
+        <item quantity="other">Hace %d horas</item>
+    </plurals>
+    <plurals name="moderation_waiting_minutes">
+        <item quantity="one">Hace %d minuto</item>
+        <item quantity="many">Hace %d minutos</item>
+        <item quantity="other">Hace %d minutos</item>
+    </plurals>
+    <plurals name="moderation_waiting_days_spoken">
+        <item quantity="one">lleva %d día esperando</item>
+        <item quantity="many">lleva %d días esperando</item>
+        <item quantity="other">lleva %d días esperando</item>
+    </plurals>
+    <plurals name="moderation_waiting_hours_spoken">
+        <item quantity="one">llegó hace %d hora</item>
+        <item quantity="many">llegó hace %d horas</item>
+        <item quantity="other">llegó hace %d horas</item>
+    </plurals>
+    <plurals name="moderation_waiting_minutes_spoken">
+        <item quantity="one">llegó hace %d minuto</item>
+        <item quantity="many">llegó hace %d minutos</item>
+        <item quantity="other">llegó hace %d minutos</item>
+    </plurals>
+    <plurals name="moderation_photos">
+        <item quantity="one">%d foto</item>
+        <item quantity="many">%d fotos</item>
+        <item quantity="other">%d fotos</item>
+    </plurals>
+    <string name="moderation_card_author">%1$s · %2$s · %3$s</string>
+    <string name="moderation_card_similar">%1$s · parecido a «%2$s»</string>
+    <plurals name="moderation_card_similar_many">
+        <item quantity="one">%1$s · parecido a %2$d lugar</item>
+        <item quantity="many">%1$s · parecido a %2$d lugares</item>
+        <item quantity="other">%1$s · parecido a %2$d lugares</item>
+    </plurals>
+    <string name="moderation_card_description">%1$s, %2$s, %3$s, de %4$s, %5$s</string>
+    <string name="moderation_card_duplicate_spoken">posible duplicado</string>
+    <string name="moderation_offline_body">Puedes leer la cola guardada, pero no verificar ni rechazar hasta que vuelva el internet.</string>
+    <string name="moderation_offline_hint">Los botones de verificar y rechazar están inhabilitados sin conexión para no dejar decisiones a medias.</string>
+    <string name="moderation_offline_nothing">Necesitas internet para cargar la cola. Cuando la abras con conexión, quedará guardada para leerla sin ella.</string>
+    <string name="moderation_error_title">No pudimos cargar la cola</string>
+    <string name="moderation_no_duplicates_title">No hay posibles duplicados por revisar</string>
+    <plurals name="moderation_no_duplicates_body">
+        <item quantity="one">La publicación pendiente no se parece a lugares existentes.</item>
+        <item quantity="many">Las %d publicaciones pendientes no se parecen a lugares existentes.</item>
+        <item quantity="other">Las %d publicaciones pendientes no se parecen a lugares existentes.</item>
+    </plurals>
+    <string name="moderation_see_all">Ver todas las pendientes</string>
+    <plurals name="moderation_updated">
+        <item quantity="one">La cola se actualizó: %d nueva</item>
+        <item quantity="many">La cola se actualizó: %d nuevas</item>
+        <item quantity="other">La cola se actualizó: %d nuevas</item>
+    </plurals>
+    <string name="moderation_updated_none">La cola se actualizó.</string>
+    <string name="moderation_all_reviewed">Verificada. Revisaste toda la cola.</string>
+    <string name="moderation_empty_title">No hay publicaciones pendientes</string>
+    <string name="moderation_empty_body">Revisaste todo lo que había. Cuando alguien publique un lugar nuevo, aparecerá aquí.</string>
+    <string name="moderation_work_title">Tu trabajo de hoy</string>
+    <string name="moderation_work_verified">Verificadas</string>
+    <string name="moderation_work_rejected">Rechazadas</string>
+    <string name="moderation_work_finalized">Finalizadas</string>
+    <string name="moderation_work_spoken">%1$s: %2$d verificadas, %3$d rechazadas y %4$d finalizadas</string>
+    <string name="moderation_see_resolved">Ver publicaciones resueltas</string>
+    <string name="moderation_go_explore">Ir a explorar</string>
+
+    <!-- 33 · Detalle de revisión y 34 · Verificar -->
+    <string name="review_title">Revisar publicación</string>
+    <string name="review_position">%1$d de %2$d · %3$s</string>
+    <plurals name="review_waiting_days">
+        <item quantity="one">lleva %d día</item>
+        <item quantity="many">lleva %d días</item>
+        <item quantity="other">lleva %d días</item>
+    </plurals>
+    <plurals name="review_waiting_hours">
+        <item quantity="one">llegó hace %d hora</item>
+        <item quantity="many">llegó hace %d horas</item>
+        <item quantity="other">llegó hace %d horas</item>
+    </plurals>
+    <plurals name="review_waiting_minutes">
+        <item quantity="one">llegó hace %d minuto</item>
+        <item quantity="many">llegó hace %d minutos</item>
+        <item quantity="other">llegó hace %d minutos</item>
+    </plurals>
+    <string name="review_category_suggested">Categoría sugerida</string>
+    <string name="review_category_chosen">Elegida por el autor</string>
+    <string name="review_place">%1$s · %2$s</string>
+    <string name="review_no_hours">Sin horario exacto</string>
+    <string name="review_no_price">Sin rango de precio</string>
+    <string name="review_open_map">Abrir mapa grande</string>
+    <string name="review_map_title">Ubicación de «%1$s»</string>
+    <plurals name="review_verified_count">
+        <item quantity="one">%d verificada</item>
+        <item quantity="many">%d verificadas</item>
+        <item quantity="other">%d verificadas</item>
+    </plurals>
+    <plurals name="review_rejected_count">
+        <item quantity="one">%d rechazo previo</item>
+        <item quantity="many">%d rechazos previos</item>
+        <item quantity="other">%d rechazos previos</item>
+    </plurals>
+    <string name="review_author_history">%1$s · %2$s</string>
+    <string name="review_report">Un usuario reportó esta publicación por «%1$s». Revísala antes de decidir.</string>
+    <string name="review_duplicate_title">Posible duplicado</string>
+    <string name="review_duplicate_one">Se parece a «%1$s», a %2$d m.</string>
+    <plurals name="review_duplicate_many">
+        <item quantity="one">Se parece a %d lugar cercano.</item>
+        <item quantity="many">Se parece a %d lugares cercanos.</item>
+        <item quantity="other">Se parece a %d lugares cercanos.</item>
+    </plurals>
+    <string name="review_duplicate_note">Quien la publicó dejó una nota.</string>
+    <string name="review_compare">Comparar lugares</string>
+    <string name="review_reject">Rechazar</string>
+    <string name="review_verify">Verificar</string>
+    <string name="review_offline">Sin conexión. Puedes leer la publicación, pero no verificar ni rechazar hasta que vuelva el internet.</string>
+    <string name="review_offline_reason">necesitas internet para decidir</string>
+    <string name="review_offline_body">Necesitas internet para abrir esta publicación.</string>
+    <string name="review_error_title">No pudimos abrir la publicación</string>
+    <string name="review_gone_title">Ya no está pendiente</string>
+    <string name="review_gone_body">Otra persona del equipo ya la revisó. Vuelve a la cola para seguir.</string>
+    <string name="review_back_to_queue">Volver a la cola</string>
+    <string name="review_photo">Foto %1$d de %2$d</string>
+    <string name="review_photo_cover">Foto %1$d de %2$d, portada</string>
+    <string name="review_photo_open">ver a pantalla completa</string>
+    <plurals name="review_verified_next">
+        <item quantity="one">Verificada. Queda %d por revisar</item>
+        <item quantity="many">Verificada. Quedan %d por revisar</item>
+        <item quantity="other">Verificada. Quedan %d por revisar</item>
+    </plurals>
+    <string name="review_verify_failed">No pudimos guardar la decisión. La publicación sigue pendiente</string>
+    <string name="verify_title">¿Verificar «%1$s»?</string>
+    <string name="verify_body">Quedará visible en el feed público y en el mapa. %1$s recibirá el aviso y sus puntos. Podrás cambiar el estado después si hace falta.</string>
+    <string name="verify_duplicate_warning">Esta publicación se parece a un lugar existente. ¿Quieres verificarla de todos modos?</string>
+    <string name="verify_note">Nota interna (opcional)</string>
+    <string name="verify_note_placeholder">Solo la ven los moderadores</string>
+    <string name="verify_note_counter">%1$d/%2$d</string>
+    <string name="verify_cancel">Cancelar</string>
+    <string name="verify_confirm">Sí, verificar</string>
+    <string name="verify_sending">Verificando…</string>
+
+    <!-- Fotos a pantalla completa (33) -->
+    <string name="photo_viewer_close">Cerrar las fotos</string>
+    <string name="photo_viewer_hint">Pellizca o toca dos veces para acercar</string>
+    <string name="map_dialog_close">Cerrar el mapa</string>
 </resources>

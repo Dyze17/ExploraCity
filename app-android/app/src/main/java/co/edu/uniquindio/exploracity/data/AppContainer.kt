@@ -45,6 +45,7 @@ import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeUserRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
+import co.edu.uniquindio.exploracity.data.repository.OfflineModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
@@ -98,7 +99,7 @@ class AppContainer(context: Context) {
     private val database = ExploraDatabase.build(context)
     private val server = FakePoiRepository(currentUser = currentUser)
 
-    private val notificationServer: NotificationRepository = FakeNotificationRepository()
+    private val notificationServer = FakeNotificationRepository()
 
     private val publicationServer = FakePublicationRepository(server, currentUser = currentUser)
 
@@ -209,7 +210,15 @@ class AppContainer(context: Context) {
 
     /** Dirección aproximada del pin y búsqueda por dirección (17), con el Geocoder de Android. */
     val addressResolver: AddressResolver = OnlineOnlyAddressResolver(GeocoderAddressResolver(context), connectivity)
-    val moderationRepository: ModerationRepository = FakeModerationRepository()
+
+    /** 32–37 · La cola de moderación, guardada en el teléfono para leerla sin conexión (32.c). */
+    val moderationRepository: ModerationRepository = OfflineModerationRepository(
+        remote = FakeModerationRepository(server, publicationServer, notificationServer),
+        dao = database.reviewsDao(),
+        connectivity = connectivity,
+        scope = appScope,
+    )
+
     val locationProvider: LocationProvider = SimulatedLocationProvider()
 
     /** Temporal: llegará de la ubicación del dispositivo y la geocodificación de Google Maps (ADR-08). */

@@ -59,6 +59,24 @@ class FakePoiRepository(
     /** Lugares que su autor eliminó (22–24): dejan de estar en el feed, el mapa y el detalle. */
     private val removed = mutableSetOf<String>()
 
+    /** Lugares que un moderador verificó en esta sesión (34), con su detalle: entran al feed, al mapa y al detalle. */
+    private val published = mutableListOf<Poi>()
+    private val publishedDetails = mutableMapOf<String, PoiDetails>()
+
+    /** Temporal: el servidor de moderación publica aquí lo que verifica; con la API real lo hace el backend. */
+    fun publish(details: PoiDetails) {
+        val poi = details.poi
+        published.removeAll { it.id == poi.id }
+        published += poi
+        publishedDetails[poi.id] = details
+        votes[poi.id] = poi.votes
+        comments[poi.id] = mutableListOf()
+        removed -= poi.id
+    }
+
+    /** El detalle de un lugar: el que llegó al verificarlo o, si no, el de los datos de muestra. */
+    internal fun detailsOf(poi: Poi): PoiDetails = publishedDetails[poi.id]?.copy(poi = poi) ?: sampleDetails(poi)
+
     /** Temporal: el servidor de publicaciones borra aquí las públicas; con la API real esto lo hace el backend. */
     fun remove(id: String) {
         removed += id
@@ -83,7 +101,7 @@ class FakePoiRepository(
     override suspend fun poiDetails(id: String): PoiDetails? {
         delay(latency)
         val poi = current().firstOrNull { it.id == id } ?: return null
-        return sampleDetails(poi).copy(voted = id in voted, visited = id in visited)
+        return detailsOf(poi).copy(voted = id in voted, visited = id in visited)
     }
 
     /** El servidor no guarda nada para ver sin conexión: eso lo hace OfflinePoiRepository en el teléfono. */
@@ -128,7 +146,7 @@ class FakePoiRepository(
 
     private fun commentsOf(poi: Poi): MutableList<Comment> = comments.getOrPut(poi.id) { sampleComments(poi, clock.instant()).toMutableList() }
 
-    private fun current(): List<Poi> = pois.filter { it.id !in removed }.map { poi ->
+    private fun current(): List<Poi> = (pois + published).filter { it.id !in removed }.map { poi ->
         poi.copy(votes = votes[poi.id] ?: poi.votes, comments = comments[poi.id]?.size ?: poi.comments)
     }
 

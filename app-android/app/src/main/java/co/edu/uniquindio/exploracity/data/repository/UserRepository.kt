@@ -120,7 +120,7 @@ class FakeUserRepository(
     }
 
     private suspend fun placesBy(userId: String): List<Poi> =
-        pois.feedPage(FeedQuery(), 0, pageSize = Int.MAX_VALUE).items.filter { sampleDetails(it).author.id == userId }
+        pois.feedPage(FeedQuery(), 0, pageSize = Int.MAX_VALUE).items.filter { pois.detailsOf(it).author.id == userId }
 
     private companion object {
         /** Lo único que un perfil público muestra de los lugares de otra persona (README 31). */
