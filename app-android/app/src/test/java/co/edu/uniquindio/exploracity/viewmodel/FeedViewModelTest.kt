@@ -3,8 +3,10 @@ package co.edu.uniquindio.exploracity.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.repository.FakeModerationRepository
+import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeOfflineRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
+import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.FeedPage
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
@@ -46,7 +48,7 @@ class FeedViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(repository: PoiRepository = FakePoiRepository(), moderator: Boolean = false) =
-        FeedViewModel(repository, FakeModerationRepository(), connectivity, areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
+        FeedViewModel(repository, sampleModeration(), connectivity, areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
 
     private val FeedViewModel.loaded get() = state.value.content as FeedContent.Loaded
 
@@ -399,7 +401,7 @@ class FeedViewModelTest {
     fun `si el sistema cierra la app con la hoja abierta, el borrador sigue ahí para aplicarlo`() = runTest(dispatcher) {
         // Pasa al negar el permiso de ubicación: Android mata el proceso y el resultado llega a uno nuevo.
         val savedState = SavedStateHandle()
-        val before = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        val before = FeedViewModel(FakePoiRepository(), sampleModeration(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
         advanceUntilIdle()
         before.onQueryChange("parque")
         before.onToggleCategory(Category.ENTERTAINMENT)
@@ -408,7 +410,7 @@ class FeedViewModelTest {
         before.onDraftChange(draft)
         advanceUntilIdle()
 
-        val after = FeedViewModel(FakePoiRepository(), FakeModerationRepository(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        val after = FeedViewModel(FakePoiRepository(), sampleModeration(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
         advanceUntilIdle()
 
         assertEquals("parque", after.state.value.query)
@@ -448,4 +450,10 @@ class FeedViewModelTest {
     private class CountFailingRepository : PoiRepository by FakePoiRepository() {
         override suspend fun count(query: FeedQuery): Int = throw IOException("sin red")
     }
+}
+
+/** La cola de prueba (7 pendientes, la más antigua de hace 3 días), para la tarjeta del moderador (7.c). */
+private fun sampleModeration(): FakeModerationRepository {
+    val pois = FakePoiRepository()
+    return FakeModerationRepository(pois, FakePublicationRepository(pois), FakeNotificationRepository())
 }

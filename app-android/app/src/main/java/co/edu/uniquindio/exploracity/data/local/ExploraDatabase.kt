@@ -15,6 +15,7 @@ import androidx.room.TypeConverters
  * - 2: la cola de envío (pending_actions).
  * - 3: los últimos avisos (saved_notifications, 25).
  * - 4: el último perfil propio (saved_profile, 26 y 27).
+ * - 5: la última cola de moderación (saved_reviews, 32 y 33).
  */
 @Database(
     entities = [
@@ -24,9 +25,15 @@ import androidx.room.TypeConverters
         PendingActionEntity::class,
         SavedNotificationEntity::class,
         SavedProfileEntity::class,
+        SavedReviewEntity::class,
     ],
-    version = 4,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
+    version = 5,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2),
+        AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5),
+    ],
 )
 @TypeConverters(SavedPlacesConverters::class)
 abstract class ExploraDatabase : RoomDatabase() {
@@ -37,6 +44,8 @@ abstract class ExploraDatabase : RoomDatabase() {
     abstract fun notificationsDao(): NotificationsDao
 
     abstract fun profileDao(): ProfileDao
+
+    abstract fun reviewsDao(): ReviewsDao
 
     companion object {
         fun build(context: Context): ExploraDatabase =

@@ -144,5 +144,8 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 
 @Serializable data class FinalizePublication(val publicationId: String) // 36
 
+/** Sin lienzo (E1): las publicaciones ya decididas; una verificada abre 36. Llega en la parte 2 de Moderación. */
+@Serializable data object ResolvedPublications
+
 /** Solo desarrollo: muestrario del sistema de diseño, accesible desde Ajustes. */
 @Serializable data object DesignSystemCatalog

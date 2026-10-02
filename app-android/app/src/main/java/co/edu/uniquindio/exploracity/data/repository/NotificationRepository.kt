@@ -60,6 +60,9 @@ class FakeNotificationRepository(
         update { list -> list.map { it.markedRead() } }
     }
 
+    /** Temporal: un aviso que manda el servidor de moderación al decidir (34–36); con la API lo envía el backend. */
+    internal fun deliver(notification: Notification) = update { list -> listOf(notification) + list }
+
     private fun update(change: (List<Notification>) -> List<Notification>) {
         items.value = change(items.value)
         unread.value = items.value.count { !it.read }

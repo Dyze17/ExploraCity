@@ -45,6 +45,7 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
     val tabs = topLevelDestinations(role)
     val showBottomBar = destination != null && routesWithBottomBar.any { destination.hasRoute(it) }
     val unread by container.notificationRepository.unreadCount.collectAsStateWithLifecycle()
+    val pendingReviews by container.moderationRepository.pendingCount.collectAsStateWithLifecycle()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -53,8 +54,12 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
                 ExploraNavigationBar(
                     items = tabs.map { tab ->
                         val label = stringResource(tab.label)
-                        // La cola de moderación (32) todavía no tiene datos: su badge llega con esa pantalla.
-                        val count = if (tab == TopLevelDestination.NOTIFICATIONS) unread else 0
+                        // El de Moderación desaparece cuando la cola llega a cero (37).
+                        val count = when (tab) {
+                            TopLevelDestination.NOTIFICATIONS -> unread
+                            TopLevelDestination.MODERATION -> pendingReviews
+                            else -> 0
+                        }
                         NavigationBarItem(icon = tab.icon, label = label, badgeCount = count, badgeDescription = badgeDescription(tab, label, count))
                     },
                     selectedIndex = tabs.indexOfFirst { tab -> destination.hierarchy.any { it.hasRoute(tab.graph::class) } }

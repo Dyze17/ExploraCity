@@ -37,8 +37,8 @@ class FakeDuplicateFinderTest {
 
     @Test
     fun `también compara con las publicaciones pendientes, no con las rechazadas`() = runTest {
-        // Panadería La Candelaria (pendiente) está en 4.5966, -74.0718; Puerta Falsa, tamales (rechazada), junto a La Puerta Falsa.
-        val bakery = finder.similarPlaces("Panadería Candelaria", GeoPoint(4.5967, -74.0718))
+        // Panadería La Candelaria (pendiente) está en 4.59675, -74.06995; Puerta Falsa, tamales (rechazada), junto a La Puerta Falsa.
+        val bakery = finder.similarPlaces("Panadería Candelaria", GeoPoint(4.5968, -74.0700))
         assertEquals(listOf("panaderia-la-candelaria" to PublicationStatus.PENDING), bakery.map { it.id to it.status })
 
         val tamales = finder.similarPlaces("Puerta Falsa, tamales", nearPuertaFalsa)
