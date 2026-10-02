@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -42,6 +41,7 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.util.hasEmailApp
@@ -125,7 +125,7 @@ fun RecoveryEmailSentScreen(state: RecoveryEmailSentUiState, callbacks: Recovery
             ExploraButton(stringResource(R.string.back_to_login), onClick = callbacks.onBackToLogin, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
             if (state.demoLinks) DemoLinks(state.demoNoMail, callbacks.onDemoLink)
         }
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
+        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
     }
 }
 

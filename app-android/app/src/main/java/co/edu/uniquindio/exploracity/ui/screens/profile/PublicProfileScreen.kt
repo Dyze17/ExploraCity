@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,6 +64,7 @@ import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.ui.components.InitialsAvatar
 import co.edu.uniquindio.exploracity.ui.components.LevelChip
@@ -180,7 +180,7 @@ fun PublicProfileScreen(state: PublicProfileUiState, callbacks: ProfileCallbacks
                 }
             }
         }
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars))
+        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars))
     }
 
     if (profile != null) {

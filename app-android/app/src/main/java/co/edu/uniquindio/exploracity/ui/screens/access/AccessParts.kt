@@ -4,12 +4,15 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -153,8 +156,9 @@ internal fun AccessIcon(@DrawableRes icon: Int, container: Color, content: Color
 }
 
 /**
- * 6.a y 6C · Mensaje centrado (icono, titular y explicación) con las acciones abajo. Con fuente grande el mensaje se
- * desplaza y las acciones quedan a la vista. Sin barra superior: el lector empieza por el titular.
+ * 6.a y 6C · Mensaje centrado (icono, titular y explicación) con las acciones abajo. Todo se desplaza junto: con fuente
+ * grande las acciones fijas dejaban el mensaje en una franja cortada. Sin barra superior: el lector empieza por el
+ * titular.
  */
 @Composable
 internal fun AccessMessage(
@@ -169,34 +173,42 @@ internal fun AccessMessage(
 ) {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).windowInsetsPadding(WindowInsets.safeDrawing)) {
         top()
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            // Al menos el alto visible: si sobra espacio, el mensaje queda centrado sobre las acciones, que van abajo.
             Column(
-                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                AccessIcon(icon, iconContainer, iconContent)
-                Text(
-                    title,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Outfit, fontWeight = FontWeight.W600, fontSize = 26.sp, lineHeight = 34.sp),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    body,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 22.sp),
-                    color = MaterialTheme.exploraColors.textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.widthIn(max = 290.dp),
+                Spacer(Modifier)
+                Column(
+                    Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    AccessIcon(icon, iconContainer, iconContent)
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Outfit, fontWeight = FontWeight.W600, fontSize = 26.sp, lineHeight = 34.sp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        body,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 22.sp),
+                        color = MaterialTheme.exploraColors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.widthIn(max = 290.dp),
+                    )
+                }
+                Column(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    content = actions,
                 )
             }
         }
-        Column(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            content = actions,
-        )
     }
 }
 

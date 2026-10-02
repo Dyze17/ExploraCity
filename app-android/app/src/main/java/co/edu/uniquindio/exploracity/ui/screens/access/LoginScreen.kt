@@ -24,7 +24,6 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -58,6 +57,7 @@ import co.edu.uniquindio.exploracity.domain.model.DemoAccount
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
@@ -180,7 +180,7 @@ fun LoginScreen(state: LoginUiState, callbacks: LoginCallbacks, modifier: Modifi
                 FirstTime(callbacks.onCreateAccount)
             }
         }
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
+        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
     }
 }
 

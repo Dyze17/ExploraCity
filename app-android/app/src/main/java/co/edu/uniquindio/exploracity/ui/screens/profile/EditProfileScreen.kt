@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +53,7 @@ import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.ui.components.InitialsAvatar
@@ -169,7 +169,7 @@ fun EditProfileScreen(state: EditProfileUiState, callbacks: EditProfileCallbacks
                 }
             }
         }
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars))
+        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars))
     }
 
     if (state.discardDialog) {

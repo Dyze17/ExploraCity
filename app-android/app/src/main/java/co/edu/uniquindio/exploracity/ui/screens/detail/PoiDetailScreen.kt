@@ -35,7 +35,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -95,6 +94,7 @@ import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.LevelChip
 import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
@@ -245,7 +245,7 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
             onShare = state.details?.let { details -> { callbacks.onShare(details) } },
             solid = solidTop,
         )
-        SnackbarHost(
+        ExploraSnackbarHost(
             snackbarHostState,
             Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 72.dp),
         )
