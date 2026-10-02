@@ -48,6 +48,20 @@ interface AuthRepository {
     suspend fun resetPassword(token: String, password: String)
 }
 
+/**
+ * Temporal hasta que exista la API: lo que el servidor falso de la cuenta («Cambiar correo») consulta al de acceso. Con
+ * la API es un solo servidor.
+ */
+interface FakeCredentials {
+    fun hasAccount(email: String): Boolean
+
+    /** Sin contraseñas en el repositorio: vale cualquiera que cumpla las reglas del inicio de sesión. */
+    fun matches(email: String, password: String): Boolean
+
+    /** El correo de la cuenta cambió: se entra con [to] y ya no con [from]. */
+    fun moveAccount(from: String, to: String)
+}
+
 /** Solo en desarrollo: lo que llegaría al correo, para abrir 6.b y 6C desde 6.a sin un buzón real. */
 interface DemoMailbox {
     /** El último enlace de recuperación que llegó a [email] y aún sirve; null si no llegó ninguno (sin cuenta, no llega). */
@@ -71,7 +85,7 @@ class FakeAuthRepository(
     private val clock: Clock = Clock.systemUTC(),
     private val welcomeEmailFails: Boolean = false,
     private val resetEmailFails: Boolean = false,
-) : AuthRepository, DemoMailbox {
+) : AuthRepository, DemoMailbox, FakeCredentials {
 
     /** Un enlace enviado; [used] cuando ya sirvió para cambiar la contraseña. */
     private class IssuedLink(val link: ResetLink, val used: Boolean = false)
@@ -80,9 +94,26 @@ class FakeAuthRepository(
     private val registered = ConcurrentHashMap<String, UserRole>()
     private val links = ConcurrentHashMap<String, IssuedLink>()
 
+    // Correos que dejaron de ser de una cuenta porque cambió («Cambiar correo»).
+    private val replaced = ConcurrentHashMap.newKeySet<String>()
+
     private fun key(email: String) = email.trim().lowercase()
 
-    private fun roleOf(email: String): UserRole? = accounts[key(email)] ?: registered[key(email)]
+    private fun roleOf(email: String): UserRole? {
+        val key = key(email)
+        return registered[key] ?: accounts[key]?.takeUnless { key in replaced }
+    }
+
+    override fun hasAccount(email: String): Boolean = roleOf(email) != null
+
+    override fun matches(email: String, password: String): Boolean = hasAccount(email) && AuthRules.isValidPassword(password)
+
+    override fun moveAccount(from: String, to: String) {
+        val role = roleOf(from) ?: return
+        registered.remove(key(from))
+        replaced += key(from)
+        registered[key(to)] = role
+    }
 
     override suspend fun signIn(email: String, password: String): UserRole {
         delay(latency)

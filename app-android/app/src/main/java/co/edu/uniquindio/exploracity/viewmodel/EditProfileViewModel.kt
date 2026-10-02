@@ -73,7 +73,7 @@ class EditProfileViewModel(
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
-        EditProfileUiState(email = accounts.account().email, nameTouched = savedStateHandle[NAME_TOUCHED_KEY] ?: false),
+        EditProfileUiState(email = accounts.account.value.email, nameTouched = savedStateHandle[NAME_TOUCHED_KEY] ?: false),
     )
     val state: StateFlow<EditProfileUiState> = _state.asStateFlow()
 

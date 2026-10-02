@@ -30,7 +30,11 @@ import co.edu.uniquindio.exploracity.ui.screens.access.RecoverPasswordRoute
 import co.edu.uniquindio.exploracity.ui.screens.access.RecoveryEmailSentRoute
 import co.edu.uniquindio.exploracity.ui.screens.access.RegisterRoute
 import co.edu.uniquindio.exploracity.ui.screens.access.SplashRoute
+import co.edu.uniquindio.exploracity.ui.screens.account.ChangeEmailRoute
+import co.edu.uniquindio.exploracity.ui.screens.account.ConfirmEmailRoute
 import co.edu.uniquindio.exploracity.ui.screens.account.DeleteAccountRoute
+import co.edu.uniquindio.exploracity.ui.screens.account.EmailChangeSentRoute
+import co.edu.uniquindio.exploracity.ui.screens.account.EmailLinkExpiredScreen
 import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
 import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
@@ -112,6 +116,15 @@ private fun NavController.backToLogin(notice: SessionNotice? = null, email: Stri
     val entry = currentBackStackEntry ?: return
     if (notice != null) entry.savedStateHandle[SESSION_NOTICE_KEY] = notice.name
     if (email != null) entry.savedStateHandle[SUGGESTED_EMAIL_KEY] = email
+}
+
+/** Marca en la entrada de Ajustes (29) con el correo nuevo ya confirmado, para decirlo una vez. */
+private const val EMAIL_CHANGED_KEY = "correo_cambiado"
+
+/** Vuelve a Ajustes (29), que suele estar debajo; si no está (un enlace abierto desde fuera), lo abre. */
+private fun NavController.backToSettings(emailChanged: String? = null) {
+    if (!popBackStack<Settings>(inclusive = false)) navigate(Settings)
+    if (emailChanged != null) currentBackStackEntry?.savedStateHandle?.set(EMAIL_CHANGED_KEY, emailChanged)
 }
 
 /** Sale de la app al inicio de sesión (3) sin dejar nada detrás, con [notice] para decirlo allí. */
@@ -381,19 +394,47 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionN
                 onDeleted = { nav.openMyPublications(PublicationMessage.DELETED) },
             )
         }
-        composable<Settings> {
+        composable<Settings> { entry ->
+            val emailChanged by entry.savedStateHandle.getStateFlow<String?>(EMAIL_CHANGED_KEY, null).collectAsStateWithLifecycle()
             SettingsRoute(
                 onBack = nav.back(),
                 onOpenPolicy = { nav.navigate(LegalDocuments(LegalTab.POLICY)) },
                 onOpenPrivacyNotice = { nav.navigate(LegalDocuments(LegalTab.PRIVACY_NOTICE)) },
-                onChangeEmail = { nav.navigate(ChangeEmail) },
+                onChangeEmail = { nav.navigate(ChangeEmail()) },
                 onDeleteAccount = { nav.navigate(DeleteAccount) },
                 onSignedOut = { onLogout(SessionNotice.SIGNED_OUT) },
                 onOpenDesignCatalog = { nav.navigate(DesignSystemCatalog) },
+                emailChanged = emailChanged,
+                onEmailChangedShown = { entry.savedStateHandle[EMAIL_CHANGED_KEY] = null },
             )
         }
         composable<ChangeEmail> {
-            PlaceholderScreen("sin número (pendiente de diseño)", stringResource(R.string.change_email_title), emptyList(), onBack = nav.back())
+            ChangeEmailRoute(
+                onBack = nav.back(),
+                onSent = { sent -> nav.navigate(EmailChangeSent(sent.email, sent.currentEmail, sent.sentAtMillis)) },
+            )
+        }
+        composable<EmailChangeSent> { entry ->
+            EmailChangeSentRoute(
+                currentEmail = entry.toRoute<EmailChangeSent>().currentEmail,
+                onBackToSettings = { nav.backToSettings() },
+                onOpenLink = { token -> nav.navigate(ConfirmEmail(token)) },
+            )
+        }
+        composable<ConfirmEmail> {
+            ConfirmEmailRoute(
+                onBack = nav.back(),
+                onConfirmed = { email -> nav.backToSettings(emailChanged = email) },
+                // Queda sobre Ajustes: «atrás» no vuelve a un enlace que ya no sirve.
+                onExpired = { email -> nav.navigate(EmailLinkExpired(email)) { popUpTo<Settings>() } },
+            )
+        }
+        composable<EmailLinkExpired> { entry ->
+            val email = entry.toRoute<EmailLinkExpired>().email
+            EmailLinkExpiredScreen(
+                onRequestNew = { nav.navigate(ChangeEmail(email)) { popUpTo<Settings>() } },
+                onBackToSettings = { nav.backToSettings() },
+            )
         }
         composable<DeleteAccount> {
             DeleteAccountRoute(onBack = nav.back(), onDeleted = { onLogout(SessionNotice.ACCOUNT_DELETED) })

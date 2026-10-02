@@ -112,8 +112,20 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 
 @Serializable data object Settings // 29
 
-/** Sin número en el diseño: «Cambiar correo» de Ajustes › Cuenta. Su pantalla se acuerda y llega en un PR aparte. */
-@Serializable data object ChangeEmail
+/**
+ * Sin número en el diseño: «Cambiar correo» de Ajustes › Cuenta. Abre con [newEmail] escrito al pedir otro enlace desde
+ * el vencido.
+ */
+@Serializable data class ChangeEmail(val newEmail: String = "")
+
+/** «Confirma tu correo nuevo»: el enlace salió hacia [email]; se sigue entrando con [currentEmail]. */
+@Serializable data class EmailChangeSent(val email: String, val currentEmail: String, val sentAtMillis: Long)
+
+/** El enlace que llegó al correo nuevo ([token]): confirma el cambio. */
+@Serializable data class ConfirmEmail(val token: String)
+
+/** El enlace del correo nuevo ya no sirve; [email] es ese correo, para pedir otro con él escrito. */
+@Serializable data class EmailLinkExpired(val email: String = "")
 
 /** Aviso que el inicio de sesión (3) muestra una vez al llegar desde la app. */
 @Keep @Serializable enum class SessionNotice { SIGNED_OUT, ACCOUNT_DELETED, PASSWORD_CHANGED }

@@ -23,7 +23,7 @@ class FakeAccountRepositoryTest {
     private val clock = Clock.fixed(Instant.parse("2026-09-27T03:00:00Z"), ZoneOffset.UTC)
     private val pois = FakePoiRepository()
     private val publications = FakePublicationRepository(pois)
-    private val repository = FakeAccountRepository(pois, publications, FakeUserRepository(pois, publications), clock)
+    private val repository = FakeAccountRepository(pois, publications, FakeUserRepository(pois, publications), FakeAuthRepository(), clock)
 
     private suspend fun exported(): JsonObject = Json.parseToJsonElement(repository.exportData().content).jsonObject
 
@@ -68,7 +68,7 @@ class FakeAccountRepositoryTest {
     fun `sin red no se puede descargar ni borrar la cuenta, pero el correo sí se conoce`() = runTest {
         val offline = OnlineOnlyAccountRepository(repository, FakeConnectivity(online = false))
 
-        assertEquals("ana.rios@correo.com", offline.account().email)
+        assertEquals("ana.rios@correo.com", offline.account.value.email)
         assertTrue(runCatching { offline.exportData() }.exceptionOrNull() is OfflineException)
         assertTrue(runCatching { offline.deleteAccount() }.exceptionOrNull() is OfflineException)
         assertTrue(!repository.deleted)

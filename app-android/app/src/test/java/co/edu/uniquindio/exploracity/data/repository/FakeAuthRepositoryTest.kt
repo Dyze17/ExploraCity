@@ -17,11 +17,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
 
 /** 3–6C · Las cuentas de prueba, el registro, los enlaces de recuperación y las reglas del formulario. */
 class FakeAuthRepositoryTest {
@@ -154,17 +149,4 @@ class FakeAuthRepositoryTest {
         assertFalse(AuthRules.isValidNewPassword(letters))
         assertFalse(AuthRules.isValidNewPassword(letters.take(3) + digits.take(1)))
     }
-}
-
-/** Un reloj que solo avanza cuando la prueba lo dice. */
-private class MutableClock(private var now: Instant = Instant.parse("2026-10-02T12:00:00Z")) : Clock() {
-    fun advanceMinutes(minutes: Long) {
-        now = now.plus(minutes, ChronoUnit.MINUTES)
-    }
-
-    override fun getZone(): ZoneId = ZoneOffset.UTC
-
-    override fun withZone(zone: ZoneId): Clock = this
-
-    override fun instant(): Instant = now
 }

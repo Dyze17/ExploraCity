@@ -3,29 +3,43 @@ package co.edu.uniquindio.exploracity.data.repository
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.Account
+import co.edu.uniquindio.exploracity.domain.model.AuthRules
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.DataExport
+import co.edu.uniquindio.exploracity.domain.model.EmailDeliveryException
+import co.edu.uniquindio.exploracity.domain.model.EmailTakenException
+import co.edu.uniquindio.exploracity.domain.model.ExpiredLinkException
+import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.UserLevel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toJavaDuration
 
 /** La cuenta de la sesión (SAD: componente de Usuarios): el correo y los datos personales (Ley 1581). */
 interface AccountRepository {
-    /** Llega con el inicio de sesión y se guarda con la sesión: no necesita red. */
-    fun account(): Account
+    /** Llega con el inicio de sesión y se guarda con la sesión: no necesita red. Cambia al confirmar un correo nuevo. */
+    val account: StateFlow<Account>
 
     /** 29 · «Descargar mis datos»: el servidor arma el archivo. Lanza excepción si falla la red. */
     suspend fun exportData(): DataExport
@@ -35,33 +49,125 @@ interface AccountRepository {
      * y votos quedan sin autor. Todo o nada: si lanza excepción, la cuenta sigue intacta.
      */
     suspend fun deleteAccount()
+
+    /**
+     * Cambiar correo · Pide el enlace al correo nuevo; el cambio se hace al abrirlo y, mientras tanto, queda pendiente
+     * en [account]. Otro pedido reemplaza al anterior (su enlace deja de servir). Lanza [InvalidCredentialsException]
+     * si la contraseña no coincide, [EmailTakenException] si el correo nuevo ya tiene cuenta y
+     * [EmailDeliveryException] si el correo no sale.
+     */
+    suspend fun requestEmailChange(newEmail: String, password: String)
+
+    /** Vuelve a enviar el enlace del cambio pendiente; el anterior deja de servir. */
+    suspend fun resendEmailChange()
+
+    /**
+     * Abre el enlace: el correo nuevo pasa a ser el de la cuenta y lo devuelve. Lanza [ExpiredLinkException] (con el
+     * correo nuevo) si venció o ya se usó.
+     */
+    suspend fun confirmEmailChange(token: String): String
+}
+
+/** Solo en desarrollo: el enlace para confirmar el correo nuevo que llegaría al buzón (lo abren los botones de prueba). */
+interface DemoEmailChangeMailbox {
+    /** El enlace del cambio pendiente; null si no hay ninguno. */
+    fun latestEmailChangeLink(): String?
+
+    /** Un enlace del cambio pendiente que ya venció; null si no hay cambio pendiente. */
+    fun expiredEmailChangeLink(): String?
 }
 
 /**
  * Temporal hasta que exista la API: arma el archivo con el perfil ([users]), las publicaciones ([publications]) y lo
  * que la persona hizo en el feed ([pois]). Las claves y los valores van en español: el archivo es para leerlo ella.
+ * El cambio de correo consulta las cuentas del servidor de acceso ([credentials]); sus enlaces vencen a los 30 minutos
+ * y sirven una vez. [emailFails] simula la caída del correo.
  */
 class FakeAccountRepository(
     private val pois: FakePoiRepository,
     private val publications: FakePublicationRepository,
     private val users: UserRepository,
+    private val credentials: FakeCredentials,
     private val clock: Clock = Clock.systemUTC(),
-    private val account: Account = sampleAccount,
+    account: Account = sampleAccount,
     private val latency: Duration = 900.milliseconds,
+    private val emailFails: Boolean = false,
     /** Lo que borra el resto del servidor falso con la cuenta (el perfil y su foto). */
     private val onDeleted: suspend () -> Unit = {},
-) : AccountRepository {
+) : AccountRepository, DemoEmailChangeMailbox {
+
+    /** Un enlace enviado al correo nuevo; [used] cuando ya confirmó el cambio o lo reemplazó otro. */
+    private class EmailLink(val email: String, val expiresAt: Instant, val used: Boolean = false)
+
+    private val current = MutableStateFlow(account)
+    override val account: StateFlow<Account> = current.asStateFlow()
+
+    // Los enlaces del cambio de correo; se pierden al cerrar la app, como el resto del servidor falso.
+    private val links = ConcurrentHashMap<String, EmailLink>()
 
     /** Para las pruebas: la cuenta ya se pidió borrar. Con la API, el inicio de sesión dejaría de aceptarla. */
     var deleted = false
         private set
 
-    override fun account(): Account = account
-
     override suspend fun deleteAccount() {
         delay(latency)
         onDeleted()
+        expireLinks()
+        current.update { it.copy(pendingEmail = null) }
         deleted = true
+    }
+
+    override suspend fun requestEmailChange(newEmail: String, password: String) {
+        delay(latency)
+        val email = newEmail.trim().lowercase()
+        val now = current.value
+        if (!credentials.matches(now.email, password)) throw InvalidCredentialsException()
+        require(email != now.email.lowercase()) { "Es el mismo correo" }
+        if (credentials.hasAccount(email)) throw EmailTakenException()
+        if (emailFails) throw EmailDeliveryException()
+        issue(email)
+        current.update { it.copy(pendingEmail = email) }
+    }
+
+    override suspend fun resendEmailChange() {
+        delay(latency)
+        val pending = checkNotNull(current.value.pendingEmail) { "No hay un cambio pendiente" }
+        if (emailFails) throw EmailDeliveryException()
+        issue(pending)
+    }
+
+    override suspend fun confirmEmailChange(token: String): String {
+        delay(latency)
+        val link = links[token] ?: throw ExpiredLinkException(email = "")
+        if (link.used || !clock.instant().isBefore(link.expiresAt)) throw ExpiredLinkException(link.email)
+        // Otra persona pudo registrarse con ese correo mientras tanto.
+        if (credentials.hasAccount(link.email)) throw EmailTakenException()
+        credentials.moveAccount(current.value.email, link.email)
+        links[token] = EmailLink(link.email, link.expiresAt, used = true)
+        current.value = Account(link.email)
+        return link.email
+    }
+
+    override fun latestEmailChangeLink(): String? {
+        val now = clock.instant()
+        return links.entries.firstOrNull { (_, link) -> !link.used && now.isBefore(link.expiresAt) }?.key
+    }
+
+    override fun expiredEmailChangeLink(): String? {
+        val pending = current.value.pendingEmail ?: return null
+        val token = UUID.randomUUID().toString()
+        links[token] = EmailLink(pending, clock.instant() - 1.minutes.toJavaDuration())
+        return token
+    }
+
+    /** Un enlace nuevo para [email]; los anteriores dejan de servir. */
+    private fun issue(email: String) {
+        expireLinks()
+        links[UUID.randomUUID().toString()] = EmailLink(email, clock.instant() + AuthRules.RESET_LINK_DURATION.toJavaDuration())
+    }
+
+    private fun expireLinks() {
+        links.replaceAll { _, link -> EmailLink(link.email, link.expiresAt, used = true) }
     }
 
     override suspend fun exportData(): DataExport {
@@ -71,7 +177,7 @@ class FakeAccountRepository(
         val export = ExportFile(
             generatedAt = clock.instant().toString(),
             account = ExportAccount(
-                email = account.email,
+                email = current.value.email,
                 name = profile.author.name,
                 residency = if (profile.residency == Residency.RESIDENT) "Residente" else "De visita",
                 city = profile.city,
@@ -162,21 +268,40 @@ class FakeAccountRepository(
     }
 }
 
-/** El correo es de la sesión; el archivo y el borrado necesitan al servidor. */
+/** El correo es de la sesión; el archivo, el borrado y el cambio de correo necesitan al servidor. */
 class OnlineOnlyAccountRepository(
     private val remote: AccountRepository,
     private val connectivity: ConnectivityObserver,
 ) : AccountRepository {
-    override fun account(): Account = remote.account()
+    override val account: StateFlow<Account> = remote.account
+
+    private fun requireOnline() {
+        if (!connectivity.isOnline.value) throw OfflineException()
+    }
 
     override suspend fun exportData(): DataExport {
-        if (!connectivity.isOnline.value) throw OfflineException()
+        requireOnline()
         return remote.exportData()
     }
 
     override suspend fun deleteAccount() {
-        if (!connectivity.isOnline.value) throw OfflineException()
+        requireOnline()
         remote.deleteAccount()
+    }
+
+    override suspend fun requestEmailChange(newEmail: String, password: String) {
+        requireOnline()
+        remote.requestEmailChange(newEmail, password)
+    }
+
+    override suspend fun resendEmailChange() {
+        requireOnline()
+        remote.resendEmailChange()
+    }
+
+    override suspend fun confirmEmailChange(token: String): String {
+        requireOnline()
+        return remote.confirmEmailChange(token)
     }
 }
 

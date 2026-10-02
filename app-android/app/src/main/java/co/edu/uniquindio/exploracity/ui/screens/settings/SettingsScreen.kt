@@ -100,9 +100,18 @@ fun SettingsRoute(
     onDeleteAccount: () -> Unit,
     onSignedOut: () -> Unit,
     onOpenDesignCatalog: () -> Unit,
+    emailChanged: String? = null,
+    onEmailChangedShown: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Al volver de confirmar el correo nuevo, Ajustes lo dice una vez.
+    val currentOnEmailChangedShown by rememberUpdatedState(onEmailChangedShown)
+    LaunchedEffect(emailChanged) {
+        if (emailChanged == null) return@LaunchedEffect
+        viewModel.onEmailChanged(emailChanged)
+        currentOnEmailChangedShown()
+    }
     val context = LocalContext.current
     var location by remember { mutableStateOf(context.locationAccess()) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { location = context.locationAccess() }
@@ -225,7 +234,7 @@ fun SettingsScreen(
                 }
                 Section(stringResource(R.string.settings_section_account)) {
                     SettingsCard {
-                        LinkRow(R.drawable.ic_mail, stringResource(R.string.settings_email), callbacks.onChangeEmail, subtitle = state.email)
+                        EmailRow(state.email, state.pendingEmail, callbacks.onChangeEmail)
                         RowDivider()
                         LinkRow(R.drawable.ic_logout, stringResource(R.string.settings_logout), callbacks.onLogout, chevron = false)
                     }
@@ -386,6 +395,38 @@ private fun LinkRow(
     }
 }
 
+/** «Correo electrónico»: el de la cuenta y, si hay un cambio sin confirmar, «Falta confirmar …» con su icono (B1). */
+@Composable
+private fun EmailRow(email: String, pendingEmail: String?, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(R.drawable.ic_mail), null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(22.dp.scaledWithFont()))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(R.string.settings_email), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary)
+            if (pendingEmail != null) {
+                val warning = MaterialTheme.exploraColors.warningAccent
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(painterResource(R.drawable.ic_schedule), null, tint = warning, modifier = Modifier.size(14.dp.scaledWithFont()))
+                    Text(
+                        stringResource(R.string.settings_email_pending, pendingEmail),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.W600),
+                        color = warning,
+                    )
+                }
+            }
+        }
+        Icon(painterResource(R.drawable.ic_chevron_right), null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(20.dp.scaledWithFont()))
+    }
+}
+
 /** «Descargar mis datos»: mientras el servidor arma el archivo o se guarda, lo dice y no se puede volver a tocar. */
 @Composable
 private fun DownloadRow(download: DataDownload, onClick: () -> Unit) {
@@ -505,7 +546,8 @@ private fun NoticeEffect(notice: SettingsNotice?, hostState: SnackbarHostState, 
     val offline = stringResource(R.string.settings_download_offline)
     val failed = stringResource(R.string.settings_download_failed)
     val saveFailed = stringResource(R.string.settings_save_failed)
-    val saved = stringResource(R.string.settings_download_saved, notice?.fileName.orEmpty())
+    val saved = stringResource(R.string.settings_download_saved, notice?.detail.orEmpty())
+    val emailChanged = stringResource(R.string.settings_email_changed, notice?.detail.orEmpty())
     LaunchedEffect(notice) {
         val text = when (notice?.kind) {
             null -> return@LaunchedEffect
@@ -513,6 +555,7 @@ private fun NoticeEffect(notice: SettingsNotice?, hostState: SnackbarHostState, 
             SettingsNoticeKind.DOWNLOAD_FAILED -> failed
             SettingsNoticeKind.DOWNLOAD_SAVED -> saved
             SettingsNoticeKind.SAVE_FAILED -> saveFailed
+            SettingsNoticeKind.EMAIL_CHANGED -> emailChanged
         }
         // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
         hostState.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Long)

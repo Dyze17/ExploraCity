@@ -11,8 +11,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
-import co.edu.uniquindio.exploracity.data.repository.AuthRepository
-import co.edu.uniquindio.exploracity.data.repository.DemoMailbox
 import co.edu.uniquindio.exploracity.domain.model.AuthRules
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -24,8 +22,8 @@ import kotlinx.coroutines.launch
 import java.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
-/** Avisos de una sola vez de 6.a. */
-enum class RecoveryMessage {
+/** Avisos de una sola vez de «enlace enviado». */
+enum class LinkSentMessage {
     /** «Te enviamos otro enlace.» */
     RESENT,
 
@@ -33,33 +31,35 @@ enum class RecoveryMessage {
     SEND_FAILED,
 }
 
-data class RecoveryEmailSentUiState(
+data class LinkSentUiState(
     val email: String,
     /** Segundos para poder reenviar; 0 = disponible. */
     val resendIn: Int,
     val resending: Boolean = false,
     val offline: Boolean = false,
-    val message: RecoveryMessage? = null,
-    /** Solo en desarrollo: los enlaces que abren 6.b y 6C sin un buzón real. */
+    val message: LinkSentMessage? = null,
+    /** Solo en desarrollo: los enlaces que abren lo que abriría el del correo. */
     val demoLinks: Boolean = false,
     /** Demostración: a ese correo no llegó nada (no tiene cuenta). */
     val demoNoMail: Boolean = false,
-    /** Demostración: el enlace que se abre ahora (6.b, o 6C si venció). */
+    /** Demostración: el enlace que se abre ahora. */
     val openLink: String? = null,
 ) {
     val canResend: Boolean get() = resendIn == 0 && !resending && !offline
 }
 
 /**
- * 6.a · Revisa tu correo. El reenvío espera 60 s desde el último envío; la cuenta se hace contra la hora del envío
- * (guardada), así que sobrevive a rotar la pantalla y a que Android cierre la app.
+ * Un enlace salió hacia [LinkSentUiState.email]: 6.a (contraseña nueva) y «Confirma tu correo nuevo». El reenvío
+ * ([resend]) espera 60 s desde el último envío; la cuenta se hace contra la hora del envío (guardada), así que sobrevive
+ * a rotar la pantalla y a que Android cierre la app. [demoLink] (solo en desarrollo) da el enlace que llegó, o uno
+ * vencido; null si no llegó ninguno.
  */
-class RecoveryEmailSentViewModel(
-    private val auth: AuthRepository,
+class LinkSentViewModel(
+    private val resend: suspend (email: String) -> Unit,
     private val connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val savedStateHandle: SavedStateHandle,
-    private val mailbox: DemoMailbox? = null,
+    private val demoLink: ((email: String, expired: Boolean) -> String?)? = null,
 ) : ViewModel() {
 
     private val email: String = savedStateHandle[EMAIL_KEY] ?: ""
@@ -71,9 +71,9 @@ class RecoveryEmailSentViewModel(
         }
 
     private val _state = MutableStateFlow(
-        RecoveryEmailSentUiState(email, resendIn = secondsLeft(), offline = !connectivity.isOnline.value, demoLinks = mailbox != null),
+        LinkSentUiState(email, resendIn = secondsLeft(), offline = !connectivity.isOnline.value, demoLinks = demoLink != null),
     )
-    val state: StateFlow<RecoveryEmailSentUiState> = _state.asStateFlow()
+    val state: StateFlow<LinkSentUiState> = _state.asStateFlow()
 
     private var countdown: Job? = null
 
@@ -105,44 +105,65 @@ class RecoveryEmailSentViewModel(
         if (!_state.value.canResend) return
         _state.update { it.copy(resending = true, message = null) }
         viewModelScope.launch {
-            val result = catchingNonCancellation { auth.requestPasswordReset(email) }
+            val result = catchingNonCancellation { resend(email) }
             when (result.exceptionOrNull()) {
                 null -> {
                     sentAt = clock.millis()
-                    _state.update { it.copy(resending = false, message = RecoveryMessage.RESENT, demoNoMail = false) }
+                    _state.update { it.copy(resending = false, message = LinkSentMessage.RESENT, demoNoMail = false) }
                     startCountdown()
                 }
                 is OfflineException -> _state.update { it.copy(resending = false, offline = true) }
-                else -> _state.update { it.copy(resending = false, message = RecoveryMessage.SEND_FAILED) }
+                else -> _state.update { it.copy(resending = false, message = LinkSentMessage.SEND_FAILED) }
             }
         }
     }
 
     fun onMessageShown() = _state.update { it.copy(message = null) }
 
-    /** Demostración: abre el último enlace que llegó, o uno vencido para ver 6C. */
+    /** Demostración: abre el último enlace que llegó, o uno vencido. */
     fun onDemoLink(expired: Boolean) {
-        val box = mailbox ?: return
-        val token = if (expired) box.expiredResetLink(email) else box.latestResetLink(email)
+        val link = demoLink ?: return
+        val token = link(email, expired)
         _state.update { it.copy(openLink = token, demoNoMail = token == null) }
     }
 
     fun onLinkOpened() = _state.update { it.copy(openLink = null) }
 
     companion object {
-        // Los nombres de los argumentos de la ruta (RecoveryEmailSent): el reenvío pisa la hora del envío.
+        // Los nombres de los argumentos de las rutas (6.a y «Confirma tu correo nuevo»): el reenvío pisa la hora del envío.
         private const val EMAIL_KEY = "email"
         private const val SENT_AT_KEY = "sentAtMillis"
 
-        val factory: ViewModelProvider.Factory = viewModelFactory {
+        /** 6.a · Reenvía el enlace para crear una contraseña nueva. */
+        val recoveryFactory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                RecoveryEmailSentViewModel(
-                    auth = container.authRepository,
+                val mailbox = container.demoMailbox
+                LinkSentViewModel(
+                    resend = container.authRepository::requestPasswordReset,
                     connectivity = container.connectivity,
                     clock = Clock.systemUTC(),
                     savedStateHandle = createSavedStateHandle(),
-                    mailbox = container.demoMailbox,
+                    demoLink = mailbox?.let { box ->
+                        { email, expired -> if (expired) box.expiredResetLink(email) else box.latestResetLink(email) }
+                    },
+                )
+            }
+        }
+
+        /** «Confirma tu correo nuevo» · Reenvía el enlace del cambio pendiente. */
+        val emailChangeFactory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val container = (this[APPLICATION_KEY] as ExploraApplication).container
+                val mailbox = container.demoEmailChangeMailbox
+                LinkSentViewModel(
+                    resend = { container.accountRepository.resendEmailChange() },
+                    connectivity = container.connectivity,
+                    clock = Clock.systemUTC(),
+                    savedStateHandle = createSavedStateHandle(),
+                    demoLink = mailbox?.let { box ->
+                        { _, expired -> if (expired) box.expiredEmailChangeLink() else box.latestEmailChangeLink() }
+                    },
                 )
             }
         }
