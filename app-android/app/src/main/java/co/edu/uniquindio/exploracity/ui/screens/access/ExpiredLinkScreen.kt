@@ -17,21 +17,36 @@ import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 
 /**
  * 6C · Enlace vencido. Explica qué pasó sin códigos; «Pedir otro enlace» vuelve a 5 con el correo escrito y «Volver a
- * iniciar sesión» a 3. El icono es decorativo y no hay barra superior: el lector empieza por el titular.
+ * iniciar sesión» a 3.
  */
 @Composable
 fun ExpiredLinkScreen(onRequestNew: () -> Unit, onBackToLogin: () -> Unit, modifier: Modifier = Modifier) {
     val minutes = AuthRules.RESET_LINK_DURATION.inWholeMinutes.toInt()
+    LinkExpiredContent(
+        body = pluralStringResource(R.plurals.expired_body, minutes, minutes),
+        back = stringResource(R.string.back_to_login),
+        onRequestNew = onRequestNew,
+        onBack = onBackToLogin,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Un enlace del correo que ya no sirve (6C y el de «Cambiar correo»): [body] explica para qué era y cuánto duraba. El
+ * icono es decorativo y no hay barra superior: el lector empieza por el titular.
+ */
+@Composable
+fun LinkExpiredContent(body: String, back: String, onRequestNew: () -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
     AccessMessage(
         icon = R.drawable.ic_link_off,
         iconContainer = MaterialTheme.colorScheme.errorContainer,
         iconContent = MaterialTheme.colorScheme.onErrorContainer,
         title = stringResource(R.string.expired_title),
-        body = AnnotatedString(pluralStringResource(R.plurals.expired_body, minutes, minutes)),
+        body = AnnotatedString(body),
         modifier = modifier,
     ) {
         ExploraButton(stringResource(R.string.expired_request_new), onClick = onRequestNew, modifier = Modifier.fillMaxWidth())
-        ExploraButton(stringResource(R.string.back_to_login), onClick = onBackToLogin, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
+        ExploraButton(back, onClick = onBack, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
     }
 }
 

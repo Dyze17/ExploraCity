@@ -1188,4 +1188,28 @@
         <item quantity="other">Los enlaces para crear una contraseña nueva duran %d minutos. Pide otro y úsalo apenas te llegue.</item>
     </plurals>
     <string name="expired_request_new">Pedir otro enlace</string>
+    <!-- Cambiar correo (Ajustes › Cuenta) -->
+    <string name="change_email_intro">Tu correo actual es %1$s. Te enviaremos un enlace al correo nuevo; el cambio se hace cuando lo abras.</string>
+    <string name="change_email_pending">Falta confirmar %1$s. Si pides otro cambio, el enlace anterior deja de servir.</string>
+    <string name="change_email_new">Correo nuevo</string>
+    <string name="change_email_same">Ya usas este correo.</string>
+    <string name="change_email_identity">Tu contraseña</string>
+    <string name="change_email_identity_hint">Para proteger tu cuenta, confírmala con tu contraseña.</string>
+    <string name="change_email_identity_wrong">La contraseña no coincide.</string>
+    <string name="change_email_offline">Sin conexión. Necesitas internet para cambiar tu correo.</string>
+    <string name="change_email_offline_reason">necesitas internet para cambiar tu correo</string>
+    <string name="change_email_fix_reason">escribe un correo nuevo y tu contraseña</string>
+    <string name="change_email_sent_title">Confirma tu correo nuevo</string>
+    <string name="change_email_sent_body">Enviamos el enlace a %1$s. Ábrelo para terminar el cambio; mientras tanto sigues entrando con %2$s.</string>
+    <string name="back_to_settings">Volver a Ajustes</string>
+    <string name="change_email_confirming">Confirmando tu correo…</string>
+    <string name="change_email_confirm_error_title">No pudimos confirmar tu correo</string>
+    <string name="change_email_confirm_offline_body">Necesitas internet para confirmar tu correo nuevo.</string>
+    <plurals name="change_email_expired_body">
+        <item quantity="one">Los enlaces para confirmar un correo nuevo duran %d minuto. Pide otro y úsalo apenas te llegue.</item>
+        <item quantity="many">Los enlaces para confirmar un correo nuevo duran %d minutos. Pide otro y úsalo apenas te llegue.</item>
+        <item quantity="other">Los enlaces para confirmar un correo nuevo duran %d minutos. Pide otro y úsalo apenas te llegue.</item>
+    </plurals>
+    <string name="settings_email_pending">Falta confirmar %1$s</string>
+    <string name="settings_email_changed">Listo, tu correo ahora es %1$s</string>
 </resources>

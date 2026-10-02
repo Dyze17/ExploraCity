@@ -29,6 +29,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -46,17 +47,36 @@ import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.util.hasEmailApp
 import co.edu.uniquindio.exploracity.util.openEmailApp
-import co.edu.uniquindio.exploracity.viewmodel.RecoveryEmailSentUiState
-import co.edu.uniquindio.exploracity.viewmodel.RecoveryEmailSentViewModel
-import co.edu.uniquindio.exploracity.viewmodel.RecoveryMessage
+import co.edu.uniquindio.exploracity.viewmodel.LinkSentMessage
+import co.edu.uniquindio.exploracity.viewmodel.LinkSentUiState
+import co.edu.uniquindio.exploracity.viewmodel.LinkSentViewModel
 
 /** 6.a · Revisa tu correo, conectada a su ViewModel. [onOpenLink] abre el enlace del correo (en desarrollo, el de prueba). */
 @Composable
 fun RecoveryEmailSentRoute(
     onBackToLogin: () -> Unit,
     onOpenLink: (token: String) -> Unit,
-    viewModel: RecoveryEmailSentViewModel = viewModel(factory = RecoveryEmailSentViewModel.factory),
+    viewModel: LinkSentViewModel = viewModel(factory = LinkSentViewModel.recoveryFactory),
 ) {
+    val email = viewModel.state.collectAsStateWithLifecycle().value.email
+    LinkSentRoute(
+        texts = LinkSentTexts(
+            title = stringResource(R.string.sent_title),
+            body = withBoldEmail(stringResource(R.string.sent_body, email), email),
+            back = stringResource(R.string.back_to_login),
+        ),
+        onBack = onBackToLogin,
+        onOpenLink = onOpenLink,
+        viewModel = viewModel,
+    )
+}
+
+/** Lo que cambia entre 6.a y «Confirma tu correo nuevo»: el titular, la explicación y a dónde se vuelve. */
+class LinkSentTexts(val title: String, val body: AnnotatedString, val back: String)
+
+/** «Enlace enviado» conectado a su ViewModel: «Abrir mi correo» solo si hay app de correo y los enlaces de prueba. */
+@Composable
+fun LinkSentRoute(texts: LinkSentTexts, onBack: () -> Unit, onOpenLink: (token: String) -> Unit, viewModel: LinkSentViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnOpenLink by rememberUpdatedState(onOpenLink)
     LaunchedEffect(state.openLink) {
@@ -68,61 +88,63 @@ fun RecoveryEmailSentRoute(
     val inspection = LocalInspectionMode.current
     // Sin app de correo, el botón no aparece (README 6).
     val hasEmailApp = remember(context) { inspection || context.hasEmailApp() }
-    RecoveryEmailSentScreen(
+    LinkSentScreen(
         state = state,
-        callbacks = RecoveryEmailSentCallbacks(
+        texts = texts,
+        callbacks = LinkSentCallbacks(
             onOpenMail = if (hasEmailApp) { { context.openEmailApp() } } else null,
             onResend = viewModel::onResend,
             onMessageShown = viewModel::onMessageShown,
-            onBackToLogin = onBackToLogin,
+            onBack = onBack,
             onDemoLink = viewModel::onDemoLink,
         ),
     )
 }
 
-class RecoveryEmailSentCallbacks(
+class LinkSentCallbacks(
     /** null si no hay app de correo. */
     val onOpenMail: (() -> Unit)? = {},
     val onResend: () -> Unit = {},
     val onMessageShown: () -> Unit = {},
-    val onBackToLogin: () -> Unit = {},
+    val onBack: () -> Unit = {},
     val onDemoLink: (expired: Boolean) -> Unit = {},
 )
 
+/** [template] con [email] en negrita, como en los lienzos («Enviamos el enlace a **ana.rios@correo.com**…»). */
+internal fun withBoldEmail(template: String, email: String): AnnotatedString = buildAnnotatedString {
+    val start = template.indexOf(email)
+    if (email.isEmpty() || start < 0) {
+        append(template)
+    } else {
+        append(template.substring(0, start))
+        withStyle(SpanStyle(fontWeight = FontWeight.W700)) { append(email) }
+        append(template.substring(start + email.length))
+    }
+}
+
 /**
- * 6.a · El correo al que salió el enlace, «Abrir mi correo», el reenvío con su cuenta regresiva de 60 s (deshabilitado
- * mientras corre; el lector oye «disponible en 42 segundos») y «Volver a iniciar sesión».
+ * 6.a y «Confirma tu correo nuevo» · El correo al que salió el enlace, «Abrir mi correo», el reenvío con su cuenta
+ * regresiva de 60 s (deshabilitado mientras corre; el lector oye «disponible en 42 segundos») y la vuelta ([texts]).
  */
 @Composable
-fun RecoveryEmailSentScreen(state: RecoveryEmailSentUiState, callbacks: RecoveryEmailSentCallbacks, modifier: Modifier = Modifier) {
+fun LinkSentScreen(state: LinkSentUiState, texts: LinkSentTexts, callbacks: LinkSentCallbacks, modifier: Modifier = Modifier) {
     val snackbarHostState = remember { SnackbarHostState() }
     MessageEffect(state.message, snackbarHostState, callbacks)
     val verified = MaterialTheme.exploraColors.status.verified
-    val template = stringResource(R.string.sent_body, state.email)
-    val body = buildAnnotatedString {
-        val start = template.indexOf(state.email)
-        if (state.email.isEmpty() || start < 0) {
-            append(template)
-        } else {
-            append(template.substring(0, start))
-            withStyle(SpanStyle(fontWeight = FontWeight.W700)) { append(state.email) }
-            append(template.substring(start + state.email.length))
-        }
-    }
     Box(modifier.fillMaxSize()) {
         AccessMessage(
             icon = R.drawable.ic_mark_email_read,
             iconContainer = verified.container,
             iconContent = verified.content,
-            title = stringResource(R.string.sent_title),
-            body = body,
+            title = texts.title,
+            body = texts.body,
             top = { if (state.offline) AccessOfflineNotice(stringResource(R.string.sent_offline)) },
         ) {
             callbacks.onOpenMail?.let { open ->
                 ExploraButton(stringResource(R.string.sent_open_mail), onClick = open, modifier = Modifier.fillMaxWidth())
             }
             ResendButton(state, callbacks.onResend)
-            ExploraButton(stringResource(R.string.back_to_login), onClick = callbacks.onBackToLogin, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
+            ExploraButton(texts.back, onClick = callbacks.onBack, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
             if (state.demoLinks) DemoLinks(state.demoNoMail, callbacks.onDemoLink)
         }
         ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
@@ -130,7 +152,7 @@ fun RecoveryEmailSentScreen(state: RecoveryEmailSentUiState, callbacks: Recovery
 }
 
 @Composable
-private fun ResendButton(state: RecoveryEmailSentUiState, onResend: () -> Unit) {
+private fun ResendButton(state: LinkSentUiState, onResend: () -> Unit) {
     val waiting = state.resendIn > 0
     val text = when {
         state.resending -> stringResource(R.string.sent_resending)
@@ -164,7 +186,7 @@ private fun DemoLinks(noMail: Boolean, onDemoLink: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun MessageEffect(message: RecoveryMessage?, hostState: SnackbarHostState, callbacks: RecoveryEmailSentCallbacks) {
+private fun MessageEffect(message: LinkSentMessage?, hostState: SnackbarHostState, callbacks: LinkSentCallbacks) {
     val currentCallbacks by rememberUpdatedState(callbacks)
     val resent = stringResource(R.string.sent_resent)
     val failed = stringResource(R.string.recover_send_failed)
@@ -172,11 +194,11 @@ private fun MessageEffect(message: RecoveryMessage?, hostState: SnackbarHostStat
     LaunchedEffect(message) {
         when (message) {
             null -> Unit
-            RecoveryMessage.RESENT -> {
+            LinkSentMessage.RESENT -> {
                 currentCallbacks.onMessageShown()
                 hostState.showSnackbar(resent, withDismissAction = true)
             }
-            RecoveryMessage.SEND_FAILED -> {
+            LinkSentMessage.SEND_FAILED -> {
                 currentCallbacks.onMessageShown()
                 val result = hostState.showSnackbar(failed, actionLabel = retry, withDismissAction = true, duration = SnackbarDuration.Indefinite)
                 if (result == SnackbarResult.ActionPerformed) currentCallbacks.onResend()
@@ -185,24 +207,31 @@ private fun MessageEffect(message: RecoveryMessage?, hostState: SnackbarHostStat
     }
 }
 
-private val previewState = RecoveryEmailSentUiState(email = "ana.rios@correo.com", resendIn = 42)
+private val previewState = LinkSentUiState(email = "ana.rios@correo.com", resendIn = 42)
+
+private val previewTexts: LinkSentTexts
+    @Composable get() = LinkSentTexts(
+        title = stringResource(R.string.sent_title),
+        body = withBoldEmail(stringResource(R.string.sent_body, previewState.email), previewState.email),
+        back = stringResource(R.string.back_to_login),
+    )
 
 @Preview(name = "6.a · correo enviado · claro", widthDp = 360, heightDp = 800)
 @Composable
 private fun SentPreview() {
-    ExploraCityTheme(ThemeMode.LIGHT) { RecoveryEmailSentScreen(previewState, RecoveryEmailSentCallbacks()) }
+    ExploraCityTheme(ThemeMode.LIGHT) { LinkSentScreen(previewState, previewTexts, LinkSentCallbacks()) }
 }
 
 @Preview(name = "6.a · reenvío disponible · oscuro", widthDp = 360, heightDp = 800)
 @Composable
 private fun SentReadyPreview() {
-    ExploraCityTheme(ThemeMode.DARK) { RecoveryEmailSentScreen(previewState.copy(resendIn = 0, demoLinks = true), RecoveryEmailSentCallbacks()) }
+    ExploraCityTheme(ThemeMode.DARK) { LinkSentScreen(previewState.copy(resendIn = 0, demoLinks = true), previewTexts, LinkSentCallbacks()) }
 }
 
 @Preview(name = "6.a · sin conexión ni app de correo", widthDp = 360, heightDp = 800)
 @Composable
 private fun SentOfflinePreview() {
     ExploraCityTheme(ThemeMode.LIGHT) {
-        RecoveryEmailSentScreen(previewState.copy(resendIn = 0, offline = true), RecoveryEmailSentCallbacks(onOpenMail = null))
+        LinkSentScreen(previewState.copy(resendIn = 0, offline = true), previewTexts, LinkSentCallbacks(onOpenMail = null))
     }
 }

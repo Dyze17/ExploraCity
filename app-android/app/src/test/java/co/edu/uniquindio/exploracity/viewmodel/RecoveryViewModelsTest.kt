@@ -48,14 +48,18 @@ class RecoveryViewModelsTest {
     private fun recover(email: String = "") =
         RecoverPasswordViewModel(auth, connectivity, clock, SavedStateHandle(mapOf("email" to email)))
 
-    private fun sent(sentAt: Long = 0L, mailbox: FakeMailbox? = FakeMailbox(), savedState: SavedStateHandle? = null) =
-        RecoveryEmailSentViewModel(
-            auth,
-            connectivity,
-            clock,
-            savedState ?: SavedStateHandle(mapOf("email" to "ana@correo.com", "sentAtMillis" to sentAt)),
-            mailbox,
-        )
+    private fun sent(
+        sentAt: Long = 0L,
+        mailbox: FakeMailbox? = FakeMailbox(),
+        savedState: SavedStateHandle? = null,
+        email: String = "ana@correo.com",
+    ) = LinkSentViewModel(
+        resend = auth::requestPasswordReset,
+        connectivity = connectivity,
+        clock = clock,
+        savedStateHandle = savedState ?: SavedStateHandle(mapOf("email" to email, "sentAtMillis" to sentAt)),
+        demoLink = mailbox?.let { box -> { address, expired -> if (expired) box.expiredResetLink(address) else box.latestResetLink(address) } },
+    )
 
     private fun newPassword() = NewPasswordViewModel(auth, connectivity, clock, SavedStateHandle(mapOf("token" to "enlace")))
 
@@ -170,7 +174,7 @@ class RecoveryViewModelsTest {
         runCurrent()
 
         assertEquals(listOf("ana@correo.com"), auth.resetRequests)
-        assertEquals(RecoveryMessage.RESENT, vm.state.value.message)
+        assertEquals(LinkSentMessage.RESENT, vm.state.value.message)
         assertEquals(60, vm.state.value.resendIn)
         assertEquals(clock.millis(), savedState.get<Long>("sentAtMillis"))
     }
@@ -184,7 +188,7 @@ class RecoveryViewModelsTest {
         vm.onResend()
         advanceUntilIdle()
 
-        assertEquals(RecoveryMessage.SEND_FAILED, vm.state.value.message)
+        assertEquals(LinkSentMessage.SEND_FAILED, vm.state.value.message)
         assertTrue(vm.state.value.canResend)
     }
 
@@ -215,13 +219,7 @@ class RecoveryViewModelsTest {
 
     @Test
     fun `a un correo sin cuenta no llega nada, y sin buzón de prueba no hay enlaces`() = runTest(dispatcher) {
-        val other = RecoveryEmailSentViewModel(
-            auth,
-            connectivity,
-            clock,
-            SavedStateHandle(mapOf("email" to "nadie@correo.com", "sentAtMillis" to 0L)),
-            FakeMailbox(),
-        )
+        val other = sent(email = "nadie@correo.com")
         other.onDemoLink(expired = false)
         assertTrue(other.state.value.demoNoMail)
         assertNull(other.state.value.openLink)

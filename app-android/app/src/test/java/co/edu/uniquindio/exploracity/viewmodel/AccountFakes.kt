@@ -5,6 +5,9 @@ import co.edu.uniquindio.exploracity.data.repository.AccountRepository
 import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.DataExport
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlin.time.Duration.Companion.seconds
 
 // Dobles de la cuenta y la sesión para 29, 28 y 30: cada operación tarda 1 s de tiempo virtual.
@@ -15,7 +18,15 @@ internal class FakeAccounts : AccountRepository {
     var deleteError: Exception? = null
     var deleted = false
 
-    override fun account() = Account("ana.rios@correo.com")
+    val current = MutableStateFlow(Account("ana.rios@correo.com"))
+    override val account: StateFlow<Account> = current
+
+    /** «Cambiar correo»: lo que se pidió (correo nuevo y contraseña) y cómo falla. */
+    val emailRequests = mutableListOf<Pair<String, String>>()
+    var emailError: Exception? = null
+    var resends = 0
+    val confirmed = mutableListOf<String>()
+    var confirmError: Exception? = null
 
     override suspend fun exportData(): DataExport {
         exports++
@@ -28,6 +39,27 @@ internal class FakeAccounts : AccountRepository {
         delay(1.seconds)
         deleteError?.let { throw it }
         deleted = true
+    }
+
+    override suspend fun requestEmailChange(newEmail: String, password: String) {
+        emailRequests += newEmail to password
+        delay(1.seconds)
+        emailError?.let { throw it }
+        current.update { it.copy(pendingEmail = newEmail) }
+    }
+
+    override suspend fun resendEmailChange() {
+        resends++
+        delay(1.seconds)
+    }
+
+    override suspend fun confirmEmailChange(token: String): String {
+        confirmed += token
+        delay(1.seconds)
+        confirmError?.let { throw it }
+        val email = current.value.pendingEmail ?: "ana.nueva@correo.com"
+        current.value = Account(email)
+        return email
     }
 }
 

@@ -40,10 +40,13 @@ sealed interface DataDownload {
     val busy: Boolean get() = this != Idle
 }
 
-enum class SettingsNoticeKind { DOWNLOAD_OFFLINE, DOWNLOAD_FAILED, DOWNLOAD_SAVED, SAVE_FAILED }
+enum class SettingsNoticeKind { DOWNLOAD_OFFLINE, DOWNLOAD_FAILED, DOWNLOAD_SAVED, SAVE_FAILED, EMAIL_CHANGED }
 
-/** Aviso breve de Ajustes; [fileName] acompaña a DOWNLOAD_SAVED («Guardamos tus datos en «…»»). */
-data class SettingsNotice(val kind: SettingsNoticeKind, val fileName: String? = null)
+/**
+ * Aviso breve de Ajustes. [detail] es el archivo en DOWNLOAD_SAVED («Guardamos tus datos en «…»») y el correo nuevo
+ * en EMAIL_CHANGED («Listo, tu correo ahora es …»).
+ */
+data class SettingsNotice(val kind: SettingsNoticeKind, val detail: String? = null)
 
 /** 29A · Abierto; [pendingSends] son los envíos sin conexión que se perderían. */
 data class LogoutDialog(val pendingSends: Int = 0, val signingOut: Boolean = false)
@@ -51,6 +54,8 @@ data class LogoutDialog(val pendingSends: Int = 0, val signingOut: Boolean = fal
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val email: String = "",
+    /** «Cambiar correo» · El correo nuevo que espera confirmación (B1: la fila lo dice). */
+    val pendingEmail: String? = null,
     val download: DataDownload = DataDownload.Idle,
     val notice: SettingsNotice? = null,
     val logout: LogoutDialog? = null,
@@ -67,12 +72,17 @@ class SettingsViewModel(
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SettingsUiState(email = accounts.account().email))
+    private val _state = MutableStateFlow(
+        accounts.account.value.let { SettingsUiState(email = it.email, pendingEmail = it.pendingEmail) },
+    )
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
             preferences.themeMode.collect { mode -> _state.update { it.copy(themeMode = mode) } }
+        }
+        viewModelScope.launch {
+            accounts.account.collect { account -> _state.update { it.copy(email = account.email, pendingEmail = account.pendingEmail) } }
         }
         // Tras la rotación o si Android cerró la app, 29A sigue abierto (con la cuenta de envíos al día).
         if (savedStateHandle.get<Boolean>(LOGOUT_OPEN_KEY) == true) onLogoutClick()
@@ -123,6 +133,9 @@ class SettingsViewModel(
     }
 
     fun onNoticeShown() = _state.update { it.copy(notice = null) }
+
+    /** Se confirmó el correo nuevo (al volver del enlace): Ajustes lo dice una vez. */
+    fun onEmailChanged(email: String) = _state.update { it.copy(notice = SettingsNotice(SettingsNoticeKind.EMAIL_CHANGED, email)) }
 
     /** «Cerrar sesión» abre 29A, que avisa si hay envíos sin conexión que se perderían. */
     fun onLogoutClick() {

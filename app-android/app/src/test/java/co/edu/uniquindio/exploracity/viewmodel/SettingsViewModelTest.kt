@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.DocumentWriter
+import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,6 +53,32 @@ class SettingsViewModelTest {
 
         assertEquals(ThemeMode.DARK, vm.state.value.themeMode)
         assertEquals("ana.rios@correo.com", vm.state.value.email)
+    }
+
+    @Test
+    fun `un cambio de correo sin confirmar se ve en la fila, y al confirmarlo el correo nuevo`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        accounts.current.value = Account("ana.rios@correo.com", pendingEmail = "ana.nueva@correo.com")
+        advanceUntilIdle()
+        assertEquals("ana.nueva@correo.com", vm.state.value.pendingEmail)
+
+        accounts.current.value = Account("ana.nueva@correo.com")
+        advanceUntilIdle()
+        assertEquals("ana.nueva@correo.com", vm.state.value.email)
+        assertNull(vm.state.value.pendingEmail)
+    }
+
+    @Test
+    fun `al volver de confirmar el correo nuevo lo dice una vez`() = runTest(dispatcher) {
+        val vm = viewModel()
+
+        vm.onEmailChanged("ana.nueva@correo.com")
+
+        assertEquals(SettingsNotice(SettingsNoticeKind.EMAIL_CHANGED, "ana.nueva@correo.com"), vm.state.value.notice)
+        vm.onNoticeShown()
+        assertNull(vm.state.value.notice)
     }
 
     @Test

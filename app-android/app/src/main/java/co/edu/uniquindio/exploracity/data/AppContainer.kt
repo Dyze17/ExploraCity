@@ -31,6 +31,7 @@ import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
 import co.edu.uniquindio.exploracity.data.repository.AccountRepository
 import co.edu.uniquindio.exploracity.data.repository.AuthRepository
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
+import co.edu.uniquindio.exploracity.data.repository.DemoEmailChangeMailbox
 import co.edu.uniquindio.exploracity.data.repository.DemoMailbox
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeAccountRepository
@@ -162,9 +163,16 @@ class AppContainer(context: Context) {
 
     val userRepository: UserRepository = OfflineUserRepository(userServer, database.profileDao(), connectivity)
 
-    /** 29 · El correo de la sesión y «Descargar mis datos». */
-    val accountRepository: AccountRepository =
-        OnlineOnlyAccountRepository(FakeAccountRepository(server, publicationServer, userServer, onDeleted = userServer::deleteOwnAccount), connectivity)
+    private val authServer = FakeAuthRepository()
+
+    private val accountServer =
+        FakeAccountRepository(server, publicationServer, userServer, credentials = authServer, onDeleted = userServer::deleteOwnAccount)
+
+    /** 29 · El correo de la sesión, «Descargar mis datos» y «Cambiar correo». */
+    val accountRepository: AccountRepository = OnlineOnlyAccountRepository(accountServer, connectivity)
+
+    /** «Cambiar correo» · El enlace que llegaría al correo nuevo; solo en compilaciones de desarrollo. */
+    val demoEmailChangeMailbox: DemoEmailChangeMailbox? = if (BuildConfig.DEBUG) accountServer else null
 
     /** Borradores del formulario de publicación (15–19), en DataStore. */
     val draftRepository: DraftRepository = DataStoreDraftRepository(context.draftsDataStore)
@@ -175,8 +183,6 @@ class AppContainer(context: Context) {
     /** 29A · Cerrar sesión borra lo de la cuenta y deja los borradores. */
     val sessionManager: SessionManager =
         LocalSessionManager(database, photoStore, draftRepository, sessionStore, cancelSending = scheduler::cancel)
-
-    private val authServer = FakeAuthRepository()
 
     /** Temporal: el acceso real irá a la API (JWT y BCrypt en el backend, ADR-06). */
     val authRepository: AuthRepository = OnlineOnlyAuthRepository(authServer, connectivity)
