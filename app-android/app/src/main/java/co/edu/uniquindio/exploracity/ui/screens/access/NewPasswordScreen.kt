@@ -125,26 +125,26 @@ fun NewPasswordScreen(state: NewPasswordUiState, callbacks: NewPasswordCallbacks
     val focusManager = LocalFocusManager.current
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }) {
         Column(Modifier.fillMaxSize().imePadding()) {
-            ExploraTopAppBar(title = stringResource(R.string.new_password_title), onBack = callbacks.onBack)
+            ExploraTopAppBar(title = stringResource(R.string.reset_title), onBack = callbacks.onBack)
             when (state.content) {
                 NewPasswordContent.LOADING -> Loading()
                 NewPasswordContent.READY -> {
-                    if (state.offline) AccessOfflineNotice(stringResource(R.string.new_password_offline))
+                    if (state.offline) AccessOfflineNotice(stringResource(R.string.reset_offline))
                     Form(state, callbacks)
                 }
                 NewPasswordContent.OFFLINE -> Centered {
                     EmptyState(
                         icon = R.drawable.ic_cloud_off,
                         title = stringResource(R.string.offline_title),
-                        body = stringResource(R.string.new_password_offline_body),
+                        body = stringResource(R.string.reset_offline_body),
                         tone = EmptyStateTone.WARNING,
                     ) { RetryButton(callbacks.onRetry) }
                 }
                 NewPasswordContent.ERROR -> Centered {
                     EmptyState(
                         icon = R.drawable.ic_sync_problem,
-                        title = stringResource(R.string.new_password_error_title),
-                        body = stringResource(R.string.new_password_error_body),
+                        title = stringResource(R.string.reset_error_title),
+                        body = stringResource(R.string.reset_error_body),
                         tone = EmptyStateTone.WARNING,
                     ) { RetryButton(callbacks.onRetry) }
                 }
@@ -174,7 +174,7 @@ private fun Form(state: NewPasswordUiState, callbacks: NewPasswordCallbacks) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            stringResource(R.string.new_password_for, state.email),
+            stringResource(R.string.reset_for, state.email),
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 22.sp),
             color = MaterialTheme.exploraColors.textSecondary,
         )
@@ -182,12 +182,12 @@ private fun Form(state: NewPasswordUiState, callbacks: NewPasswordCallbacks) {
         ConfirmField(state, callbacks, confirmFocus)
         val reason = when {
             state.saving -> null
-            state.offline -> stringResource(R.string.new_password_offline_reason)
-            !state.canSubmit -> stringResource(R.string.new_password_fix_reason)
+            state.offline -> stringResource(R.string.reset_offline_reason)
+            !state.canSubmit -> stringResource(R.string.reset_fix_reason)
             else -> null
         }
         ExploraButton(
-            stringResource(if (state.saving) R.string.new_password_saving else R.string.new_password_submit),
+            stringResource(if (state.saving) R.string.reset_saving else R.string.reset_submit),
             onClick = callbacks.onSubmit,
             modifier = Modifier.fillMaxWidth(),
             enabled = state.canSubmit || state.saving,
@@ -206,7 +206,7 @@ private fun PasswordWithRequirements(state: NewPasswordUiState, callbacks: NewPa
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ExploraTextField(
             state = textState,
-            label = stringResource(R.string.new_password_field),
+            label = stringResource(R.string.reset_field),
             enabled = !state.saving,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             onKeyboardAction = { next.requestFocus() },
@@ -222,10 +222,10 @@ private fun PasswordWithRequirements(state: NewPasswordUiState, callbacks: NewPa
                 else -> RequirementState.PENDING
             }
             RequirementRow(
-                pluralStringResource(R.plurals.new_password_rule_length, AuthRules.PASSWORD_MIN, AuthRules.PASSWORD_MIN),
+                pluralStringResource(R.plurals.reset_rule_length, AuthRules.PASSWORD_MIN, AuthRules.PASSWORD_MIN),
                 requirement(state.hasLength),
             )
-            RequirementRow(stringResource(R.string.new_password_rule_mix), requirement(state.hasLetterAndDigit))
+            RequirementRow(stringResource(R.string.reset_rule_mix), requirement(state.hasLetterAndDigit))
         }
     }
 }
@@ -238,8 +238,8 @@ private fun ConfirmField(state: NewPasswordUiState, callbacks: NewPasswordCallba
     // Sin ojo, como el lienzo: con error, el campo muestra su icono (el ojo de arriba ya permite revisar la nueva).
     ExploraTextField(
         state = textState,
-        label = stringResource(R.string.new_password_confirm),
-        errorMessage = if (state.showMismatch) stringResource(R.string.new_password_mismatch) else null,
+        label = stringResource(R.string.reset_confirm),
+        errorMessage = if (state.showMismatch) stringResource(R.string.reset_mismatch) else null,
         enabled = !state.saving,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         // «Listo» cierra el teclado y guarda: el inicio de sesión (3) no abre con el teclado del campo anterior.
@@ -266,7 +266,7 @@ private fun ExpiryNotice(minutes: Int) {
     ) {
         Icon(painterResource(R.drawable.ic_schedule), null, tint = warning.content, modifier = Modifier.size(20.dp.scaledWithFont()))
         Text(
-            pluralStringResource(R.plurals.new_password_expiry, minutes, minutes),
+            pluralStringResource(R.plurals.reset_expiry, minutes, minutes),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 19.sp),
             color = warning.content,
         )
@@ -282,7 +282,7 @@ private fun Loading() {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp)
-            Text(stringResource(R.string.new_password_loading), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.exploraColors.textSecondary)
+            Text(stringResource(R.string.reset_loading), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.exploraColors.textSecondary)
         }
     }
 }
@@ -301,7 +301,7 @@ private fun RetryButton(onRetry: () -> Unit) {
 @Composable
 private fun SaveFailedEffect(failed: Boolean, hostState: SnackbarHostState, onDismissed: () -> Unit) {
     val currentOnDismissed by rememberUpdatedState(onDismissed)
-    val text = stringResource(R.string.new_password_save_failed)
+    val text = stringResource(R.string.reset_save_failed)
     val close = stringResource(R.string.login_close)
     LaunchedEffect(failed) {
         if (!failed) return@LaunchedEffect

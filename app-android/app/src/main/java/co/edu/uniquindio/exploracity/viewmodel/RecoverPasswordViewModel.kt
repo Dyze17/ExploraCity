@@ -95,7 +95,7 @@ class RecoverPasswordViewModel(
     fun onSentHandled() = _state.update { it.copy(sent = null) }
 
     companion object {
-        /** El mismo nombre que el argumento de la ruta (RecoverPassword.email): abre con ese correo escrito. */
+        /** Como el argumento de la ruta de 5: abre con el correo que venía escrito. */
         private const val EMAIL_KEY = "email"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {

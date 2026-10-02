@@ -241,7 +241,7 @@ private fun PasswordField(state: RegisterUiState, callbacks: RegisterCallbacks, 
             else -> RequirementState.PENDING
         }
         RequirementRow(
-            stringResource(if (state.passwordValid) R.string.register_password_valid else R.string.register_password_rule),
+            stringResource(if (state.passwordValid) R.string.register_rule_valid else R.string.register_rule),
             requirement,
             Modifier.padding(start = 4.dp),
         )

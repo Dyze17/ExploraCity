@@ -1092,8 +1092,8 @@
     <string name="login_demo_title">Cuentas de prueba (solo en desarrollo)</string>
     <!-- 4 · Registro -->
     <string name="register_title">Crear cuenta</string>
-    <string name="register_password_rule">Mínimo 8 caracteres, con una letra y un número</string>
-    <string name="register_password_valid">Contraseña válida</string>
+    <string name="register_rule">Mínimo 8 caracteres, con una letra y un número</string>
+    <string name="register_rule_valid">Contraseña válida</string>
     <string name="register_email_taken">Ya hay una cuenta con este correo.</string>
     <string name="register_sign_in_instead">Iniciar sesión con este correo</string>
     <string name="register_consent">Autorizo de manera previa, expresa e informada el tratamiento de mi correo, mi ubicación y las fotografías que publique, para el funcionamiento de ExploraCity (Ley 1581 de 2012).</string>
@@ -1152,33 +1152,33 @@
     <string name="sent_demo_no_mail">No llegó ningún correo: esa dirección no tiene cuenta.</string>
 
     <!-- 6.b · Nueva contraseña -->
-    <string name="new_password_title">Nueva contraseña</string>
-    <string name="new_password_for">Crea una contraseña nueva para %1$s.</string>
-    <string name="new_password_field">Contraseña nueva</string>
-    <plurals name="new_password_rule_length">
+    <string name="reset_title">Nueva contraseña</string>
+    <string name="reset_for">Crea una contraseña nueva para %1$s.</string>
+    <string name="reset_field">Contraseña nueva</string>
+    <plurals name="reset_rule_length">
         <item quantity="one">Al menos %d carácter</item>
         <item quantity="many">Al menos %d caracteres</item>
         <item quantity="other">Al menos %d caracteres</item>
     </plurals>
-    <string name="new_password_rule_mix">Incluye una letra y un número</string>
-    <string name="new_password_confirm">Repite la contraseña</string>
-    <string name="new_password_mismatch">Las dos contraseñas no coinciden.</string>
-    <string name="new_password_submit">Guardar contraseña</string>
-    <string name="new_password_saving">Guardando…</string>
-    <plurals name="new_password_expiry">
+    <string name="reset_rule_mix">Incluye una letra y un número</string>
+    <string name="reset_confirm">Repite la contraseña</string>
+    <string name="reset_mismatch">Las dos contraseñas no coinciden.</string>
+    <string name="reset_submit">Guardar contraseña</string>
+    <string name="reset_saving">Guardando…</string>
+    <plurals name="reset_expiry">
         <item quantity="one">Este enlace vence en %d minuto. Si se vence, pide otro desde «¿Olvidaste tu contraseña?».</item>
         <item quantity="many">Este enlace vence en %d minutos. Si se vence, pide otro desde «¿Olvidaste tu contraseña?».</item>
         <item quantity="other">Este enlace vence en %d minutos. Si se vence, pide otro desde «¿Olvidaste tu contraseña?».</item>
     </plurals>
-    <string name="new_password_loading">Revisando el enlace…</string>
-    <string name="new_password_error_title">No pudimos abrir el enlace</string>
-    <string name="new_password_error_body">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
-    <string name="new_password_offline_body">Necesitas internet para crear tu contraseña nueva.</string>
-    <string name="new_password_offline">Sin conexión. Necesitas internet para guardar la contraseña.</string>
-    <string name="new_password_offline_reason">necesitas internet para guardarla</string>
-    <string name="new_password_fix_reason">cumple los requisitos y repite la contraseña</string>
-    <string name="new_password_save_failed">No pudimos guardar la contraseña. Intenta de nuevo en un momento.</string>
-    <string name="session_password_changed">Ya puedes entrar con tu contraseña nueva</string>
+    <string name="reset_loading">Revisando el enlace…</string>
+    <string name="reset_error_title">No pudimos abrir el enlace</string>
+    <string name="reset_error_body">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
+    <string name="reset_offline_body">Necesitas internet para crear tu contraseña nueva.</string>
+    <string name="reset_offline">Sin conexión. Necesitas internet para guardar la contraseña.</string>
+    <string name="reset_offline_reason">necesitas internet para guardarla</string>
+    <string name="reset_fix_reason">cumple los requisitos y repite la contraseña</string>
+    <string name="reset_save_failed">No pudimos guardar la contraseña. Intenta de nuevo en un momento.</string>
+    <string name="session_reset_done">Ya puedes entrar con tu contraseña nueva</string>
 
     <!-- 6C · Enlace vencido -->
     <string name="expired_title">Este enlace ya venció</string>

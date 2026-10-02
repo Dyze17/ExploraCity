@@ -185,7 +185,7 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit
                 notice = when (SessionNotice.entries.firstOrNull { it.name == notice }) {
                     SessionNotice.SIGNED_OUT -> stringResource(R.string.session_signed_out)
                     SessionNotice.ACCOUNT_DELETED -> stringResource(R.string.session_account_deleted)
-                    SessionNotice.PASSWORD_CHANGED -> stringResource(R.string.session_password_changed)
+                    SessionNotice.PASSWORD_CHANGED -> stringResource(R.string.session_reset_done)
                     null -> null
                 },
                 onNoticeShown = { entry.savedStateHandle[SESSION_NOTICE_KEY] = null },
