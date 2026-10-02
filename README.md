@@ -28,9 +28,14 @@ Es un proyecto de la Universidad del Quindío. Es un monorepo con la app Android
 - Cola de pendientes ordenada por antigüedad, con urgencia y filtro «Posibles duplicados».
 - Detalle de revisión, comparación con el posible original, y las decisiones **verificar**, **rechazar con motivo** y **pasar a finalizada**. Cada decisión notifica al autor.
 
-### Cuenta y ajustes
-- Registro con autorización de tratamiento de datos (**Ley 1581 de 2012**), inicio de sesión y recuperación de contraseña por correo.
-- Ajustes: tema claro, oscuro o del sistema; documentos legales; **descargar mis datos** en JSON; cerrar sesión; y eliminar la cuenta.
+### Acceso y cuenta
+- **Arranque**: el splash decide por dónde se entra. La primera vez va al onboarding de tres paneles, después al inicio de sesión, y con una sesión guardada entra directo al feed. Si la red falla, se puede seguir sin conexión con lo guardado.
+- **Inicio de sesión**: valida el correo y la contraseña. Ante un error no revela cuál de los dos datos falló, y sin conexión el botón queda deshabilitado con su explicación.
+- **Registro**: pide la autorización de tratamiento de datos (**Ley 1581 de 2012**), que nunca viene marcada. La cuenta se crea aunque falle el correo de bienvenida.
+- **Recuperación de contraseña**: llega un enlace por correo que vence a los 30 minutos, y se puede reenviar después de una cuenta regresiva de 60 s. La app nunca revela si un correo tiene cuenta.
+- **Editar perfil**: foto, nombre, «Sobre mí» y cómo se presenta la persona («De visita» o «Residente»).
+- **Ajustes**: tema claro, oscuro o del sistema; documentos legales; **descargar mis datos** en JSON; y cerrar sesión.
+- **Eliminar la cuenta**: primero muestra qué se borra y qué se conserva de forma anónima, y luego pide escribir **ELIMINAR** para confirmar.
 
 ### Transversal
 - **Sin conexión**: el feed guarda en Room lo último que cargó y el detalle de cada lugar, y muestra la antigüedad de esa copia. Las visitas, los votos y los comentarios hechos sin red quedan en una **cola de envío** que WorkManager envía cuando vuelve la conexión.
@@ -45,17 +50,21 @@ Es un proyecto de la Universidad del Quindío. Es un monorepo con la app Android
 
 ## Estado del proyecto
 
-Las pantallas se construyen primero con **datos de ejemplo**, a través de repositorios `Fake*` y `Sample*` que implementan las mismas interfaces que usará la API. La sesión es una usuaria de ejemplo (Ana Ríos). Cuando todas las pantallas estén listas, se conectará el inicio de sesión real (JWT) con `api-ktor` y, en ese mismo paso, se retirarán todos los datos de ejemplo.
+Las pantallas se construyen primero con **datos de ejemplo**, a través de repositorios `Fake*` y `Sample*` que implementan las mismas interfaces que usará la API.
+
+El inicio de sesión, el registro y la recuperación de contraseña ya funcionan, pero contra un servidor falso (`FakeAuthRepository`). La sesión y su rol se guardan en DataStore. Cualquier cuenta, también una recién creada, ve los datos de ejemplo de Ana Ríos.
+
+Cuando todas las pantallas estén listas, la app se conectará a `api-ktor` con autenticación JWT y, en ese mismo paso, se retirarán todos los datos de ejemplo.
 
 | Área | Pantallas (numeración del diseño) | Estado |
 |---|---|---|
+| Acceso (splash, onboarding, inicio de sesión, registro y recuperación) | 1–6, 6C | ✅ Implementada |
 | Explorar | 7–14, 31 | ✅ Implementada |
 | Publicar y mis publicaciones | 15–24 | ✅ Implementada |
 | Notificaciones, perfil e insignias | 25–27 | ✅ Implementada |
-| Ajustes y documentos legales | 29, 29A, 4A | ✅ Implementada |
-| Editar perfil y eliminar cuenta | 28, 30 | 🚧 En desarrollo |
-| Acceso (splash, onboarding, login, registro, recuperación) | 1–6 | ⏳ Marcador de posición |
-| Moderación | 32–37 | ⏳ Marcador de posición |
+| Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ Implementada |
+| Cambiar correo (Ajustes › Cuenta) | sin número | ⏳ Marcador, pendiente de diseño |
+| Moderación | 32–37, 33A | ⏳ Marcador de posición |
 | API (`api-ktor`) | — | ⏳ Esqueleto: solo `/health` y la migración de extensiones |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
@@ -127,7 +136,15 @@ cd app-android
 
 En Windows usa `gradlew.bat`. También puedes abrir `app-android/` en Android Studio y ejecutar la configuración `app`.
 
-En las compilaciones de depuración, Ajustes incluye un acceso al **muestrario del sistema de diseño**.
+#### Herramientas de desarrollo
+
+Estas opciones solo aparecen en las compilaciones de depuración:
+
+- **Cuentas de prueba**: en el inicio de sesión, rellenan la cuenta de Ana o la del moderador. Para esas cuentas vale cualquier contraseña que cumpla las reglas. Con la del moderador aparece la pestaña «Moderación».
+- **Correo de prueba**: en «Revisa tu correo» (6.a), «Abrir el enlace del correo» lleva a «Nueva contraseña» (6.b), y «Abrir un enlace vencido» lleva a 6C.
+- **Muestrario del sistema de diseño**: un acceso desde Ajustes.
+
+Las cuentas creadas en el registro viven en la memoria del servidor falso y se pierden al cerrar la app.
 
 ### API
 
