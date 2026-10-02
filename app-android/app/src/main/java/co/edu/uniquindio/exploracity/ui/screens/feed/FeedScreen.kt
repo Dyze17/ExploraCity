@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -127,6 +128,8 @@ fun FeedRoute(
     onOpenMap: () -> Unit,
     onPublish: () -> Unit,
     onOpenModeration: () -> Unit,
+    notice: String? = null,
+    onNoticeShown: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     FeedScreen(
@@ -141,7 +144,9 @@ fun FeedRoute(
             onOpenMap = onOpenMap,
             onPublish = onPublish,
             onOpenModeration = onOpenModeration,
+            onNoticeShown = onNoticeShown,
         ),
+        notice = notice,
     )
 }
 
@@ -155,10 +160,11 @@ class FeedCallbacks(
     val onOpenMap: () -> Unit = {},
     val onPublish: () -> Unit = {},
     val onOpenModeration: () -> Unit = {},
+    val onNoticeShown: () -> Unit = {},
 )
 
 @Composable
-fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallbacks, modifier: Modifier = Modifier) {
+fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallbacks, modifier: Modifier = Modifier, notice: String? = null) {
     Box(modifier.fillMaxSize()) {
         val collapsing = remember { CollapsingHeaderState() }
         // Al cambiar los filtros los chips activos vuelven a la vista (README 9: «con los chips activos visibles»).
@@ -268,7 +274,7 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
             if (state.content is FeedContent.Loaded) {
                 PublishFab(onClick = callbacks.onPublish, modifier = Modifier.padding(ExploraSpacing.ScreenMargin))
             }
-            FeedSnackbar(state.message, callbacks.filters)
+            FeedSnackbar(state.message, callbacks.filters, notice, callbacks.onNoticeShown)
         }
         FiltersBottomSheet(
             draft = state.filterSheet?.draft,
@@ -282,10 +288,23 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
 }
 
 @Composable
-private fun FeedSnackbar(message: FeedMessage?, callbacks: FilterCallbacks) {
+private fun FeedSnackbar(message: FeedMessage?, callbacks: FilterCallbacks, notice: String?, onNoticeShown: () -> Unit) {
     val hostState = remember { SnackbarHostState() }
     FeedMessageEffect(message, hostState, callbacks)
+    NoticeEffect(notice, hostState, onNoticeShown)
     SnackbarHost(hostState)
+}
+
+/** Un aviso con que se llega al feed («Tu cuenta quedó lista», 4); se ve una vez. */
+@Composable
+private fun NoticeEffect(notice: String?, hostState: SnackbarHostState, onShown: () -> Unit) {
+    val currentOnShown by rememberUpdatedState(onShown)
+    LaunchedEffect(notice) {
+        if (notice == null) return@LaunchedEffect
+        // Se marca al terminar: marcarlo antes cambia la clave del efecto y cancela el aviso.
+        hostState.showSnackbar(notice, withDismissAction = true, duration = SnackbarDuration.Long)
+        currentOnShown()
+    }
 }
 
 @Composable
