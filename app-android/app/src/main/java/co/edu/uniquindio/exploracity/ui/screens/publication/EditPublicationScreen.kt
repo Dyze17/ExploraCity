@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -45,7 +44,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -54,8 +52,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.paneTitle
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,6 +68,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicationLimits
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+import co.edu.uniquindio.exploracity.ui.components.DiscardChangesDialog
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
@@ -81,7 +78,6 @@ import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.iconRes
-import co.edu.uniquindio.exploracity.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
@@ -304,7 +300,7 @@ fun EditPublicationScreen(
     }
 
     val original = state.original
-    if (state.discardDialog) DiscardDialog(callbacks.onDiscard, callbacks.onKeepEditing)
+    if (state.discardDialog) DiscardChangesDialog(stringResource(R.string.edit_discard_body), callbacks.onDiscard, callbacks.onKeepEditing)
     val delete = state.delete
     if (original != null && delete != null) DeletePublicationDialog(original, delete, callbacks.onConfirmDelete, callbacks.onDismissDelete)
 }
@@ -513,38 +509,6 @@ private fun CategoryField(category: Category, onChange: (Category) -> Unit) {
 }
 
 /** «¿Descartar los cambios?»: «Descartar» en rojo y nunca por defecto; el foco va a «Seguir editando». */
-@Composable
-private fun DiscardDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
-    val heading = stringResource(R.string.edit_discard_title)
-    val keepFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { keepFocus.requestFocus() }
-    AlertDialog(
-        onDismissRequest = onKeepEditing,
-        modifier = Modifier.semantics { paneTitle = heading },
-        title = { Text(heading, style = MaterialTheme.typography.titleLarge) },
-        text = {
-            Text(
-                stringResource(R.string.edit_discard_body),
-                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                color = MaterialTheme.exploraColors.textSecondary,
-            )
-        },
-        confirmButton = {
-            ExploraButton(stringResource(R.string.edit_discard_confirm), onClick = onDiscard, style = ExploraButtonStyle.DESTRUCTIVE)
-        },
-        dismissButton = {
-            ExploraButton(
-                stringResource(R.string.edit_discard_keep),
-                onClick = onKeepEditing,
-                modifier = Modifier.initialFocus(keepFocus),
-                style = ExploraButtonStyle.TEXT,
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.surface,
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-    )
-}
-
 @Composable
 private fun RetryButton(onRetry: () -> Unit) {
     ExploraButton(stringResource(R.string.action_retry), onClick = onRetry, modifier = Modifier.fillMaxWidth(), icon = R.drawable.ic_refresh)

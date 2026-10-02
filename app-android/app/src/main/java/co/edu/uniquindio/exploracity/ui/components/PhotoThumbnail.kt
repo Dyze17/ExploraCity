@@ -37,10 +37,7 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun PhotoThumbnail(path: String, modifier: Modifier = Modifier, size: Dp = 72.dp) {
-    val sizePx = with(LocalDensity.current) { size.roundToPx() }
-    val bitmap by produceState<ImageBitmap?>(null, path, sizePx) {
-        value = if (path.isEmpty()) null else withContext(Dispatchers.IO) { decodeThumbnail(path, sizePx) }
-    }
+    val bitmap = rememberLocalPhoto(path, size)
     Box(
         modifier.size(size).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
@@ -53,6 +50,19 @@ fun PhotoThumbnail(path: String, modifier: Modifier = Modifier, size: Dp = 72.dp
             Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(28.dp))
         }
     }
+}
+
+/**
+ * Una foto del teléfono decodificada al tamaño en que se ve (recortada al cuadrado); null mientras carga o si no se puede
+ * leer. Para las rutas que no son del teléfono (las URL del servidor) también es null: aún no hay quien las descargue.
+ */
+@Composable
+internal fun rememberLocalPhoto(path: String, size: Dp): ImageBitmap? {
+    val sizePx = with(LocalDensity.current) { size.roundToPx() }
+    val bitmap by produceState<ImageBitmap?>(null, path, sizePx) {
+        value = if (!path.startsWith("/")) null else withContext(Dispatchers.IO) { decodeThumbnail(path, sizePx) }
+    }
+    return bitmap
 }
 
 private fun decodeThumbnail(path: String, sizePx: Int): ImageBitmap? = try {

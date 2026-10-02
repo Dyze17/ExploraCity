@@ -24,9 +24,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,6 +95,8 @@ fun OwnProfileRoute(
     onEditProfile: () -> Unit,
     onOpenBadges: () -> Unit,
     onOpenPublications: (PublicationStatus?) -> Unit,
+    profileSaved: Boolean = false,
+    onProfileSavedShown: () -> Unit = {},
     viewModel: OwnProfileViewModel = viewModel(factory = OwnProfileViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -104,7 +111,9 @@ fun OwnProfileRoute(
             onOpenBadge = viewModel::onOpenBadge,
             onDismissBadge = viewModel::onDismissBadge,
             onRetry = viewModel::onRetry,
+            onNoticeShown = onProfileSavedShown,
         ),
+        notice = if (profileSaved) stringResource(R.string.profile_saved) else null,
     )
 }
 
@@ -117,6 +126,7 @@ class OwnProfileCallbacks(
     val onOpenBadge: (String) -> Unit = {},
     val onDismissBadge: () -> Unit = {},
     val onRetry: () -> Unit = {},
+    val onNoticeShown: () -> Unit = {},
 )
 
 /**
@@ -125,8 +135,25 @@ class OwnProfileCallbacks(
  * abre su hoja (27A) aquí mismo.
  */
 @Composable
-fun OwnProfileScreen(state: OwnProfileUiState, callbacks: OwnProfileCallbacks, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+fun OwnProfileScreen(state: OwnProfileUiState, callbacks: OwnProfileCallbacks, modifier: Modifier = Modifier, notice: String? = null) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val currentOnNoticeShown by rememberUpdatedState(callbacks.onNoticeShown)
+    // «Guardamos tu perfil.» al volver de 28; se consume al terminar para no repetirlo.
+    LaunchedEffect(notice) {
+        if (notice == null) return@LaunchedEffect
+        snackbarHostState.showSnackbar(notice, withDismissAction = true)
+        currentOnNoticeShown()
+    }
+    Box(modifier.fillMaxSize()) {
+        OwnProfileLayout(state, callbacks)
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
+    }
+    BadgeSheet(state.openBadge, callbacks.onDismissBadge)
+}
+
+@Composable
+private fun OwnProfileLayout(state: OwnProfileUiState, callbacks: OwnProfileCallbacks) {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         ExploraTopAppBar(
             title = stringResource(R.string.own_profile_title),
             actions = {
@@ -143,7 +170,6 @@ fun OwnProfileScreen(state: OwnProfileUiState, callbacks: OwnProfileCallbacks, m
             OwnProfileBody(content.profile, callbacks)
         }
     }
-    BadgeSheet(state.openBadge, callbacks.onDismissBadge)
 }
 
 @Composable
@@ -173,7 +199,7 @@ private fun Header(profile: OwnProfile, onEdit: () -> Unit) {
     )
     val levelDescription = author.level.spokenDescription()
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        InitialsAvatar(author, size = 72.dp)
+        InitialsAvatar(author, size = 72.dp, photo = profile.photo)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 author.name,

@@ -30,6 +30,9 @@ interface PhotoStore {
 
     /** Borra el archivo local: al quitar la foto, al descartar el borrador o cuando el servidor ya la tiene. */
     suspend fun delete(photo: DraftPhoto)
+
+    /** 30 · Al eliminar la cuenta: todas las fotos del teléfono, también las de los borradores y la cámara. */
+    suspend fun deleteAll()
 }
 
 /**
@@ -80,6 +83,13 @@ class AndroidPhotoStore(context: Context) : PhotoStore {
 
     override suspend fun delete(photo: DraftPhoto) {
         withContext(Dispatchers.IO) { File(photo.path).delete() }
+    }
+
+    override suspend fun deleteAll() {
+        withContext(Dispatchers.IO) {
+            folder.listFiles()?.forEach { it.delete() }
+            cameraFolder.listFiles()?.forEach { it.delete() }
+        }
     }
 
     private val authority get() = "${context.packageName}.fotos"

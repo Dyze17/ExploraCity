@@ -13,11 +13,15 @@ interface SessionManager {
 
     /** Borra lo de la cuenta y conserva lo del teléfono: los borradores (con sus fotos) y el tema. */
     suspend fun signOut()
+
+    /** 30 · La cuenta ya no existe: se borra todo lo suyo, también los borradores y sus fotos. Solo queda el tema. */
+    suspend fun deleteAccountData()
 }
 
 class LocalSessionManager(
     private val database: ExploraDatabase,
     private val photos: PhotoStore,
+    private val drafts: DraftRepository,
     private val cancelSending: () -> Unit,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : SessionManager {
@@ -34,5 +38,11 @@ class LocalSessionManager(
             .forEach { photos.delete(it) }
         // Lo guardado para ver sin conexión, la cola, los avisos y el perfil son de esta cuenta.
         withContext(io) { database.clearAllTables() }
+    }
+
+    override suspend fun deleteAccountData() {
+        signOut()
+        drafts.clearAll()
+        photos.deleteAll()
     }
 }

@@ -1,6 +1,8 @@
 package co.edu.uniquindio.exploracity.data.repository
 
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
+import co.edu.uniquindio.exploracity.domain.model.PhotoChange
+import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import co.edu.uniquindio.exploracity.domain.model.Residency
@@ -74,5 +76,49 @@ class FakeUserRepositoryTest {
         // «10 verificadas · 3 de 10»: las verificadas de hoy más la que ya pasó a finalizada.
         val verified = own.badges.single { it.metric == BadgeMetric.VERIFIED_PLACES }
         assertEquals(own.publications.verified + own.publications.finalized, verified.progress)
+    }
+
+    @Test
+    fun `editar el perfil propio cambia lo que ven 26 y 31, también la foto`() = runTest {
+        val repository = FakeUserRepository(FakePoiRepository())
+
+        repository.updateProfile(ProfileUpdate("Ana María", "Cafés con patio.", Residency.VISITOR, PhotoChange.Replace("/fotos/yo.jpg")))
+
+        val own = repository.ownProfile()
+        assertEquals("Ana María", own.author.name)
+        assertEquals("Cafés con patio.", own.bio)
+        assertEquals(Residency.VISITOR, own.residency)
+        assertEquals("fake://perfil/yo.jpg", own.photo)
+        val public = requireNotNull(repository.publicProfile("ana-rios"))
+        assertEquals("Ana María", public.author.name)
+        assertEquals("fake://perfil/yo.jpg", public.photo)
+
+        repository.updateProfile(ProfileUpdate("Ana María", null, Residency.VISITOR, PhotoChange.Remove))
+        assertNull(repository.ownProfile().photo)
+        assertNull(repository.ownProfile().bio)
+    }
+
+    @Test
+    fun `el servidor rechaza un nombre o un sobre mí fuera de las reglas`() = runTest {
+        val repository = FakeUserRepository(FakePoiRepository())
+
+        assertTrue(runCatching { repository.updateProfile(ProfileUpdate("A", null, Residency.RESIDENT, PhotoChange.Keep)) }.isFailure)
+        assertTrue(runCatching { repository.updateProfile(ProfileUpdate("Ana", "a".repeat(151), Residency.RESIDENT, PhotoChange.Keep)) }.isFailure)
+    }
+
+    @Test
+    fun `quitar la foto o eliminar la cuenta borra la copia del servidor`() = runTest {
+        var removed = 0
+        val repository = FakeUserRepository(FakePoiRepository(), photoRemover = { removed++ })
+        repository.updateProfile(ProfileUpdate("Ana María", "Cafés.", Residency.RESIDENT, PhotoChange.Replace("/fotos/yo.jpg")))
+
+        repository.updateProfile(ProfileUpdate("Ana María", "Cafés.", Residency.RESIDENT, PhotoChange.Remove))
+        assertEquals(1, removed)
+
+        repository.updateProfile(ProfileUpdate("Ana María", "Cafés.", Residency.RESIDENT, PhotoChange.Replace("/fotos/yo.jpg")))
+        repository.deleteOwnAccount()
+        assertEquals(2, removed)
+        assertNull(repository.ownProfile().photo)
+        assertEquals("Ana Ríos", repository.ownProfile().author.name)
     }
 }

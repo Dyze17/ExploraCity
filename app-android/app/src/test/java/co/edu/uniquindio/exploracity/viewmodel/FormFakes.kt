@@ -75,6 +75,12 @@ internal class FakePhotos : PhotoStore {
     override suspend fun delete(photo: DraftPhoto) {
         deleted += photo.id
     }
+
+    var deletedAll = false
+
+    override suspend fun deleteAll() {
+        deletedAll = true
+    }
 }
 
 /** Subida de prueba: 1 s por foto (o lo de [slow]) de 25 en 25 %; sin red, o si está en [failing], falla. */

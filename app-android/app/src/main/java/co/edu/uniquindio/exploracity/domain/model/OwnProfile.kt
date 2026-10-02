@@ -86,6 +86,10 @@ data class OwnProfile(
     val badges: List<Badge>,
     /** Cuándo se guardó, si viene de lo guardado para ver sin conexión; null si llegó del servidor. */
     val savedAt: Instant? = null,
+    /** «Sobre mí» (28); se ve en el perfil público (31). */
+    val bio: String? = null,
+    /** Foto de perfil (28); null muestra las iniciales. */
+    val photo: String? = null,
 ) {
     val unlockedBadges: Int get() = badges.count { it.unlocked }
 }

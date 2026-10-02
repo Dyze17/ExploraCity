@@ -22,6 +22,7 @@ import co.edu.uniquindio.exploracity.data.location.OnlineOnlyAddressResolver
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
 import co.edu.uniquindio.exploracity.data.photos.AndroidPhotoStore
 import co.edu.uniquindio.exploracity.data.photos.FakePhotoUploader
+import co.edu.uniquindio.exploracity.data.photos.LocalProfilePhotoHost
 import co.edu.uniquindio.exploracity.data.photos.PhotoStore
 import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
 import co.edu.uniquindio.exploracity.data.repository.AccountRepository
@@ -143,26 +144,30 @@ class AppContainer(context: Context) {
         }
     }
 
-    private val userServer = FakeUserRepository(server, publicationServer, currentUser)
+    private val profilePhotoHost = LocalProfilePhotoHost(context)
+
+    private val userServer =
+        FakeUserRepository(server, publicationServer, currentUser, photoHost = profilePhotoHost::host, photoRemover = profilePhotoHost::clear)
 
     val userRepository: UserRepository = OfflineUserRepository(userServer, database.profileDao(), connectivity)
 
     /** 29 · El correo de la sesión y «Descargar mis datos». */
     val accountRepository: AccountRepository =
-        OnlineOnlyAccountRepository(FakeAccountRepository(server, publicationServer, userServer), connectivity)
+        OnlineOnlyAccountRepository(FakeAccountRepository(server, publicationServer, userServer, onDeleted = userServer::deleteOwnAccount), connectivity)
+
+    /** Borradores del formulario de publicación (15–19), en DataStore. */
+    val draftRepository: DraftRepository = DataStoreDraftRepository(context.draftsDataStore)
 
     /** 29A · Cerrar sesión borra lo de la cuenta y deja los borradores. */
-    val sessionManager: SessionManager = LocalSessionManager(database, photoStore, cancelSending = scheduler::cancel)
+    val sessionManager: SessionManager = LocalSessionManager(database, photoStore, draftRepository, cancelSending = scheduler::cancel)
 
     /** Preferencias del teléfono (el tema de 29), aparte de la cuenta. */
     val preferences: AppPreferences = DataStoreAppPreferences(context.preferencesDataStore)
 
     /** 29 · Guarda «Descargar mis datos» donde la persona elija. */
     val documentWriter: DocumentWriter = AndroidDocumentWriter(context)
-    val publicationRepository: PublicationRepository = OnlineOnlyPublicationRepository(publicationServer, connectivity)
 
-    /** Borradores del formulario de publicación (15–19), en DataStore. */
-    val draftRepository: DraftRepository = DataStoreDraftRepository(context.draftsDataStore)
+    val publicationRepository: PublicationRepository = OnlineOnlyPublicationRepository(publicationServer, connectivity)
 
     /** Temporal: la sugerencia real la hará el backend con IA (SAD: Componente de Clasificación IA). */
     val categorySuggester: CategorySuggester = OnlineOnlyCategorySuggester(FakeCategorySuggester(), connectivity)

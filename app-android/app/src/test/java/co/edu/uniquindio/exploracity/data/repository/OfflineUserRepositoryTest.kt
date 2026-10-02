@@ -5,7 +5,10 @@ import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
+import co.edu.uniquindio.exploracity.domain.model.PhotoChange
+import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
+import co.edu.uniquindio.exploracity.domain.model.Residency
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -84,6 +87,27 @@ class OfflineUserRepositoryTest {
 
         assertTrue(runCatching { repository.publicProfile("camilo-r") }.exceptionOrNull() is OfflineException)
         assertTrue(runCatching { repository.reportUser("camilo-r", ReportReason.SPAM) }.exceptionOrNull() is OfflineException)
+    }
+
+    @Test
+    fun `editar el perfil pone al día lo guardado, también sobre mí y la foto`() = runTest {
+        val repository = repository()
+        repository.updateProfile(ProfileUpdate("Ana Ríos", "Cafés con patio.", Residency.RESIDENT, PhotoChange.Replace("/fotos/yo.jpg")))
+        connectivity.online = false
+
+        val saved = repository.ownProfile()
+
+        assertEquals("Cafés con patio.", saved.bio)
+        assertEquals("fake://perfil/yo.jpg", saved.photo)
+    }
+
+    @Test
+    fun `sin red no se edita el perfil`() = runTest {
+        connectivity.online = false
+
+        val failure = runCatching { repository().updateProfile(ProfileUpdate("Ana Ríos", null, Residency.RESIDENT, PhotoChange.Keep)) }
+
+        assertTrue(failure.exceptionOrNull() is OfflineException)
     }
 
     private class FlakyServer(private val delegate: UserRepository) : UserRepository by delegate {

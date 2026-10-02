@@ -976,4 +976,75 @@
     <string name="legal_exercise_body">Escribe a datos@exploracity.co o usa «Descargar mis datos» y «Eliminar mi cuenta» en Ajustes. Respondemos en máximo 15 días hábiles.</string>
     <string name="legal_notice_hint">La política completa está en la pestaña «Política».</string>
     <string name="legal_understood">Entendido</string>
+
+    <!-- 28 · Editar perfil -->
+    <string name="profile_edit_title">Editar perfil</string>
+    <string name="profile_edit_save">Guardar</string>
+    <string name="profile_change_photo">Cambiar foto</string>
+    <string name="profile_add_photo">Agregar foto</string>
+    <string name="profile_remove_photo">Quitar foto</string>
+    <string name="profile_preparing_photo">Preparando la foto…</string>
+    <string name="profile_photo_unreadable">No pudimos leer esa foto. Prueba con otra.</string>
+    <string name="profile_avatar_photo">Tu foto de perfil</string>
+    <string name="profile_avatar_initials">Sin foto: se ven tus iniciales</string>
+    <string name="profile_field_name">Nombre para mostrar</string>
+    <plurals name="profile_name_short">
+        <item quantity="one">Escribe tu nombre: falta %d carácter para el mínimo.</item>
+        <item quantity="many">Escribe tu nombre: faltan %d caracteres para el mínimo.</item>
+        <item quantity="other">Escribe tu nombre: faltan %d caracteres para el mínimo.</item>
+    </plurals>
+    <plurals name="profile_too_long">
+        <item quantity="one">Te pasaste por %d carácter.</item>
+        <item quantity="many">Te pasaste por %d caracteres.</item>
+        <item quantity="other">Te pasaste por %d caracteres.</item>
+    </plurals>
+    <string name="profile_field_bio">Sobre mí</string>
+    <string name="profile_bio_placeholder">Cuéntale a la comunidad qué te gusta descubrir</string>
+    <string name="profile_bio_counter">%1$d/%2$d</string>
+    <string name="profile_residency_title">¿Cómo te presentas?</string>
+    <string name="profile_field_email">Correo electrónico</string>
+    <string name="profile_email_locked">El correo se cambia desde Ajustes, por seguridad.</string>
+    <string name="profile_save_no_changes">todavía no hay cambios</string>
+    <string name="profile_save_fix_name">corrige el nombre</string>
+    <string name="profile_save_fix_bio">corrige «Sobre mí»</string>
+    <string name="profile_save_fix_both">corrige el nombre y «Sobre mí»</string>
+    <string name="profile_save_preparing">espera a que termine de prepararse la foto</string>
+    <string name="profile_save_offline">Sin conexión. Tus cambios siguen aquí; guarda cuando vuelva el internet.</string>
+    <string name="profile_save_failed">No pudimos guardar. Tus cambios siguen aquí; intenta de nuevo en un momento.</string>
+    <string name="profile_saved">Guardamos tu perfil.</string>
+    <string name="profile_discard_body">Lo que cambiaste se pierde y tu perfil queda como estaba.</string>
+    <string name="profile_edit_offline_body">Editar tu perfil necesita internet. Se cargará solo cuando vuelva la conexión.</string>
+
+    <!-- 30 · Eliminar cuenta -->
+    <string name="delete_account_title">Eliminar mi cuenta</string>
+    <string name="delete_account_warning">Esta acción es permanente. No podremos recuperar tu cuenta ni tus publicaciones después.</string>
+    <string name="delete_account_removed_title">Qué se borra</string>
+    <string name="delete_account_removed_personal">Tus datos personales: nombre, correo y foto de perfil</string>
+    <string name="delete_account_removed_photos">Las fotografías que subiste a tus publicaciones</string>
+    <plurals name="delete_account_removed_reputation">
+        <item quantity="one">Tus %1$d puntos, tu nivel (%2$s) y tu %3$d insignia</item>
+        <item quantity="many">Tus %1$d puntos, tu nivel (%2$s) y tus %3$d insignias</item>
+        <item quantity="other">Tus %1$d puntos, tu nivel (%2$s) y tus %3$d insignias</item>
+    </plurals>
+    <string name="delete_account_removed_reputation_no_badges">Tus %1$d puntos y tu nivel (%2$s)</string>
+    <string name="delete_account_removed_reputation_generic">Tus puntos, tu nivel y tus insignias</string>
+    <string name="delete_account_kept_title">Qué se conserva de forma anónima</string>
+    <string name="delete_account_kept_places">Los lugares ya verificados siguen publicados, sin tu nombre</string>
+    <string name="delete_account_kept_comments">Tus comentarios aparecerán como «Usuario eliminado»</string>
+    <string name="delete_account_kept_votes">Los votos se mantienen como cifras sin autor</string>
+    <string name="delete_account_download_hint">Antes de irte puedes descargar tus datos desde Ajustes.</string>
+    <string name="delete_account_continue">Continuar con la eliminación</string>
+    <string name="delete_account_back">Mejor no, volver</string>
+    <string name="delete_account_offline">necesitas internet para eliminar tu cuenta</string>
+    <string name="delete_account_offline_notice">Sin conexión. Para eliminar tu cuenta necesitas internet.</string>
+    <string name="delete_account_dialog_title">Confirma que quieres eliminar tu cuenta</string>
+    <!-- HTML: la palabra va en negrita (AnnotatedString.fromHtml). -->
+    <string name="delete_account_dialog_body"><![CDATA[Escribe <b>ELIMINAR</b> para confirmar. Perderás el acceso de inmediato y no se puede deshacer.]]></string>
+    <string name="delete_account_dialog_field">Palabra de confirmación</string>
+    <string name="delete_account_dialog_hint">Escribe ELIMINAR</string>
+    <string name="delete_account_confirm">Eliminar cuenta</string>
+    <string name="delete_account_cancel">Cancelar</string>
+    <string name="delete_account_confirm_unavailable">escribe ELIMINAR para habilitarlo</string>
+    <string name="delete_account_failed">No pudimos completar la eliminación. Tu cuenta sigue activa; intenta más tarde.</string>
+    <string name="session_account_deleted">Tu cuenta fue eliminada.</string>
 </resources>

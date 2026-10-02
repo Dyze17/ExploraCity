@@ -43,6 +43,9 @@ interface DraftRepository {
     suspend fun save(key: DraftKey, draft: PublicationDraft)
 
     suspend fun clear(key: DraftKey)
+
+    /** 30 · Al eliminar la cuenta no queda ningún borrador. */
+    suspend fun clearAll()
 }
 
 /** En DataStore (SAD: data/local), como JSON: lo que agreguen los pasos 3 a 5 no rompe lo ya guardado. */
@@ -66,6 +69,10 @@ class DataStoreDraftRepository(private val dataStore: DataStore<Preferences>) : 
 
     override suspend fun clear(key: DraftKey) {
         dataStore.edit { it.remove(preferenceKey(key)) }
+    }
+
+    override suspend fun clearAll() {
+        dataStore.edit { it.clear() }
     }
 
     private fun preferenceKey(key: DraftKey) = stringPreferencesKey("borrador:${key.value}")

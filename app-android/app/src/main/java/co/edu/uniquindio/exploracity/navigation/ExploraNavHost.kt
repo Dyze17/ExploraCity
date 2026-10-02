@@ -22,6 +22,7 @@ import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
+import co.edu.uniquindio.exploracity.ui.screens.account.DeleteAccountRoute
 import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
 import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
@@ -29,6 +30,7 @@ import co.edu.uniquindio.exploracity.ui.screens.legal.LegalDocumentsScreen
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
 import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
+import co.edu.uniquindio.exploracity.ui.screens.profile.EditProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.OwnProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.PublicProfileRoute
 import co.edu.uniquindio.exploracity.ui.screens.publication.EditPublicationRoute
@@ -79,6 +81,9 @@ fun NavController.navigateToTab(tab: TopLevelDestination) {
 }
 
 private fun NavController.back(): () -> Unit = { popBackStack() }
+
+/** Marca en la entrada del perfil (26) para avisar una vez, al volver de 28, que se guardó. */
+private const val PROFILE_SAVED_KEY = "perfil_guardado"
 
 /** Marca en la entrada del inicio de sesión (3) para avisar una vez «Cerraste sesión». */
 private const val SESSION_NOTICE_KEY = "aviso_sesion"
@@ -153,6 +158,7 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
                 ),
                 notice = when (SessionNotice.entries.firstOrNull { it.name == notice }) {
                     SessionNotice.SIGNED_OUT -> stringResource(R.string.session_signed_out)
+                    SessionNotice.ACCOUNT_DELETED -> stringResource(R.string.session_account_deleted)
                     null -> null
                 },
                 onNoticeShown = { entry.savedStateHandle[SESSION_NOTICE_KEY] = null },
@@ -296,16 +302,28 @@ private fun NavGraphBuilder.notificationsGraph(nav: NavController) {
 
 private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionNotice?) -> Unit) {
     navigation<ProfileGraph>(startDestination = Profile) {
-        composable<Profile> {
+        composable<Profile> { entry ->
+            val saved by entry.savedStateHandle.getStateFlow(PROFILE_SAVED_KEY, false).collectAsStateWithLifecycle()
             OwnProfileRoute(
                 onOpenSettings = { nav.navigate(Settings) },
                 onEditProfile = { nav.navigate(EditProfile) },
                 onOpenBadges = { nav.navigate(Badges) },
                 onOpenPublications = { status -> nav.navigate(MyPublications(status.toFilter())) },
+                profileSaved = saved,
+                onProfileSavedShown = { entry.savedStateHandle[PROFILE_SAVED_KEY] = false },
             )
         }
         composable<Badges> { BadgesRoute(onBack = nav.back()) }
-        composable<EditProfile> { PlaceholderScreen("28", "Editar perfil", emptyList(), onBack = nav.back()) }
+        composable<EditProfile> {
+            EditProfileRoute(
+                onLeave = nav.back(),
+                onSaved = {
+                    // 26 lo dice al volver («Guardamos tu perfil.») y se pone al día.
+                    nav.previousBackStackEntry?.savedStateHandle?.set(PROFILE_SAVED_KEY, true)
+                    nav.popBackStack()
+                },
+            )
+        }
         composable<MyPublications> { entry ->
             val message by entry.savedStateHandle.getStateFlow<String?>(PUBLICATION_MESSAGE_KEY, null).collectAsStateWithLifecycle()
             MyPublicationsRoute(
@@ -352,11 +370,7 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionN
             PlaceholderScreen("sin número (llega con 1–6)", stringResource(R.string.change_email_title), emptyList(), onBack = nav.back())
         }
         composable<DeleteAccount> {
-            PlaceholderScreen(
-                "30", "Eliminar cuenta",
-                listOf(link("Eliminar cuenta (demo)") { onLogout(null) }, link("Mejor no, volver", nav.back())),
-                onBack = nav.back(),
-            )
+            DeleteAccountRoute(onBack = nav.back(), onDeleted = { onLogout(SessionNotice.ACCOUNT_DELETED) })
         }
         composable<DesignSystemCatalog> { DesignCatalog(Modifier.safeDrawingPadding()) }
     }

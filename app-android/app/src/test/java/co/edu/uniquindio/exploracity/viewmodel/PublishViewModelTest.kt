@@ -5,37 +5,25 @@ import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.local.DraftKey
 import co.edu.uniquindio.exploracity.data.local.DraftRepository
-import co.edu.uniquindio.exploracity.data.location.AddressResolver
-import co.edu.uniquindio.exploracity.data.location.ApproximateAddress
 import co.edu.uniquindio.exploracity.data.location.SimulatedLocationProvider
-import co.edu.uniquindio.exploracity.data.photos.PhotoStore
-import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
-import co.edu.uniquindio.exploracity.data.photos.UploadProgress
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
-import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
-import co.edu.uniquindio.exploracity.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
-import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
-import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -53,7 +41,6 @@ import org.junit.Before
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalTime
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -864,6 +851,10 @@ class PublishViewModelTest {
 
         override suspend fun clear(key: DraftKey) {
             saved.remove(key)
+        }
+
+        override suspend fun clearAll() {
+            saved.clear()
         }
     }
 }

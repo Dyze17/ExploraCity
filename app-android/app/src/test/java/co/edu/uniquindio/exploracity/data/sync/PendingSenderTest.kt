@@ -5,8 +5,8 @@ import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
-import co.edu.uniquindio.exploracity.data.local.PendingActionEntity
 import co.edu.uniquindio.exploracity.data.local.NOTIFICATIONS_TARGET
+import co.edu.uniquindio.exploracity.data.local.PendingActionEntity
 import co.edu.uniquindio.exploracity.data.local.PendingType
 import co.edu.uniquindio.exploracity.data.local.QueuedRead
 import co.edu.uniquindio.exploracity.data.local.QueuedVote
@@ -262,6 +262,8 @@ class PendingSenderTest {
         override suspend fun delete(photo: DraftPhoto) {
             deleted += photo.id
         }
+
+        override suspend fun deleteAll() = Unit
     }
 
     /** Anota qué se envía y puede simular que se cae la red al enviar comentarios. */

@@ -6,7 +6,7 @@ import co.edu.uniquindio.exploracity.domain.model.Residency
 // Temporal hasta que exista la API: lo público de los autores de prueba y de la persona de la sesión. Camilo R. trae
 // la biografía del lienzo 31.a; su nivel sigue siendo Aventurero (320 puntos), como en el detalle (13.a).
 
-internal class ProfileSeed(val author: Author, val residency: Residency, val city: String, val bio: String?, val badges: Int)
+internal data class ProfileSeed(val author: Author, val residency: Residency, val city: String, val bio: String?, val badges: Int)
 
 private fun seed(author: Author, residency: Residency, bio: String?, badges: Int) = ProfileSeed(author, residency, "Bogotá", bio, badges)
 

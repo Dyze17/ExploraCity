@@ -265,7 +265,7 @@ private fun ProfileHeader(profile: PublicProfile) {
     val levelDescription = author.level.spokenDescription()
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar(author, size = 72.dp)
+            InitialsAvatar(author, size = 72.dp, photo = profile.photo)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     author.name,
