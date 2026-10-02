@@ -3,17 +3,10 @@ package co.edu.uniquindio.exploracity.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
-import co.edu.uniquindio.exploracity.data.local.AppPreferences
-import co.edu.uniquindio.exploracity.data.local.SessionStore
-import co.edu.uniquindio.exploracity.data.repository.AuthRepository
 import co.edu.uniquindio.exploracity.domain.model.DemoAccount
-import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
-import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -296,61 +289,5 @@ class AccessViewModelsTest {
 
         assertEquals("ana@correo.com", recreated.state.value.email)
         assertEquals("", recreated.state.value.password)
-    }
-}
-
-private class MemoryAccessPreferences : AppPreferences {
-    val seen = MutableStateFlow(false)
-    override val themeMode = MutableStateFlow(ThemeMode.SYSTEM)
-    override val onboardingSeen = seen
-
-    override suspend fun setThemeMode(mode: ThemeMode) {
-        themeMode.value = mode
-    }
-
-    override suspend fun setOnboardingSeen() {
-        seen.value = true
-    }
-}
-
-private class MemorySessions : SessionStore {
-    val current = MutableStateFlow<UserRole?>(null)
-    override val role = current
-
-    override suspend fun open(role: UserRole) {
-        current.value = role
-    }
-
-    override suspend fun close() {
-        current.value = null
-    }
-}
-
-/** Dos cuentas: «ana@correo.com» y «moderador@correo.com», ambas con «clave-segura». */
-private class FakeAuth : AuthRepository {
-    var signIns = 0
-    var resumes = 0
-    var lastEmail: String? = null
-    var signInError: Exception? = null
-    var resumeError: Exception? = null
-    var resumeDelay = 0.5.seconds
-
-    override suspend fun signIn(email: String, password: String): UserRole {
-        signIns++
-        lastEmail = email
-        delay(1.seconds)
-        signInError?.let { throw it }
-        if (password != "clave-segura") throw InvalidCredentialsException()
-        return when (email) {
-            "ana@correo.com" -> UserRole.USER
-            "moderador@correo.com" -> UserRole.MODERATOR
-            else -> throw InvalidCredentialsException()
-        }
-    }
-
-    override suspend fun resumeSession() {
-        resumes++
-        delay(resumeDelay)
-        resumeError?.let { throw it }
     }
 }

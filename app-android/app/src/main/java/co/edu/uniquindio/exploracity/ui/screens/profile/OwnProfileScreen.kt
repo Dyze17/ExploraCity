@@ -24,7 +24,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,6 +65,7 @@ import co.edu.uniquindio.exploracity.domain.model.UserLevel
 import co.edu.uniquindio.exploracity.domain.model.inDisplayOrder
 import co.edu.uniquindio.exploracity.ui.components.BadgeCard
 import co.edu.uniquindio.exploracity.ui.components.ExploraProgressBar
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.ui.components.InitialsAvatar
 import co.edu.uniquindio.exploracity.ui.components.LevelChip
@@ -146,7 +146,7 @@ fun OwnProfileScreen(state: OwnProfileUiState, callbacks: OwnProfileCallbacks, m
     }
     Box(modifier.fillMaxSize()) {
         OwnProfileLayout(state, callbacks)
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
+        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
     BadgeSheet(state.openBadge, callbacks.onDismissBadge)
 }

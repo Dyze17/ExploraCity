@@ -22,8 +22,13 @@ import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
+import co.edu.uniquindio.exploracity.ui.screens.access.ExpiredLinkScreen
 import co.edu.uniquindio.exploracity.ui.screens.access.LoginRoute
+import co.edu.uniquindio.exploracity.ui.screens.access.NewPasswordRoute
 import co.edu.uniquindio.exploracity.ui.screens.access.OnboardingRoute
+import co.edu.uniquindio.exploracity.ui.screens.access.RecoverPasswordRoute
+import co.edu.uniquindio.exploracity.ui.screens.access.RecoveryEmailSentRoute
+import co.edu.uniquindio.exploracity.ui.screens.access.RegisterRoute
 import co.edu.uniquindio.exploracity.ui.screens.access.SplashRoute
 import co.edu.uniquindio.exploracity.ui.screens.account.DeleteAccountRoute
 import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
@@ -55,13 +60,12 @@ import co.edu.uniquindio.exploracity.viewmodel.SplashDestination
 fun ExploraNavHost(
     navController: NavHostController,
     role: UserRole,
-    onLogin: (UserRole) -> Unit,
     onEnterApp: () -> Unit,
     onLogout: (SessionNotice?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NavHost(navController = navController, startDestination = AuthGraph, modifier = modifier) {
-        authGraph(navController, onLogin, onEnterApp)
+        authGraph(navController, onEnterApp)
         navigation<MainGraph>(startDestination = ExploreGraph) {
             exploreGraph(navController, role)
             publishGraph(navController)
@@ -92,6 +96,23 @@ private const val PROFILE_SAVED_KEY = "perfil_guardado"
 
 /** Marca en la entrada del inicio de sesión (3) para avisar una vez «Cerraste sesión». */
 private const val SESSION_NOTICE_KEY = "aviso_sesion"
+
+/** Marca en la entrada del inicio de sesión (3) con el correo que el registro (4) encontró con cuenta. */
+private const val SUGGESTED_EMAIL_KEY = "correo_sugerido"
+
+/** Marca en la entrada del feed (7) para recibir una vez a quien acaba de crear su cuenta (4). */
+private const val WELCOME_NOTICE_KEY = "aviso_bienvenida"
+
+/**
+ * Vuelve al inicio de sesión (3), que suele estar debajo en la pila; si no está (un enlace abierto desde fuera), lo abre
+ * en lugar de lo demás del acceso. [notice] y [email] son el aviso y el correo con que se llega.
+ */
+private fun NavController.backToLogin(notice: SessionNotice? = null, email: String? = null) {
+    if (!popBackStack<Login>(inclusive = false)) navigate(Login) { popUpTo<AuthGraph>() }
+    val entry = currentBackStackEntry ?: return
+    if (notice != null) entry.savedStateHandle[SESSION_NOTICE_KEY] = notice.name
+    if (email != null) entry.savedStateHandle[SUGGESTED_EMAIL_KEY] = email
+}
 
 /** Sale de la app al inicio de sesión (3) sin dejar nada detrás, con [notice] para decirlo allí. */
 fun NavController.openLogin(notice: SessionNotice?) {
@@ -130,7 +151,7 @@ private fun exploreFeedViewModel(nav: NavController, entry: NavBackStackEntry, r
 
 private fun link(label: String, onClick: () -> Unit) = PlaceholderLink(label, onClick)
 
-private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) -> Unit, onEnterApp: () -> Unit) {
+private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit) {
     navigation<AuthGraph>(startDestination = Splash) {
         composable<Splash> {
             SplashRoute(
@@ -156,62 +177,56 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
         }
         composable<Login> { entry ->
             val notice by entry.savedStateHandle.getStateFlow<String?>(SESSION_NOTICE_KEY, null).collectAsStateWithLifecycle()
+            val suggestedEmail by entry.savedStateHandle.getStateFlow<String?>(SUGGESTED_EMAIL_KEY, null).collectAsStateWithLifecycle()
             LoginRoute(
                 onSignedIn = onEnterApp,
-                onForgotPassword = { nav.navigate(RecoverPassword) },
+                onForgotPassword = { email -> nav.navigate(RecoverPassword(email)) },
                 onCreateAccount = { nav.navigate(Register) },
                 notice = when (SessionNotice.entries.firstOrNull { it.name == notice }) {
                     SessionNotice.SIGNED_OUT -> stringResource(R.string.session_signed_out)
                     SessionNotice.ACCOUNT_DELETED -> stringResource(R.string.session_account_deleted)
+                    SessionNotice.PASSWORD_CHANGED -> stringResource(R.string.session_reset_done)
                     null -> null
                 },
                 onNoticeShown = { entry.savedStateHandle[SESSION_NOTICE_KEY] = null },
+                suggestedEmail = suggestedEmail,
+                onSuggestedEmailUsed = { entry.savedStateHandle[SUGGESTED_EMAIL_KEY] = null },
             )
         }
         composable<Register> {
-            PlaceholderScreen(
-                "4", "Registro",
-                listOf(
-                    link("Crear cuenta") { onLogin(UserRole.USER) },
-                    link("Política de tratamiento de datos") { nav.navigate(LegalDocuments(LegalTab.POLICY)) },
-                    link("Aviso de privacidad") { nav.navigate(LegalDocuments(LegalTab.PRIVACY_NOTICE)) },
-                ),
+            RegisterRoute(
                 onBack = nav.back(),
+                onRegistered = { registration ->
+                    onEnterApp()
+                    val notice = if (registration.welcomeEmailSent) WelcomeNotice.ACCOUNT_READY else WelcomeNotice.WELCOME_EMAIL_FAILED
+                    nav.currentBackStackEntry?.savedStateHandle?.set(WELCOME_NOTICE_KEY, notice.name)
+                },
+                onOpenLegal = { tab -> nav.navigate(LegalDocuments(tab)) },
+                onSignInInstead = { email -> nav.backToLogin(email = email) },
             )
         }
         composable<LegalDocuments> { entry ->
             LegalDocumentsScreen(initialTab = entry.toRoute<LegalDocuments>().tab, onBack = nav.back())
         }
         composable<RecoverPassword> {
-            PlaceholderScreen("5", "Recuperar contraseña", listOf(link("Enviar enlace") { nav.navigate(RecoveryEmailSent) }), onBack = nav.back())
+            RecoverPasswordRoute(onBack = nav.back(), onSent = { sent -> nav.navigate(RecoveryEmailSent(sent.email, sent.sentAtMillis)) })
         }
         composable<RecoveryEmailSent> {
-            PlaceholderScreen(
-                "6", "Correo enviado",
-                listOf(
-                    link("Abrir el enlace del correo (demo)") { nav.navigate(NewPassword) },
-                    link("Volver a iniciar sesión") { nav.popBackStack(Login, inclusive = false) },
-                ),
-                onBack = nav.back(),
-            )
+            RecoveryEmailSentRoute(onBackToLogin = { nav.backToLogin() }, onOpenLink = { token -> nav.navigate(NewPassword(token)) })
         }
         composable<NewPassword> {
-            PlaceholderScreen(
-                "6.b", "Nueva contraseña",
-                listOf(
-                    link("Guardar contraseña") { nav.popBackStack(Login, inclusive = false) },
-                    link("El enlace venció (demo)") { nav.navigate(ExpiredLink) { popUpTo<NewPassword> { inclusive = true } } },
-                ),
+            NewPasswordRoute(
                 onBack = nav.back(),
+                onSaved = { nav.backToLogin(SessionNotice.PASSWORD_CHANGED) },
+                // 6C queda sobre el inicio de sesión: «atrás» no vuelve a un enlace que ya no sirve.
+                onExpired = { email -> nav.navigate(ExpiredLink(email)) { popUpTo<Login>() } },
             )
         }
-        composable<ExpiredLink> {
-            PlaceholderScreen(
-                "6C", "Enlace vencido",
-                listOf(
-                    link("Pedir otro enlace") { nav.navigate(RecoverPassword) { popUpTo<RecoverPassword> { inclusive = true } } },
-                    link("Volver a iniciar sesión") { nav.popBackStack(Login, inclusive = false) },
-                ),
+        composable<ExpiredLink> { entry ->
+            val email = entry.toRoute<ExpiredLink>().email
+            ExpiredLinkScreen(
+                onRequestNew = { nav.navigate(RecoverPassword(email)) { popUpTo<Login>() } },
+                onBackToLogin = { nav.backToLogin() },
             )
         }
     }
@@ -220,6 +235,7 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) ->
 private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
     navigation<ExploreGraph>(startDestination = Feed) {
         composable<Feed> { entry ->
+            val welcome by entry.savedStateHandle.getStateFlow<String?>(WELCOME_NOTICE_KEY, null).collectAsStateWithLifecycle()
             FeedRoute(
                 viewModel = exploreFeedViewModel(nav, entry, role),
                 isModerator = role == UserRole.MODERATOR,
@@ -227,6 +243,12 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
                 onOpenMap = { nav.navigate(FeedMap()) },
                 onPublish = { nav.navigateToTab(TopLevelDestination.PUBLISH) },
                 onOpenModeration = { nav.navigateToTab(TopLevelDestination.MODERATION) },
+                notice = when (WelcomeNotice.entries.firstOrNull { it.name == welcome }) {
+                    WelcomeNotice.ACCOUNT_READY -> stringResource(R.string.register_ready)
+                    WelcomeNotice.WELCOME_EMAIL_FAILED -> stringResource(R.string.register_welcome_failed)
+                    null -> null
+                },
+                onNoticeShown = { entry.savedStateHandle[WELCOME_NOTICE_KEY] = null },
             )
         }
         composable<FeedMap> { entry ->
@@ -371,7 +393,7 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionN
             )
         }
         composable<ChangeEmail> {
-            PlaceholderScreen("sin número (llega con 1–6)", stringResource(R.string.change_email_title), emptyList(), onBack = nav.back())
+            PlaceholderScreen("sin número (pendiente de diseño)", stringResource(R.string.change_email_title), emptyList(), onBack = nav.back())
         }
         composable<DeleteAccount> {
             DeleteAccountRoute(onBack = nav.back(), onDeleted = { onLogout(SessionNotice.ACCOUNT_DELETED) })

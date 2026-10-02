@@ -9,6 +9,14 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!-- 6.a · «Abrir mi correo» solo se muestra si hay una app de correo: desde Android 11 hay que declarar la consulta. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_EMAIL" />
+        </intent>
+    </queries>
+
     <!-- Sin copias de seguridad: la sesión (JWT) se guarda en DataStore y no debe copiarse a otro equipo.
          allowBackup cubre Android 9–11 (por eso no hace falta fullBackupContent);
          dataExtractionRules, Android 12 y posteriores. -->

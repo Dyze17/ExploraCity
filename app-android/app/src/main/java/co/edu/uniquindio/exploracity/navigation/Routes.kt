@@ -23,13 +23,20 @@ import kotlinx.serialization.Serializable
 
 @Keep @Serializable enum class LegalTab { POLICY, PRIVACY_NOTICE }
 
-@Serializable data object RecoverPassword // 5
+/** 5. Abre con [email] escrito: el del inicio de sesión (3) o el del enlace vencido (6C). */
+@Serializable data class RecoverPassword(val email: String = "") // 5
 
-@Serializable data object RecoveryEmailSent // 6
+/** 6.a. [sentAtMillis] es la hora del envío: de ahí sale la cuenta regresiva del reenvío. */
+@Serializable data class RecoveryEmailSent(val email: String, val sentAtMillis: Long) // 6
 
-@Serializable data object NewPassword // 6.b
+/** 6.b. [token] es el del enlace del correo. */
+@Serializable data class NewPassword(val token: String) // 6.b
 
-@Serializable data object ExpiredLink // 6C
+/** 6C. [email] es la cuenta del enlace vencido, para pedir otro con el correo escrito (vacío si no se sabe). */
+@Serializable data class ExpiredLink(val email: String = "") // 6C
+
+/** Aviso con que el feed (7) recibe a quien acaba de crear su cuenta (4). */
+enum class WelcomeNotice { ACCOUNT_READY, WELCOME_EMAIL_FAILED }
 
 // ── App principal: una sección por pestaña ──
 @Serializable data object MainGraph
@@ -105,11 +112,11 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 
 @Serializable data object Settings // 29
 
-/** Sin número en el diseño: «Cambiar correo» de Ajustes › Cuenta. Su flujo (enlace de verificación) llega con 1–6. */
+/** Sin número en el diseño: «Cambiar correo» de Ajustes › Cuenta. Su pantalla se acuerda y llega en un PR aparte. */
 @Serializable data object ChangeEmail
 
 /** Aviso que el inicio de sesión (3) muestra una vez al llegar desde la app. */
-@Keep @Serializable enum class SessionNotice { SIGNED_OUT, ACCOUNT_DELETED }
+@Keep @Serializable enum class SessionNotice { SIGNED_OUT, ACCOUNT_DELETED, PASSWORD_CHANGED }
 
 @Serializable data object DeleteAccount // 30
 

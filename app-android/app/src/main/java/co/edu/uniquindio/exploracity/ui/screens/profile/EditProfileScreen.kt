@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,16 +19,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,13 +34,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,15 +53,15 @@ import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.ui.components.InitialsAvatar
-import co.edu.uniquindio.exploracity.ui.components.OptionButton
+import co.edu.uniquindio.exploracity.ui.components.ResidencyPicker
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
-import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.viewmodel.EditProfileContent
 import co.edu.uniquindio.exploracity.viewmodel.EditProfileDone
 import co.edu.uniquindio.exploracity.viewmodel.EditProfileUiState
@@ -176,7 +169,7 @@ fun EditProfileScreen(state: EditProfileUiState, callbacks: EditProfileCallbacks
                 }
             }
         }
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars))
+        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars))
     }
 
     if (state.discardDialog) {
@@ -261,29 +254,6 @@ private fun BioField(form: ProfileForm, showError: Boolean, onChange: (String) -
         minLines = 3,
         modifier = Modifier.fillMaxWidth(),
     )
-}
-
-/** «¿Cómo te presentas?»: De visita o Residente, como en el perfil (26 y 31). Con fuente grande, una debajo de otra. */
-@Composable
-private fun ResidencyPicker(selected: Residency, onSelect: (Residency) -> Unit) {
-    val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            stringResource(R.string.profile_residency_title),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.semantics { heading() },
-        )
-        val options: @Composable (Modifier) -> Unit = { itemModifier ->
-            OptionButton(stringResource(R.string.residency_visitor), R.drawable.ic_luggage, selected == Residency.VISITOR, { onSelect(Residency.VISITOR) }, itemModifier)
-            OptionButton(stringResource(R.string.residency_resident), R.drawable.ic_home_pin, selected == Residency.RESIDENT, { onSelect(Residency.RESIDENT) }, itemModifier)
-        }
-        if (stacked) {
-            Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) { options(Modifier.fillMaxWidth()) }
-        } else {
-            Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { options(Modifier.weight(1f)) }
-        }
-    }
 }
 
 /** El correo no se edita aquí: candado y el motivo, que lleva a Ajustes › Cuenta (29). */

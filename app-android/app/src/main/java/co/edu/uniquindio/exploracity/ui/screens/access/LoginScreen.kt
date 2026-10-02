@@ -20,15 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -40,18 +35,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -66,9 +57,9 @@ import co.edu.uniquindio.exploracity.domain.model.DemoAccount
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.ui.components.onBlur
-import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
@@ -79,21 +70,30 @@ import co.edu.uniquindio.exploracity.viewmodel.LoginViewModel
 
 /**
  * 3 · Inicio de sesión, conectado a su ViewModel. Al entrar sigue a [onSignedIn]. [notice] es el aviso con que se
- * llega («Cerraste sesión.», «Tu cuenta fue eliminada.»).
+ * llega («Cerraste sesión.», «Ya puedes entrar con tu contraseña nueva»). [suggestedEmail] llega del registro (4)
+ * cuando el correo ya tenía cuenta. «¿Olvidaste tu contraseña?» pasa a 5 el correo escrito.
  */
 @Composable
 fun LoginRoute(
     onSignedIn: () -> Unit,
-    onForgotPassword: () -> Unit,
+    onForgotPassword: (email: String) -> Unit,
     onCreateAccount: () -> Unit,
     notice: String? = null,
     onNoticeShown: () -> Unit = {},
+    suggestedEmail: String? = null,
+    onSuggestedEmailUsed: () -> Unit = {},
     viewModel: LoginViewModel = viewModel(factory = LoginViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnSignedIn by rememberUpdatedState(onSignedIn)
     LaunchedEffect(state.signedIn) {
         if (state.signedIn) currentOnSignedIn()
+    }
+    val currentOnSuggestedEmailUsed by rememberUpdatedState(onSuggestedEmailUsed)
+    LaunchedEffect(suggestedEmail) {
+        if (suggestedEmail == null) return@LaunchedEffect
+        viewModel.onSuggestedEmail(suggestedEmail)
+        currentOnSuggestedEmailUsed()
     }
     LoginScreen(
         state = state,
@@ -104,7 +104,7 @@ fun LoginRoute(
             onPasswordBlur = viewModel::onPasswordBlur,
             onSubmit = viewModel::onSubmit,
             onErrorDismissed = viewModel::onErrorDismissed,
-            onForgotPassword = onForgotPassword,
+            onForgotPassword = { onForgotPassword(state.email.trim()) },
             onCreateAccount = onCreateAccount,
             onDemoAccount = viewModel::onDemoAccount,
             onNoticeShown = onNoticeShown,
@@ -150,7 +150,7 @@ fun LoginScreen(state: LoginUiState, callbacks: LoginCallbacks, modifier: Modifi
     // Tocar fuera de los campos los deja: se cierra el teclado y aparece el aviso del campo, si lo hay.
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
-            if (state.offline) OfflineNotice()
+            if (state.offline) AccessOfflineNotice(stringResource(R.string.login_offline))
             Column(
                 Modifier
                     .weight(1f)
@@ -180,25 +180,7 @@ fun LoginScreen(state: LoginUiState, callbacks: LoginCallbacks, modifier: Modifi
                 FirstTime(callbacks.onCreateAccount)
             }
         }
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
-    }
-}
-
-/** 3.c · Arriba, en ámbar: sin red no se puede entrar. */
-@Composable
-private fun OfflineNotice() {
-    val warning = MaterialTheme.exploraColors.warning
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(warning.container)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(painterResource(R.drawable.ic_cloud_off), null, tint = warning.content, modifier = Modifier.size(20.dp.scaledWithFont()))
-        Text(stringResource(R.string.login_offline), style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, fontWeight = FontWeight.W600), color = warning.content)
+        ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
     }
 }
 
@@ -233,28 +215,9 @@ private fun PasswordField(state: LoginUiState, callbacks: LoginCallbacks, focus:
         leadingIcon = R.drawable.ic_lock,
         secure = true,
         revealed = revealed,
-        trailing = {
-            IconButton(onClick = { revealed = !revealed }) {
-                Icon(
-                    painterResource(if (revealed) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
-                    contentDescription = stringResource(if (revealed) R.string.login_conceal else R.string.login_reveal),
-                    tint = MaterialTheme.exploraColors.iconSecondary,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-        },
+        trailing = { PasswordEye(revealed) { revealed = !revealed } },
         modifier = Modifier.fillMaxWidth().focusRequester(focus).onBlur(callbacks.onPasswordBlur),
     )
-}
-
-/** Lo escrito sube al ViewModel; lo que cambie allí (una cuenta de prueba) baja al campo. */
-@Composable
-private fun SyncText(textState: TextFieldState, value: String, onChange: (String) -> Unit) {
-    val currentOnChange by rememberUpdatedState(onChange)
-    LaunchedEffect(textState) { snapshotFlow { textState.text.toString() }.collect { currentOnChange(it) } }
-    LaunchedEffect(value) {
-        if (textState.text.toString() != value) textState.setTextAndPlaceCursorAtEnd(value)
-    }
 }
 
 @Composable

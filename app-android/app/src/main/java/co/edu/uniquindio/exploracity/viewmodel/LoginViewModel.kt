@@ -94,6 +94,13 @@ class LoginViewModel(
 
     fun onPasswordBlur() = _state.update { it.copy(passwordTouched = it.password.isNotEmpty() || it.passwordTouched) }
 
+    /** El registro (4) encontró que el correo ya tiene cuenta: llega escrito, sin la contraseña de antes. */
+    fun onSuggestedEmail(email: String) {
+        if (_state.value.submitting) return
+        savedStateHandle[EMAIL_KEY] = email
+        _state.update { it.copy(email = email, password = "", emailTouched = true, passwordTouched = false, error = null) }
+    }
+
     /** Solo en desarrollo: rellena una cuenta de prueba con una contraseña inventada al momento (el servidor falso la acepta). */
     fun onDemoAccount(account: DemoAccount) {
         savedStateHandle[EMAIL_KEY] = account.email

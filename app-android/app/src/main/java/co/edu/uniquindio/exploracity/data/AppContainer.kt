@@ -31,6 +31,7 @@ import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
 import co.edu.uniquindio.exploracity.data.repository.AccountRepository
 import co.edu.uniquindio.exploracity.data.repository.AuthRepository
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
+import co.edu.uniquindio.exploracity.data.repository.DemoMailbox
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.FakeAccountRepository
 import co.edu.uniquindio.exploracity.data.repository.FakeAuthRepository
@@ -168,15 +169,20 @@ class AppContainer(context: Context) {
     /** Borradores del formulario de publicación (15–19), en DataStore. */
     val draftRepository: DraftRepository = DataStoreDraftRepository(context.draftsDataStore)
 
-    /** 29A · Cerrar sesión borra lo de la cuenta y deja los borradores. */
     /** 1 y 3 · La sesión abierta; con ella el arranque va directo al feed. */
     val sessionStore: SessionStore = DataStoreSessionStore(context.sessionDataStore)
 
+    /** 29A · Cerrar sesión borra lo de la cuenta y deja los borradores. */
     val sessionManager: SessionManager =
         LocalSessionManager(database, photoStore, draftRepository, sessionStore, cancelSending = scheduler::cancel)
 
-    /** Temporal: el inicio de sesión real irá a la API (JWT y BCrypt en el backend, ADR-06). */
-    val authRepository: AuthRepository = OnlineOnlyAuthRepository(FakeAuthRepository(), connectivity)
+    private val authServer = FakeAuthRepository()
+
+    /** Temporal: el acceso real irá a la API (JWT y BCrypt en el backend, ADR-06). */
+    val authRepository: AuthRepository = OnlineOnlyAuthRepository(authServer, connectivity)
+
+    /** 6.a · Lo que llegaría al correo, para abrir 6.b y 6C; solo en compilaciones de desarrollo. */
+    val demoMailbox: DemoMailbox? = if (BuildConfig.DEBUG) authServer else null
 
     /** 3 · Cuentas de prueba que el inicio de sesión rellena; solo en compilaciones de desarrollo. */
     val demoAccounts: List<DemoAccount> = if (BuildConfig.DEBUG) sampleDemoAccounts else emptyList()

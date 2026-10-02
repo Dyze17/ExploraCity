@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -30,7 +29,6 @@ import co.edu.uniquindio.exploracity.navigation.routesWithBottomBar
 import co.edu.uniquindio.exploracity.navigation.topLevelDestinations
 import co.edu.uniquindio.exploracity.ui.components.ExploraNavigationBar
 import co.edu.uniquindio.exploracity.ui.components.NavigationBarItem
-import kotlinx.coroutines.launch
 
 /**
  * Raíz de la app: barra inferior en las pantallas raíz de cada pestaña y el grafo de navegación.
@@ -43,7 +41,6 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
     // El rol llega con la sesión (3), guardada en el teléfono: sobrevive al cierre de la app.
     val session by container.sessionStore.role.collectAsStateWithLifecycle(initialValue = null)
     val role = session ?: UserRole.USER
-    val scope = rememberCoroutineScope()
     val destination = navController.currentBackStackEntryAsState().value?.destination
     val tabs = topLevelDestinations(role)
     val showBottomBar = destination != null && routesWithBottomBar.any { destination.hasRoute(it) }
@@ -70,13 +67,6 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
         ExploraNavHost(
             navController = navController,
             role = role,
-            // Solo los marcadores (el registro de demostración, 4): abren la sesión y entran.
-            onLogin = { newRole ->
-                scope.launch {
-                    container.sessionStore.open(newRole)
-                    navController.navigate(MainGraph) { popUpTo<AuthGraph> { inclusive = true } }
-                }
-            },
             onEnterApp = { navController.navigate(MainGraph) { popUpTo<AuthGraph> { inclusive = true } } },
             onLogout = { notice -> navController.openLogin(notice) },
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),

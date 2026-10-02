@@ -35,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -92,6 +91,7 @@ import co.edu.uniquindio.exploracity.ui.components.CategoryTag
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraSearchBar
+import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.FeedMode
 import co.edu.uniquindio.exploracity.ui.components.FiltersBottomSheet
 import co.edu.uniquindio.exploracity.ui.components.FiltersButton
@@ -274,7 +274,7 @@ fun FeedMapScreen(
                 BottomSheetDefaults.DragHandle(width = 32.dp, height = 4.dp, color = MaterialTheme.exploraColors.sheetHandle)
             }
         },
-        snackbarHost = { SnackbarHost(it) },
+        snackbarHost = { ExploraSnackbarHost(it) },
         sheetContent = {
             Box(
                 Modifier
