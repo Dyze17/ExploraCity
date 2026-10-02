@@ -234,6 +234,12 @@ private class MemoryPreferences : AppPreferences {
     override suspend fun setThemeMode(mode: ThemeMode) {
         theme.value = mode
     }
+
+    override val onboardingSeen = MutableStateFlow(true)
+
+    override suspend fun setOnboardingSeen() {
+        onboardingSeen.value = true
+    }
 }
 
 private class MemoryDocuments : DocumentWriter {

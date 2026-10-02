@@ -22,6 +22,9 @@ import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
 import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
+import co.edu.uniquindio.exploracity.ui.screens.access.LoginRoute
+import co.edu.uniquindio.exploracity.ui.screens.access.OnboardingRoute
+import co.edu.uniquindio.exploracity.ui.screens.access.SplashRoute
 import co.edu.uniquindio.exploracity.ui.screens.account.DeleteAccountRoute
 import co.edu.uniquindio.exploracity.ui.screens.comments.CommentsRoute
 import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
@@ -42,6 +45,7 @@ import co.edu.uniquindio.exploracity.ui.screens.settings.SettingsRoute
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
 import co.edu.uniquindio.exploracity.viewmodel.PublishExit
+import co.edu.uniquindio.exploracity.viewmodel.SplashDestination
 
 /**
  * Grafo de navegación completo. Cada destino es por ahora una [PlaceholderScreen] con los enlaces que
@@ -52,11 +56,12 @@ fun ExploraNavHost(
     navController: NavHostController,
     role: UserRole,
     onLogin: (UserRole) -> Unit,
+    onEnterApp: () -> Unit,
     onLogout: (SessionNotice?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NavHost(navController = navController, startDestination = AuthGraph, modifier = modifier) {
-        authGraph(navController, onLogin)
+        authGraph(navController, onLogin, onEnterApp)
         navigation<MainGraph>(startDestination = ExploreGraph) {
             exploreGraph(navController, role)
             publishGraph(navController)
@@ -125,37 +130,36 @@ private fun exploreFeedViewModel(nav: NavController, entry: NavBackStackEntry, r
 
 private fun link(label: String, onClick: () -> Unit) = PlaceholderLink(label, onClick)
 
-private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) -> Unit) {
+private fun NavGraphBuilder.authGraph(nav: NavController, onLogin: (UserRole) -> Unit, onEnterApp: () -> Unit) {
     navigation<AuthGraph>(startDestination = Splash) {
         composable<Splash> {
-            PlaceholderScreen(
-                "1", "Splash",
-                listOf(
-                    link("Primera vez → Onboarding") { nav.navigate(Onboarding) { popUpTo<Splash> { inclusive = true } } },
-                    link("Onboarding ya visto → Inicio de sesión") { nav.navigate(Login) { popUpTo<Splash> { inclusive = true } } },
-                ),
+            SplashRoute(
+                onDestination = { destination ->
+                    when (destination) {
+                        SplashDestination.ONBOARDING -> nav.navigate(Onboarding) { popUpTo<Splash> { inclusive = true } }
+                        SplashDestination.LOGIN -> nav.navigate(Login) { popUpTo<Splash> { inclusive = true } }
+                        SplashDestination.FEED -> onEnterApp()
+                    }
+                },
             )
         }
         composable<Onboarding> {
-            PlaceholderScreen(
-                "2", "Onboarding",
-                listOf(
-                    link("Saltar") { nav.navigate(Login) { popUpTo<Onboarding> { inclusive = true } } },
-                    link("Crear mi cuenta") { nav.navigate(Register) },
-                    link("Ya tengo cuenta") { nav.navigate(Login) { popUpTo<Onboarding> { inclusive = true } } },
-                ),
+            OnboardingRoute(
+                onSkip = { nav.navigate(Login) { popUpTo<Onboarding> { inclusive = true } } },
+                // Atrás desde el registro vuelve al inicio de sesión, no al onboarding ya visto.
+                onCreateAccount = {
+                    nav.navigate(Login) { popUpTo<Onboarding> { inclusive = true } }
+                    nav.navigate(Register)
+                },
+                onHaveAccount = { nav.navigate(Login) { popUpTo<Onboarding> { inclusive = true } } },
             )
         }
         composable<Login> { entry ->
             val notice by entry.savedStateHandle.getStateFlow<String?>(SESSION_NOTICE_KEY, null).collectAsStateWithLifecycle()
-            PlaceholderScreen(
-                "3", "Inicio de sesión",
-                listOf(
-                    link("Iniciar sesión") { onLogin(UserRole.USER) },
-                    link("Iniciar sesión como moderador (demo)") { onLogin(UserRole.MODERATOR) },
-                    link("¿Olvidaste tu contraseña?") { nav.navigate(RecoverPassword) },
-                    link("Crear una cuenta") { nav.navigate(Register) },
-                ),
+            LoginRoute(
+                onSignedIn = onEnterApp,
+                onForgotPassword = { nav.navigate(RecoverPassword) },
+                onCreateAccount = { nav.navigate(Register) },
                 notice = when (SessionNotice.entries.firstOrNull { it.name == notice }) {
                     SessionNotice.SIGNED_OUT -> stringResource(R.string.session_signed_out)
                     SessionNotice.ACCOUNT_DELETED -> stringResource(R.string.session_account_deleted)

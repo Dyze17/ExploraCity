@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -10,12 +11,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicSecureTextField
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -32,6 +35,7 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
@@ -48,6 +52,9 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
  * - [inputTransformation]: límites al escribir, p. ej. `InputTransformation.maxLength(300)`.
  * - [minLines]: alto mínimo en líneas cuando no es de una sola línea (textos largos como 14.b).
  * - [counter]: contador a la derecha del texto de apoyo, también junto al error («162/150», 28.a).
+ * - [leadingIcon]: icono decorativo delante del texto (correo y contraseña de 3).
+ * - [secure]: contraseña oculta; [revealed] la muestra y [trailing] lleva el ojo que la alterna (3.a). Con [trailing]
+ *   no se dibuja el icono de error: el ojo sigue al alcance y el error ya se dice debajo.
  */
 @Composable
 fun ExploraTextField(
@@ -65,13 +72,17 @@ fun ExploraTextField(
     onKeyboardAction: KeyboardActionHandler? = null,
     inputTransformation: InputTransformation? = null,
     counter: String? = null,
+    @DrawableRes leadingIcon: Int? = null,
+    secure: Boolean = false,
+    revealed: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
     val isError = enabled && errorMessage != null
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    val lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minHeightInLines = minLines)
+    val lineLimits = if (singleLine || secure) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minHeightInLines = minLines)
     val textColor = if (enabled) scheme.onSurface else explora.iconSecondary
 
     val colors = OutlinedTextFieldDefaults.colors(
@@ -93,18 +104,7 @@ fun ExploraTextField(
         errorSupportingTextColor = scheme.error,
     )
 
-    BasicTextField(
-        state = state,
-        modifier = modifier.semantics { if (isError) error(errorMessage.orEmpty()) },
-        enabled = enabled,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
-        keyboardOptions = keyboardOptions,
-        onKeyboardAction = onKeyboardAction,
-        inputTransformation = inputTransformation,
-        lineLimits = lineLimits,
-        interactionSource = interactionSource,
-        cursorBrush = SolidColor(if (isError) scheme.error else scheme.primary),
-        decorator = OutlinedTextFieldDefaults.decorator(
+    val decorator = OutlinedTextFieldDefaults.decorator(
             state = state,
             enabled = enabled,
             lineLimits = lineLimits,
@@ -113,7 +113,11 @@ fun ExploraTextField(
             labelPosition = TextFieldLabelPosition.Above(),
             label = { Text(label, style = MaterialTheme.typography.labelMedium) },
             placeholder = placeholder?.let { { Text(it, style = MaterialTheme.typography.bodyLarge) } },
+            leadingIcon = leadingIcon?.let { icon ->
+                { Icon(painterResource(icon), contentDescription = null, tint = explora.iconSecondary, modifier = Modifier.size(20.dp.scaledWithFont())) }
+            },
             trailingIcon = when {
+                enabled && trailing != null -> trailing
                 !enabled -> {
                     { Icon(painterResource(R.drawable.ic_lock), contentDescription = null, modifier = Modifier.size(22.dp)) }
                 }
@@ -163,8 +167,39 @@ fun ExploraTextField(
                     else -> Box(Modifier.background(scheme.surface, shape).border(1.dp, scheme.outline, shape))
                 }
             },
-        ),
-    )
+        )
+    val fieldModifier = modifier.semantics { if (isError) error(errorMessage.orEmpty()) }
+    val textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor)
+    val cursor = SolidColor(if (isError) scheme.error else scheme.primary)
+    if (secure) {
+        BasicSecureTextField(
+            state = state,
+            modifier = fieldModifier,
+            enabled = enabled,
+            textStyle = textStyle,
+            keyboardOptions = keyboardOptions.copy(keyboardType = KeyboardType.Password),
+            onKeyboardAction = onKeyboardAction,
+            inputTransformation = inputTransformation,
+            interactionSource = interactionSource,
+            cursorBrush = cursor,
+            decorator = decorator,
+            textObfuscationMode = if (revealed) TextObfuscationMode.Visible else TextObfuscationMode.RevealLastTyped,
+        )
+    } else {
+        BasicTextField(
+            state = state,
+            modifier = fieldModifier,
+            enabled = enabled,
+            textStyle = textStyle,
+            keyboardOptions = keyboardOptions,
+            onKeyboardAction = onKeyboardAction,
+            inputTransformation = inputTransformation,
+            lineLimits = lineLimits,
+            interactionSource = interactionSource,
+            cursorBrush = cursor,
+            decorator = decorator,
+        )
+    }
 }
 
 /** El texto de apoyo (o el error) a la izquierda y el contador a la derecha, en el color del estado. */

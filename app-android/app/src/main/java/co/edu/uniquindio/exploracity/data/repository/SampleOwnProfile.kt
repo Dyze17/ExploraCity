@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
 import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.DemoAccount
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
@@ -14,6 +15,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.Rejection
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RequiredFix
+import co.edu.uniquindio.exploracity.domain.model.UserRole
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
@@ -140,6 +142,23 @@ internal val sampleMemberSince: YearMonth = YearMonth.of(2026, 3)
 
 /** El correo de 28.a; vive en la cuenta, no en el perfil. */
 internal val sampleAccount = Account("ana.rios@correo.com")
+
+/** Contraseña de las cuentas de prueba (3). Dato de muestra: se va con el inicio de sesión real. */
+private const val SAMPLE_PASSWORD = "Explora2026"
+
+private const val SAMPLE_MODERATOR_EMAIL = "moderador@exploracity.co"
+
+/** Correo → contraseña y rol: Ana y el moderador precargado (SAD). */
+internal val sampleLogins: Map<String, Pair<String, UserRole>> = mapOf(
+    sampleAccount.email to (SAMPLE_PASSWORD to UserRole.USER),
+    SAMPLE_MODERATOR_EMAIL to (SAMPLE_PASSWORD to UserRole.MODERATOR),
+)
+
+/** Las mismas cuentas, para rellenar el inicio de sesión en las compilaciones de desarrollo. */
+internal val sampleDemoAccounts = listOf(
+    DemoAccount("Ana Ríos", sampleAccount.email, SAMPLE_PASSWORD),
+    DemoAccount("Moderación", SAMPLE_MODERATOR_EMAIL, SAMPLE_PASSWORD),
+)
 
 /**
  * Las 9 insignias de «Insignias · 2 de 9». Las cuatro primeras son las del diseño (26.a y 27.a), con sus textos de

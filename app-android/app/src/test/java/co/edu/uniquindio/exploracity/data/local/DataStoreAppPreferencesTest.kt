@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.data.local
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -24,6 +25,27 @@ class DataStoreAppPreferencesTest {
         preferences.setThemeMode(ThemeMode.DARK)
 
         assertEquals(ThemeMode.DARK, preferences.themeMode.first())
+    }
+
+    @Test
+    fun `el onboarding queda visto`() = runTest {
+        assertEquals(false, preferences.onboardingSeen.first())
+
+        preferences.setOnboardingSeen()
+
+        assertEquals(true, preferences.onboardingSeen.first())
+    }
+
+    @Test
+    fun `la sesión guarda el rol y se cierra`() = runTest {
+        val sessions = DataStoreSessionStore(MemoryDataStore())
+        assertEquals(null, sessions.role.first())
+
+        sessions.open(UserRole.MODERATOR)
+        assertEquals(UserRole.MODERATOR, sessions.role.first())
+
+        sessions.close()
+        assertEquals(null, sessions.role.first())
     }
 
     @Test
