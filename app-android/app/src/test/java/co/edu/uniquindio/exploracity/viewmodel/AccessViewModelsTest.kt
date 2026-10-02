@@ -50,7 +50,7 @@ class AccessViewModelsTest {
     private fun splash() = SplashViewModel(preferences, sessions, auth, connectivity)
 
     private fun login(savedState: SavedStateHandle = SavedStateHandle()) =
-        LoginViewModel(auth, sessions, preferences, connectivity, savedState, listOf(DemoAccount("Ana", "ana@correo.com", "clave-segura")))
+        LoginViewModel(auth, sessions, preferences, connectivity, savedState, listOf(DemoAccount("Ana", "ana@correo.com")))
 
     // 1 · Splash
 
@@ -238,13 +238,13 @@ class AccessViewModelsTest {
     }
 
     @Test
-    fun `una cuenta de prueba rellena los dos campos`() = runTest(dispatcher) {
+    fun `una cuenta de prueba rellena el correo y una contraseña válida inventada al momento`() = runTest(dispatcher) {
         val vm = login()
 
         vm.onDemoAccount(vm.state.value.demoAccounts.single())
 
         assertEquals("ana@correo.com", vm.state.value.email)
-        assertEquals("clave-segura", vm.state.value.password)
+        assertEquals(12, vm.state.value.password.length)
         assertTrue(vm.state.value.canSubmit)
     }
 

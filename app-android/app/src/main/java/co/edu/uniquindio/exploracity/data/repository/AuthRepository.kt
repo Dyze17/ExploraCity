@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.data.repository
 
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
+import co.edu.uniquindio.exploracity.domain.model.AuthRules
 import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.delay
@@ -18,19 +19,20 @@ interface AuthRepository {
 }
 
 /**
- * Temporal hasta que exista la API: las cuentas de prueba ([accounts], correo → contraseña y rol). El moderador es una
- * cuenta precargada, como dice el SAD.
+ * Temporal hasta que exista la API: las cuentas de prueba ([accounts], correo → rol). El moderador es una cuenta
+ * precargada, como dice el SAD. Para no guardar contraseñas en el repositorio, acepta cualquiera que cumpla las reglas;
+ * un correo que no es de prueba da el error de 3.c.
  */
 class FakeAuthRepository(
-    private val accounts: Map<String, Pair<String, UserRole>> = sampleLogins,
+    private val accounts: Map<String, UserRole> = sampleLogins,
     private val latency: Duration = 1300.milliseconds,
     private val resumeLatency: Duration = 500.milliseconds,
 ) : AuthRepository {
 
     override suspend fun signIn(email: String, password: String): UserRole {
         delay(latency)
-        val (expected, role) = accounts[email.trim().lowercase()] ?: throw InvalidCredentialsException()
-        if (password != expected) throw InvalidCredentialsException()
+        val role = accounts[email.trim().lowercase()] ?: throw InvalidCredentialsException()
+        if (!AuthRules.isValidPassword(password)) throw InvalidCredentialsException()
         return role
     }
 

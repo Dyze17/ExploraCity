@@ -143,21 +143,21 @@ internal val sampleMemberSince: YearMonth = YearMonth.of(2026, 3)
 /** El correo de 28.a; vive en la cuenta, no en el perfil. */
 internal val sampleAccount = Account("ana.rios@correo.com")
 
-/** Contraseña de las cuentas de prueba (3). Dato de muestra: se va con el inicio de sesión real. */
-private const val SAMPLE_PASSWORD = "Explora2026"
-
 private const val SAMPLE_MODERATOR_EMAIL = "moderador@exploracity.co"
 
-/** Correo → contraseña y rol: Ana y el moderador precargado (SAD). */
-internal val sampleLogins: Map<String, Pair<String, UserRole>> = mapOf(
-    sampleAccount.email to (SAMPLE_PASSWORD to UserRole.USER),
-    SAMPLE_MODERATOR_EMAIL to (SAMPLE_PASSWORD to UserRole.MODERATOR),
+/**
+ * Correo → rol de las cuentas de prueba (3): Ana y el moderador precargado (SAD). Sin contraseñas en el repositorio: el
+ * servidor falso acepta cualquiera que cumpla las reglas para estos correos.
+ */
+internal val sampleLogins: Map<String, UserRole> = mapOf(
+    sampleAccount.email to UserRole.USER,
+    SAMPLE_MODERATOR_EMAIL to UserRole.MODERATOR,
 )
 
 /** Las mismas cuentas, para rellenar el inicio de sesión en las compilaciones de desarrollo. */
 internal val sampleDemoAccounts = listOf(
-    DemoAccount("Ana Ríos", sampleAccount.email, SAMPLE_PASSWORD),
-    DemoAccount("Moderación", SAMPLE_MODERATOR_EMAIL, SAMPLE_PASSWORD),
+    DemoAccount("Ana Ríos", sampleAccount.email),
+    DemoAccount("Moderación", SAMPLE_MODERATOR_EMAIL),
 )
 
 /**

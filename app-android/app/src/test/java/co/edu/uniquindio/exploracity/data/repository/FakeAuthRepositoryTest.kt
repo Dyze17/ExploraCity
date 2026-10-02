@@ -14,7 +14,7 @@ import org.junit.Test
 /** 3 · Las cuentas de prueba y las reglas del formulario. */
 class FakeAuthRepositoryTest {
 
-    private val accounts = mapOf("ana@correo.com" to ("clave-segura" to UserRole.USER), "mod@correo.com" to ("clave-segura" to UserRole.MODERATOR))
+    private val accounts = mapOf("ana@correo.com" to UserRole.USER, "mod@correo.com" to UserRole.MODERATOR)
     private val auth = FakeAuthRepository(accounts)
 
     @Test
@@ -24,9 +24,9 @@ class FakeAuthRepositoryTest {
     }
 
     @Test
-    fun `un correo desconocido o una contraseña distinta dan el mismo error`() = runTest {
+    fun `un correo que no es de prueba o una contraseña fuera de las reglas dan el mismo error`() = runTest {
         assertTrue(runCatching { auth.signIn("nadie@correo.com", "clave-segura") }.exceptionOrNull() is InvalidCredentialsException)
-        assertTrue(runCatching { auth.signIn("ana@correo.com", "Clave-segura") }.exceptionOrNull() is InvalidCredentialsException)
+        assertTrue(runCatching { auth.signIn("ana@correo.com", "corta") }.exceptionOrNull() is InvalidCredentialsException)
     }
 
     @Test

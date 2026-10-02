@@ -237,7 +237,7 @@ private fun PasswordField(state: LoginUiState, callbacks: LoginCallbacks, focus:
             IconButton(onClick = { revealed = !revealed }) {
                 Icon(
                     painterResource(if (revealed) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
-                    contentDescription = stringResource(if (revealed) R.string.login_hide_password else R.string.login_show_password),
+                    contentDescription = stringResource(if (revealed) R.string.login_conceal else R.string.login_reveal),
                     tint = MaterialTheme.exploraColors.iconSecondary,
                     modifier = Modifier.size(22.dp),
                 )

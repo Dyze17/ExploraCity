@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 enum class LoginField { EMAIL, PASSWORD }
 
@@ -93,10 +94,11 @@ class LoginViewModel(
 
     fun onPasswordBlur() = _state.update { it.copy(passwordTouched = it.password.isNotEmpty() || it.passwordTouched) }
 
-    /** Solo en desarrollo: rellena una cuenta de prueba. */
+    /** Solo en desarrollo: rellena una cuenta de prueba con una contraseña inventada al momento (el servidor falso la acepta). */
     fun onDemoAccount(account: DemoAccount) {
         savedStateHandle[EMAIL_KEY] = account.email
-        _state.update { it.copy(email = account.email, password = account.password, emailTouched = true, passwordTouched = true, error = null) }
+        val password = UUID.randomUUID().toString().take(12)
+        _state.update { it.copy(email = account.email, password = password, emailTouched = true, passwordTouched = true, error = null) }
     }
 
     fun onSubmit() {

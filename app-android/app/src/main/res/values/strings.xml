@@ -1076,8 +1076,8 @@
     <string name="login_email_error">Escribe un correo completo, por ejemplo nombre@correo.com</string>
     <string name="login_password">Contraseña</string>
     <string name="login_password_error">Debe tener al menos 8 caracteres.</string>
-    <string name="login_show_password">Mostrar contraseña</string>
-    <string name="login_hide_password">Ocultar contraseña</string>
+    <string name="login_reveal">Mostrar contraseña</string>
+    <string name="login_conceal">Ocultar contraseña</string>
     <string name="login_forgot_password">¿Olvidaste tu contraseña?</string>
     <string name="login_submit">Iniciar sesión</string>
     <string name="login_submitting">Entrando…</string>

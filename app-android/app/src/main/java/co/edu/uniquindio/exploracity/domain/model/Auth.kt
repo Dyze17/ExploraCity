@@ -15,5 +15,8 @@ object AuthRules {
 /** El correo o la contraseña no coinciden (3.c). No dice cuál, para no revelar qué correos tienen cuenta. */
 class InvalidCredentialsException : Exception("Credenciales incorrectas")
 
-/** Solo en compilaciones de desarrollo: una cuenta de prueba que el inicio de sesión (3) puede rellenar. */
-data class DemoAccount(val label: String, val email: String, val password: String)
+/**
+ * Solo en compilaciones de desarrollo: una cuenta de prueba que el inicio de sesión (3) puede rellenar. No lleva
+ * contraseña: el servidor falso acepta cualquiera válida para las cuentas de prueba.
+ */
+data class DemoAccount(val label: String, val email: String)
