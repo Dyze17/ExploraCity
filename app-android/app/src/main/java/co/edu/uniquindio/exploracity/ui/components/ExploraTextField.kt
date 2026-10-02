@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -46,6 +47,7 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
  * - Sin alturas fijas: crece con la escala de fuente.
  * - [inputTransformation]: límites al escribir, p. ej. `InputTransformation.maxLength(300)`.
  * - [minLines]: alto mínimo en líneas cuando no es de una sola línea (textos largos como 14.b).
+ * - [counter]: contador a la derecha del texto de apoyo, también junto al error («162/150», 28.a).
  */
 @Composable
 fun ExploraTextField(
@@ -62,6 +64,7 @@ fun ExploraTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
     inputTransformation: InputTransformation? = null,
+    counter: String? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
@@ -122,23 +125,25 @@ fun ExploraTextField(
             supportingText = when {
                 isError -> {
                     {
-                        Row(
-                            Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(painterResource(R.drawable.ic_error), contentDescription = null, modifier = Modifier.size(16.dp.scaledWithFont()))
-                            Text(
-                                errorMessage.orEmpty(),
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.W600, lineHeight = 18.sp),
-                            )
+                        WithCounter(counter) {
+                            Row(
+                                Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(painterResource(R.drawable.ic_error), contentDescription = null, modifier = Modifier.size(16.dp.scaledWithFont()))
+                                Text(
+                                    errorMessage.orEmpty(),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.W600, lineHeight = 18.sp),
+                                )
+                            }
                         }
                     }
                 }
                 !enabled && disabledReason != null -> {
                     { Text(disabledReason, style = MaterialTheme.typography.bodySmall) }
                 }
-                supportingText != null -> {
-                    { Text(supportingText, style = MaterialTheme.typography.bodySmall) }
+                supportingText != null || counter != null -> {
+                    { WithCounter(counter) { supportingText?.let { Text(it, style = MaterialTheme.typography.bodySmall) } } }
                 }
                 else -> null
             },
@@ -160,4 +165,14 @@ fun ExploraTextField(
             },
         ),
     )
+}
+
+/** El texto de apoyo (o el error) a la izquierda y el contador a la derecha, en el color del estado. */
+@Composable
+private fun WithCounter(counter: String?, content: @Composable () -> Unit) {
+    if (counter == null) return content()
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.weight(1f)) { content() }
+        Text(counter, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.W600))
+    }
 }

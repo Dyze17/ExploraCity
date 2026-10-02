@@ -5,14 +5,9 @@ import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.DocumentWriter
-import co.edu.uniquindio.exploracity.data.local.SessionManager
-import co.edu.uniquindio.exploracity.data.repository.AccountRepository
-import co.edu.uniquindio.exploracity.domain.model.Account
-import co.edu.uniquindio.exploracity.domain.model.DataExport
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -28,7 +23,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
-import kotlin.time.Duration.Companion.seconds
 
 /** 29 y 29A · Tema, «Descargar mis datos» y cierre de sesión. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -239,34 +233,6 @@ private class MemoryPreferences : AppPreferences {
 
     override suspend fun setThemeMode(mode: ThemeMode) {
         theme.value = mode
-    }
-}
-
-private class FakeAccounts : AccountRepository {
-    var error: Exception? = null
-    var exports = 0
-
-    override fun account() = Account("ana.rios@correo.com")
-
-    override suspend fun exportData(): DataExport {
-        exports++
-        delay(1.seconds)
-        error?.let { throw it }
-        return DataExport("exploracity-mis-datos-2026-09-26.json", "{\"correo\":\"ana.rios@correo.com\"}")
-    }
-}
-
-private class FakeSession : SessionManager {
-    var pending = 0
-    var error: Exception? = null
-    var signedOut = false
-
-    override suspend fun pendingSends() = pending
-
-    override suspend fun signOut() {
-        delay(1.seconds)
-        error?.let { throw it }
-        signedOut = true
     }
 }
 

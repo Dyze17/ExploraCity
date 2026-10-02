@@ -29,6 +29,12 @@ interface AccountRepository {
 
     /** 29 · «Descargar mis datos»: el servidor arma el archivo. Lanza excepción si falla la red. */
     suspend fun exportData(): DataExport
+
+    /**
+     * 30 · Borra la cuenta en el servidor: los datos personales y las fotos se van; lugares verificados, comentarios
+     * y votos quedan sin autor. Todo o nada: si lanza excepción, la cuenta sigue intacta.
+     */
+    suspend fun deleteAccount()
 }
 
 /**
@@ -42,9 +48,21 @@ class FakeAccountRepository(
     private val clock: Clock = Clock.systemUTC(),
     private val account: Account = sampleAccount,
     private val latency: Duration = 900.milliseconds,
+    /** Lo que borra el resto del servidor falso con la cuenta (el perfil y su foto). */
+    private val onDeleted: suspend () -> Unit = {},
 ) : AccountRepository {
 
+    /** Para las pruebas: la cuenta ya se pidió borrar. Con la API, el inicio de sesión dejaría de aceptarla. */
+    var deleted = false
+        private set
+
     override fun account(): Account = account
+
+    override suspend fun deleteAccount() {
+        delay(latency)
+        onDeleted()
+        deleted = true
+    }
 
     override suspend fun exportData(): DataExport {
         delay(latency)
@@ -55,9 +73,11 @@ class FakeAccountRepository(
             account = ExportAccount(
                 email = account.email,
                 name = profile.author.name,
-                residency = if (profile.residency == Residency.RESIDENT) "Residente" else "Turista",
+                residency = if (profile.residency == Residency.RESIDENT) "Residente" else "De visita",
                 city = profile.city,
                 memberSince = profile.memberSince.toString(),
+                bio = profile.bio,
+                photo = profile.photo,
             ),
             reputation = ExportReputation(
                 points = profile.author.points,
@@ -142,7 +162,7 @@ class FakeAccountRepository(
     }
 }
 
-/** El correo es de la sesión; el archivo necesita al servidor. */
+/** El correo es de la sesión; el archivo y el borrado necesitan al servidor. */
 class OnlineOnlyAccountRepository(
     private val remote: AccountRepository,
     private val connectivity: ConnectivityObserver,
@@ -152,6 +172,11 @@ class OnlineOnlyAccountRepository(
     override suspend fun exportData(): DataExport {
         if (!connectivity.isOnline.value) throw OfflineException()
         return remote.exportData()
+    }
+
+    override suspend fun deleteAccount() {
+        if (!connectivity.isOnline.value) throw OfflineException()
+        remote.deleteAccount()
     }
 }
 
@@ -173,6 +198,8 @@ private class ExportAccount(
     @SerialName("comoSePresenta") val residency: String,
     @SerialName("ciudad") val city: String,
     @SerialName("miembroDesde") val memberSince: String,
+    @SerialName("sobreMi") val bio: String? = null,
+    @SerialName("foto") val photo: String? = null,
 )
 
 @Serializable

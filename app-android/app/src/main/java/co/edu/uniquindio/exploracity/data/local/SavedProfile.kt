@@ -50,6 +50,8 @@ internal data class SavedProfile(
     val rejected: Int,
     val finalized: Int,
     val badges: List<SavedBadge>,
+    val bio: String? = null,
+    val photo: String? = null,
 )
 
 @Serializable
@@ -79,6 +81,8 @@ fun OwnProfile.toEntity(savedAtMillis: Long): SavedProfileEntity {
         rejected = publications.rejected,
         finalized = publications.finalized,
         badges = badges.map { SavedBadge(it.id, it.name, it.metric, it.progress, it.target, it.howTo, it.tip, it.category) },
+        bio = bio,
+        photo = photo,
     )
     return SavedProfileEntity(json = profileJson.encodeToString(saved), savedAtMillis = savedAtMillis)
 }
@@ -93,5 +97,7 @@ fun SavedProfileEntity.toDomain(): OwnProfile {
         publications = PublicationCounts(saved.pending, saved.verified, saved.rejected, saved.finalized),
         badges = saved.badges.map { Badge(it.id, it.name, it.metric, it.progress, it.target, it.howTo, it.tip, it.category) },
         savedAt = Instant.ofEpochMilli(savedAtMillis),
+        bio = saved.bio,
+        photo = saved.photo,
     )
 }

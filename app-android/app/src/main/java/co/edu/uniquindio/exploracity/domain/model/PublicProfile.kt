@@ -1,6 +1,6 @@
 package co.edu.uniquindio.exploracity.domain.model
 
-/** SAD: el usuario es turista o residente. «De visita» evita chocar con «Turista», el primer nivel. */
+/** SAD: el usuario es turista o residente. «De visita» evita chocar con «Turista», el primer nivel (también en 28). */
 enum class Residency { RESIDENT, VISITOR }
 
 /** 31A · Motivos de reporte de un perfil. */
@@ -17,6 +17,7 @@ data class PublicProfile(
     val bio: String?,
     val places: List<Poi>,
     val badges: Int,
+    val photo: String? = null,
 ) {
     val verifiedCount: Int get() = places.count { it.status == PublicationStatus.VERIFIED }
     val finalizedCount: Int get() = places.count { it.status == PublicationStatus.FINALIZED }

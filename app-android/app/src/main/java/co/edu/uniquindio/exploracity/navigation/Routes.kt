@@ -109,7 +109,7 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 @Serializable data object ChangeEmail
 
 /** Aviso que el inicio de sesión (3) muestra una vez al llegar desde la app. */
-@Keep @Serializable enum class SessionNotice { SIGNED_OUT }
+@Keep @Serializable enum class SessionNotice { SIGNED_OUT, ACCOUNT_DELETED }
 
 @Serializable data object DeleteAccount // 30
 

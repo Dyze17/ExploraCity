@@ -65,10 +65,19 @@ class FakeAccountRepositoryTest {
     }
 
     @Test
-    fun `sin red no se puede descargar, pero el correo sí se conoce`() = runTest {
+    fun `sin red no se puede descargar ni borrar la cuenta, pero el correo sí se conoce`() = runTest {
         val offline = OnlineOnlyAccountRepository(repository, FakeConnectivity(online = false))
 
         assertEquals("ana.rios@correo.com", offline.account().email)
         assertTrue(runCatching { offline.exportData() }.exceptionOrNull() is OfflineException)
+        assertTrue(runCatching { offline.deleteAccount() }.exceptionOrNull() is OfflineException)
+        assertTrue(!repository.deleted)
+    }
+
+    @Test
+    fun `con red, borrar la cuenta llega al servidor`() = runTest {
+        OnlineOnlyAccountRepository(repository, FakeConnectivity()).deleteAccount()
+
+        assertTrue(repository.deleted)
     }
 }

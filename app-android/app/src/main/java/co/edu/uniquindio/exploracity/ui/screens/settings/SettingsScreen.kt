@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -72,6 +71,7 @@ import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
+import co.edu.uniquindio.exploracity.ui.components.OptionButton
 import co.edu.uniquindio.exploracity.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
@@ -288,38 +288,13 @@ private fun ThemePicker(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     )
     val items: @Composable (Modifier) -> Unit = { itemModifier ->
         options.forEach { (mode, icon, label) ->
-            ThemeOption(stringResource(label), icon, mode == selected, { onSelect(mode) }, itemModifier)
+            OptionButton(stringResource(label), icon, mode == selected, { onSelect(mode) }, itemModifier, fontSize = 13.sp)
         }
     }
     if (stacked) {
         Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(Modifier.fillMaxWidth()) }
     } else {
         Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(Modifier.weight(1f)) }
-    }
-}
-
-@Composable
-private fun ThemeOption(label: String, @DrawableRes icon: Int, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
-    val scheme = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(12.dp)
-    val content = if (selected) scheme.onPrimaryContainer else scheme.onSurface
-    Row(
-        modifier
-            .heightIn(min = 48.dp)
-            .clip(shape)
-            .background(if (selected) scheme.primaryContainer else Color.Transparent)
-            .border(1.dp, if (selected) scheme.primary else scheme.outline, shape)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(painterResource(if (selected) R.drawable.ic_check else icon), null, tint = content, modifier = Modifier.size(18.dp.scaledWithFont()))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = if (selected) FontWeight.W700 else FontWeight.W600),
-            color = content,
-        )
     }
 }
 

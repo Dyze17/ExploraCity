@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.viewmodel.FakePhotos
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -40,7 +41,9 @@ class LocalSessionManagerTest {
     @After
     fun tearDown() = database.close()
 
-    private fun session() = LocalSessionManager(database, photos, cancelSending = { cancelled = true }, io = dispatcher)
+    private val drafts = DataStoreDraftRepository(MemoryDataStore())
+
+    private fun session() = LocalSessionManager(database, photos, drafts, cancelSending = { cancelled = true }, io = dispatcher)
 
     private fun submission(vararg photos: DraftPhoto) = PublicationSubmission(
         title = "Mirador del Tunal",
@@ -77,5 +80,28 @@ class LocalSessionManagerTest {
         assertEquals(0, database.pendingActionsDao().count())
         assertNull(database.profileDao().get())
         assertEquals("Solo los archivos que esperaban envío", listOf("f1", "f2"), photos.deleted)
+    }
+
+    @Test
+    fun `al eliminar la cuenta también se van los borradores y todas las fotos`() = runTest(dispatcher) {
+        drafts.save(DraftKey.New, PublicationDraft(title = "Mirador del Tunal"))
+        drafts.save(DraftKey.Resubmit("puerta-falsa-tamales"), PublicationDraft(title = "Puerta Falsa"))
+
+        session().deleteAccountData()
+
+        assertTrue(cancelled)
+        assertNull(drafts.load(DraftKey.New))
+        assertNull(drafts.load(DraftKey.Resubmit("puerta-falsa-tamales")))
+        assertTrue(photos.deletedAll)
+    }
+
+    @Test
+    fun `cerrar sesión deja los borradores`() = runTest(dispatcher) {
+        drafts.save(DraftKey.New, PublicationDraft(title = "Mirador del Tunal"))
+
+        session().signOut()
+
+        assertEquals("Mirador del Tunal", drafts.load(DraftKey.New)?.title)
+        assertTrue(!photos.deletedAll)
     }
 }
