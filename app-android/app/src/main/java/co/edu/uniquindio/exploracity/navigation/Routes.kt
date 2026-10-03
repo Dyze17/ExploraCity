@@ -140,11 +140,12 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 
 @Serializable data class CompareDuplicates(val publicationId: String) // 33A
 
-@Serializable data class RejectPublication(val publicationId: String) // 35
+/** 35 · Con [duplicate], «Duplicado de un lugar existente» llega elegido; [originalId] es el original, si ya se sabe (33A). */
+@Serializable data class RejectPublication(val publicationId: String, val duplicate: Boolean = false, val originalId: String? = null) // 35
 
 @Serializable data class FinalizePublication(val publicationId: String) // 36
 
-/** Sin lienzo (E1): las publicaciones ya decididas; una verificada abre 36. Llega en la parte 2 de Moderación. */
+/** Sin lienzo (E1): las publicaciones ya decididas; una verificada o finalizada abre 36. */
 @Serializable data object ResolvedPublications
 
 /** Solo desarrollo: muestrario del sistema de diseño, accesible desde Ajustes. */

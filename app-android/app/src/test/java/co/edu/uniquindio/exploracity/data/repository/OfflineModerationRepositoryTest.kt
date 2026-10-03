@@ -4,7 +4,12 @@ import androidx.room.Room
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.data.local.ExploraDatabase
+import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
+import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.RejectDecision
+import co.edu.uniquindio.exploracity.domain.model.RejectionReason
+import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewQueue
 import kotlinx.coroutines.CoroutineScope
@@ -106,6 +111,38 @@ class OfflineModerationRepositoryTest {
     }
 
     @Test
+    fun `rechazar necesita red y, con ella, la saca también de lo guardado`() = runTest(dispatcher) {
+        val repository = repository()
+        repository.queue()
+        val decision = RejectDecision(RejectionReason.INAPPROPRIATE, "", canResubmit = false)
+        connectivity.online = false
+        assertTrue(runCatching { repository.reject("taller-titeres-macarena", decision) }.exceptionOrNull() is OfflineException)
+
+        connectivity.online = true
+        repository.reject("taller-titeres-macarena", decision)
+        advanceUntilIdle()
+
+        assertEquals(6, repository.pendingCount.value)
+        assertTrue("taller-titeres-macarena" !in repository.queueIds())
+    }
+
+    @Test
+    fun `resueltas y los cambios de estado necesitan red, y volver a pendiente pone al día el badge`() = runTest(dispatcher) {
+        val repository = repository()
+        repository.queue()
+        connectivity.online = false
+        assertTrue(runCatching { repository.resolved() }.exceptionOrNull() is OfflineException)
+        assertTrue(runCatching { repository.finalize("quinta-de-bolivar", FinalizeReason.CLOSED) }.exceptionOrNull() is OfflineException)
+
+        connectivity.online = true
+        repository.reopen("sendero-la-vieja", "Cerraron el sendero por derrumbe.")
+        advanceUntilIdle()
+
+        assertEquals(8, repository.pendingCount.value)
+        assertTrue("sendero-la-vieja" in repository.queueIds())
+    }
+
+    @Test
     fun `si el servidor no responde se muestra lo guardado`() = runTest(dispatcher) {
         repository().queue()
         val failing = repository(FailingModeration())
@@ -130,6 +167,18 @@ class OfflineModerationRepositoryTest {
 
         override suspend fun verify(id: String, note: String?) = throw IOException("500")
 
+        override suspend fun duplicateOptions(id: String): List<DuplicateCandidate> = throw IOException("500")
+
+        override suspend fun reject(id: String, decision: RejectDecision) = throw IOException("500")
+
         override suspend fun todayWork(): ModerationWork = throw IOException("500")
+
+        override suspend fun resolved(): List<ResolvedPublication> = throw IOException("500")
+
+        override suspend fun resolvedItem(id: String): ResolvedPublication? = throw IOException("500")
+
+        override suspend fun finalize(id: String, reason: FinalizeReason) = throw IOException("500")
+
+        override suspend fun reopen(id: String, reason: String) = throw IOException("500")
     }
 }

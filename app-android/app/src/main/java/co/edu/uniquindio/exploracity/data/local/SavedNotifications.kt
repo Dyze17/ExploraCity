@@ -82,7 +82,7 @@ fun Notification.toEntity(position: Int): SavedNotificationEntity {
     val base = SavedNotificationEntity(id, position, NotificationType.VERIFIED, createdAt.toEpochMilli(), read)
     return when (this) {
         is Notification.Verified -> base.copy(type = NotificationType.VERIFIED, poiId = poiId, title = poiTitle, points = points)
-        is Notification.Finalized -> base.copy(type = NotificationType.FINALIZED, poiId = poiId, title = poiTitle)
+        is Notification.Finalized -> base.copy(type = NotificationType.FINALIZED, poiId = poiId, title = poiTitle, reason = reason)
         is Notification.Commented ->
             base.copy(type = NotificationType.COMMENTED, poiId = poiId, title = poiTitle, authorName = authorName, excerpt = excerpt)
         is Notification.Rejected -> base.copy(type = NotificationType.REJECTED, publicationId = publicationId, title = title, reason = reason)
@@ -102,7 +102,7 @@ fun SavedNotificationEntity.toDomain(): Notification {
     val createdAt = Instant.ofEpochMilli(createdAtMillis)
     return when (type) {
         NotificationType.VERIFIED -> Notification.Verified(id, createdAt, read, poiId!!, title!!, points ?: 0)
-        NotificationType.FINALIZED -> Notification.Finalized(id, createdAt, read, poiId!!, title!!)
+        NotificationType.FINALIZED -> Notification.Finalized(id, createdAt, read, poiId!!, title!!, reason)
         NotificationType.COMMENTED -> Notification.Commented(id, createdAt, read, poiId!!, title!!, authorName!!, excerpt!!)
         NotificationType.REJECTED -> Notification.Rejected(id, createdAt, read, publicationId!!, title!!, reason!!)
         NotificationType.DUPLICATE_REJECTED ->

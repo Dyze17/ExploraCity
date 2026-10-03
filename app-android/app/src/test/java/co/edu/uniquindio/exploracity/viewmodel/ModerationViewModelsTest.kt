@@ -3,22 +3,10 @@ package co.edu.uniquindio.exploracity.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
-import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
-import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.domain.model.AlreadyReviewedException
-import co.edu.uniquindio.exploracity.domain.model.Author
-import co.edu.uniquindio.exploracity.domain.model.Category
-import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
-import co.edu.uniquindio.exploracity.domain.model.DuplicateSuspicion
-import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
-import co.edu.uniquindio.exploracity.domain.model.ReviewAuthor
-import co.edu.uniquindio.exploracity.domain.model.ReviewItem
-import co.edu.uniquindio.exploracity.domain.model.ReviewQueue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -34,7 +22,6 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 import java.time.Instant
-import kotlin.time.Duration.Companion.seconds
 
 /** 32, 33, 34 y 37 · La cola con sus filtros y estados, la revisión, verificar y pasar a la siguiente (C1). */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -132,8 +119,8 @@ class ModerationViewModelsTest {
 
         assertTrue(vm.state.value.empty)
         assertEquals(ModerationWork(9, 2, 1), vm.state.value.work)
-        vm.onAllReviewed()
-        assertEquals(QueueMessage.AllReviewed, vm.state.value.message)
+        vm.onAllReviewed(Decision.REJECTED)
+        assertEquals(QueueMessage.AllReviewed(Decision.REJECTED), vm.state.value.message)
     }
 
     // 33 · Revisión
@@ -261,57 +248,15 @@ class ModerationViewModelsTest {
         assertTrue(vm.state.value.compared)
     }
 
-    private fun review(id: String, duplicate: Boolean = false) = ReviewItem(
-        id = id,
-        title = "Lugar $id",
-        category = Category.CULTURE,
-        categoryOrigin = CategoryOrigin.CHOSEN,
-        description = "Descripción de prueba del lugar $id.",
-        photos = emptyList(),
-        hours = null,
-        price = null,
-        address = null,
-        location = GeoPoint(4.6, -74.07),
-        submittedAt = Instant.parse("2026-10-01T10:00:00Z"),
-        author = ReviewAuthor(Author("autor", "Autor", 100), verified = 1, rejected = 0),
-        duplicate = if (duplicate) DuplicateSuspicion(emptyList()) else null,
-    )
+    @Test
+    fun `verificar como lugar distinto desde 33A abre la hoja sin el aviso`() = runTest(dispatcher) {
+        val vm = detail("b")
+        advanceUntilIdle()
+
+        vm.onVerifyDistinct()
+
+        assertTrue(vm.state.value.compared)
+        assertEquals(VerifySheet(), vm.state.value.verify)
+    }
 }
 
-/** Una cola en memoria: cargarla y verificar tardan 1 s; abrir una, medio. */
-private class MemoryModeration(initial: List<ReviewItem>) : ModerationRepository {
-    val items = initial.toMutableList()
-    var savedAt: Instant? = null
-    var queueError: Exception? = null
-    var itemError: Exception? = null
-    var verifyError: Exception? = null
-    val verified = mutableListOf<Pair<String, String?>>()
-    var work = ModerationWork(0, 0, 0)
-
-    override val pendingCount = MutableStateFlow(initial.size)
-
-    override suspend fun summary() = ModerationSummary(items.size, 0)
-
-    override suspend fun queue(): ReviewQueue {
-        delay(1.seconds)
-        queueError?.let { throw it }
-        return ReviewQueue(items.toList(), savedAt)
-    }
-
-    override suspend fun item(id: String): ReviewItem? {
-        delay(0.5.seconds)
-        itemError?.let { throw it }
-        return items.firstOrNull { it.id == id }
-    }
-
-    override suspend fun queueIds(): List<String> = items.map { it.id }
-
-    override suspend fun verify(id: String, note: String?) {
-        verified += id to note
-        delay(1.seconds)
-        verifyError?.let { throw it }
-        items.removeAll { it.id == id }
-    }
-
-    override suspend fun todayWork(): ModerationWork = work
-}

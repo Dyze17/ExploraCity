@@ -129,6 +129,12 @@ private class SavedCandidate(
     val price: PriceRange? = null,
     val openNow: Boolean? = null,
     val summary: String? = null,
+    /** Quién lo publicó, cuándo y cuántas fotos tiene (33A); null en lo guardado antes de comparar lado a lado. */
+    val authorId: String? = null,
+    val authorName: String? = null,
+    val authorPoints: Int = 0,
+    val publishedAtMillis: Long? = null,
+    val photoCount: Int = 0,
 )
 
 private val reviewJson = Json { ignoreUnknownKeys = true }
@@ -170,6 +176,11 @@ fun ReviewItem.toEntity(position: Int): SavedReviewEntity {
                 price = poi.price,
                 openNow = poi.openNow,
                 summary = poi.summary,
+                authorId = candidate.author?.id,
+                authorName = candidate.author?.name,
+                authorPoints = candidate.author?.points ?: 0,
+                publishedAtMillis = candidate.publishedAt?.toEpochMilli(),
+                photoCount = candidate.photoCount,
             )
         },
         authorNote = duplicate?.authorNote,
@@ -210,7 +221,8 @@ fun SavedReviewEntity.toDomain(): ReviewItem {
                         openNow = c.openNow,
                         summary = c.summary,
                     )
-                    DuplicateCandidate(poi, c.distanceMeters)
+                    val author = if (c.authorId != null && c.authorName != null) Author(c.authorId, c.authorName, c.authorPoints) else null
+                    DuplicateCandidate(poi, c.distanceMeters, author, c.publishedAtMillis?.let(Instant::ofEpochMilli), c.photoCount)
                 },
                 saved.authorNote,
             )

@@ -12,6 +12,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
+import co.edu.uniquindio.exploracity.domain.model.Rejection
 import co.edu.uniquindio.exploracity.domain.model.SubmitResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,6 +84,33 @@ class FakePublicationRepository(
         pois.publish(pending.toPublicDetails(currentUser))
         verifiedNow[id] = clock.instant()
         return pending.copy(status = PublicationStatus.VERIFIED, pointsEarned = VERIFIED_POINTS)
+    }
+
+    /**
+     * Temporal: un moderador rechazó una pendiente de la persona (35). Queda rechazada con el motivo, como la ve en 24;
+     * con duplicado, [duplicateOfId] es el original. Devuelve cómo quedó, o null si ya no estaba pendiente.
+     */
+    internal fun markRejected(id: String, rejection: Rejection, duplicateOfId: String?): OwnPublication? {
+        val pending = pendingOnes().firstOrNull { it.id == id } ?: return null
+        val rejected = pending.copy(status = PublicationStatus.REJECTED, rejection = rejection)
+        hidden.update { list -> list.filterNot { it.publication.id == id } + PublicationSeed(rejected, duplicateOfId) }
+        return all().first { it.id == id }
+    }
+
+    /** Las rechazadas de la persona, con el original si fue por duplicado («Resueltas»). */
+    internal fun rejectedOnes(): List<OwnPublication> = all().filter { it.status == PublicationStatus.REJECTED }
+
+    /**
+     * Temporal: un moderador la devolvió a pendiente (36). Sale del feed y vuelve a la cola como recién enviada, sin
+     * votos ni comentarios. Devuelve null si no es una pública de la persona.
+     */
+    internal fun markReopened(id: String): OwnPublication? {
+        val public = publicOnes().firstOrNull { it.id == id } ?: return null
+        pois.remove(id)
+        verifiedNow -= id
+        val pending = public.copy(status = PublicationStatus.PENDING, submittedAt = clock.instant(), votes = 0, comments = 0, pointsEarned = 0)
+        hidden.update { list -> list.filterNot { it.publication.id == id } + PublicationSeed(pending) }
+        return pending
     }
 
     /** Historial con la moderación (33): las públicas (verificadas o finalizadas) y las rechazadas. */

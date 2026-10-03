@@ -354,7 +354,8 @@ private fun NotificationCard(notification: Notification, now: Instant, callbacks
 @Composable
 private fun notificationMessage(notification: Notification): String = when (notification) {
     is Notification.Verified -> stringResource(R.string.notification_verified, notification.poiTitle)
-    is Notification.Finalized -> stringResource(R.string.notification_finalized, notification.poiTitle)
+    is Notification.Finalized -> notification.reason?.let { stringResource(R.string.notification_finalized_reason, notification.poiTitle, it) }
+        ?: stringResource(R.string.notification_finalized, notification.poiTitle)
     is Notification.Commented -> stringResource(R.string.notification_commented, notification.authorName, notification.poiTitle, excerpt(notification.excerpt))
     is Notification.Rejected -> stringResource(R.string.notification_rejected, notification.title, notification.reason)
     is Notification.DuplicateRejected -> stringResource(R.string.notification_duplicate, notification.title, notification.existingTitle)

@@ -43,8 +43,8 @@ sealed interface QueueMessage {
     /** Volvió la red y se refrescó: «La cola se actualizó: 2 nuevas». */
     data class Updated(val newOnes: Int) : QueueMessage
 
-    /** Se verificó la última (C1): «Verificada. Revisaste toda la cola». */
-    data object AllReviewed : QueueMessage
+    /** Se decidió la última (C1): «Verificada. Revisaste toda la cola» o «Rechazada. …». */
+    data class AllReviewed(val decision: Decision) : QueueMessage
 }
 
 data class ModerationQueueUiState(
@@ -139,8 +139,8 @@ class ModerationQueueViewModel(
         if (_state.value.content is QueueContent.Loaded) load(showLoading = false)
     }
 
-    /** La revisión verificó la última pendiente (C1) y volvió aquí. */
-    fun onAllReviewed() = _state.update { it.copy(message = QueueMessage.AllReviewed) }
+    /** La revisión decidió la última pendiente (C1) y volvió aquí. */
+    fun onAllReviewed(decision: Decision) = _state.update { it.copy(message = QueueMessage.AllReviewed(decision)) }
 
     fun onMessageShown() = _state.update { it.copy(message = null) }
 

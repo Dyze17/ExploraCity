@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.data.repository
 
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
+import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
@@ -10,6 +11,7 @@ import java.time.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 // Temporal hasta que exista la API: las pendientes de otras personas en la cola de moderación (32). Con las dos de
 // Ana (sampleHiddenPublications) son las 7 del lienzo, 2 de ellas posibles duplicados. Los nombres del lienzo ya están
@@ -123,3 +125,34 @@ internal val sampleReviewHistory: Map<String, Pair<Int, Int>> = mapOf(
     "laura-g" to (25 to 1),
     "maria-paula" to (7 to 0),
 )
+
+/** Quien modera con la cuenta de prueba: firma lo que se decide en la sesión, como los rechazos de muestra de Ana (24). */
+internal const val SAMPLE_MODERATOR_NAME = "Laura M."
+
+/**
+ * Una decisión ya tomada sobre un lugar público, para «Resueltas»: hace cuánto (desde que abre la app), quién y, si la
+ * hubo, la nota interna o el motivo de finalizar. Las rechazadas de Ana traen su fecha y quién las revisó en el rechazo.
+ */
+internal class DecisionSeed(
+    val id: String,
+    val decidedAgo: Duration,
+    val decidedBy: String,
+    val note: String? = null,
+    val finalizeReason: FinalizeReason? = null,
+)
+
+internal val sampleDecisions = listOf(
+    // Quinta de Bolívar se verificó hace 20 minutos, como dice su aviso (25): es la que se puede finalizar en 36.
+    DecisionSeed("quinta-de-bolivar", 20.minutes, SAMPLE_MODERATOR_NAME),
+    DecisionSeed("museo-botero", 2.days, "Andrés P.", note = "Revisé el horario con la página del museo."),
+    // La finalizada de Ana (22 y 25): el ejemplo de 36.a.
+    DecisionSeed("casa-independencia", 5.days, SAMPLE_MODERATOR_NAME, finalizeReason = FinalizeReason.CLOSED),
+    DecisionSeed("sendero-la-vieja", 12.days, "Andrés P."),
+)
+
+/**
+ * Hace cuánto se publicó un lugar del feed (33A, «Lugar existente»): los de Ana, como en 22; los demás, entre uno y
+ * seis meses atrás, siempre el mismo para cada lugar.
+ */
+internal fun samplePublishedAgo(poiId: String): Duration =
+    samplePublicSubmissions[poiId]?.submittedAgo ?: (30 + Math.floorMod(poiId.hashCode(), 150)).days
