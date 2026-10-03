@@ -47,4 +47,27 @@ dependencies {
 
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.testcontainers.postgresql)
+}
+
+// Ejemplos del contrato (docs/api/ejemplos): los leen estas pruebas y las de la app.
+val contractExamples = layout.projectDirectory.dir("../docs/api/ejemplos")
+
+tasks.test {
+    systemProperty("exploracity.contract", contractExamples.asFile.absolutePath)
+    inputs.dir(contractExamples).withPropertyName("contractExamples")
+}
+
+// `./gradlew run` toma las variables de api-ktor/.env (fuera de git; ver .env.example).
+tasks.named<JavaExec>("run") {
+    val env = file(".env")
+    if (env.exists()) {
+        env.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") && '=' in it }
+            .forEach { line ->
+                val (name, value) = line.split('=', limit = 2)
+                environment(name.trim(), value.trim())
+            }
+    }
 }

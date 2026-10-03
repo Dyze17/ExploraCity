@@ -4,6 +4,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
+import io.ktor.server.http.content.HttpStatusCodeContent
+import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.CannotTransformContentToTypeException
+import io.ktor.server.plugins.NotFoundException
+import io.ktor.server.plugins.UnsupportedMediaTypeException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
@@ -12,11 +17,51 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ErrorResponse(val code: String)
 
+/** Un error que la app sabe explicar: [status] HTTP y [code] estable (docs/api). */
+open class ApiException(val status: HttpStatusCode, val code: String) : RuntimeException(code) {
+    companion object {
+        fun badRequest(code: String = "bad_request") = ApiException(HttpStatusCode.BadRequest, code)
+
+        fun unauthorized(code: String = "unauthorized") = ApiException(HttpStatusCode.Unauthorized, code)
+
+        fun forbidden(code: String = "forbidden") = ApiException(HttpStatusCode.Forbidden, code)
+
+        fun notFound(code: String = "not_found") = ApiException(HttpStatusCode.NotFound, code)
+
+        fun conflict(code: String) = ApiException(HttpStatusCode.Conflict, code)
+    }
+}
+
 fun Application.configureStatusPages() {
     install(StatusPages) {
+        exception<ApiException> { call, cause ->
+            call.respond(cause.status, ErrorResponse(cause.code))
+        }
+        // JSON mal formado o que no corresponde al cuerpo esperado.
+        exception<BadRequestException> { call, _ ->
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("bad_request"))
+        }
+        // Un cuerpo que no es JSON.
+        exception<UnsupportedMediaTypeException> { call, _ ->
+            call.respond(HttpStatusCode.UnsupportedMediaType, ErrorResponse("unsupported_media_type"))
+        }
+        exception<CannotTransformContentToTypeException> { call, _ ->
+            call.respond(HttpStatusCode.UnsupportedMediaType, ErrorResponse("unsupported_media_type"))
+        }
+        exception<NotFoundException> { call, _ ->
+            call.respond(HttpStatusCode.NotFound, ErrorResponse("not_found"))
+        }
         exception<Throwable> { call, cause ->
             call.application.log.error("Error no controlado en ${call.request.local.uri}", cause)
             call.respond(HttpStatusCode.InternalServerError, ErrorResponse("internal_error"))
+        }
+        // Rutas que no existen o que no aceptan el método: el mismo cuerpo de error. Solo cuando la respuesta llega
+        // vacía, para no tapar un 404 que ya trae su código.
+        status(HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed) { status ->
+            if (content is HttpStatusCodeContent) {
+                val code = if (status == HttpStatusCode.NotFound) "not_found" else "method_not_allowed"
+                call.respond(status, ErrorResponse(code))
+            }
         }
     }
 }

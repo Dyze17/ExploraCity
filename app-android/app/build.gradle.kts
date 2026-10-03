@@ -14,6 +14,8 @@ val localProperties = Properties().apply {
     if (file.exists()) file.inputStream().use(::load)
 }
 
+val contractExamples = rootProject.layout.projectDirectory.dir("../docs/api/ejemplos")
+
 android {
     namespace = "co.edu.uniquindio.exploracity"
     compileSdk = 37
@@ -55,7 +57,12 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
-            all { it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED", "--enable-native-access=ALL-UNNAMED") }
+            all {
+                it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED", "--enable-native-access=ALL-UNNAMED")
+                // Ejemplos del contrato con la API (docs/api/ejemplos): los leen estas pruebas y las de api-ktor.
+                it.systemProperty("exploracity.contract", contractExamples.asFile.absolutePath)
+                it.inputs.dir(contractExamples).withPropertyName("contractExamples")
+            }
         }
     }
 }
@@ -97,6 +104,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.robolectric)

@@ -1,0 +1,28 @@
+-- 27 · Catálogo de insignias. Las cuatro primeras son las del diseño (26.a, 27.a y 27A); el resto completa una por
+-- cada forma de participar. Los textos se muestran tal cual en la app.
+INSERT INTO badges (id, position, name, metric, category, target, how_to, tip) VALUES
+    ('primera-publicacion', 1, 'Primera publicación', 'PUBLICATIONS', NULL, 1,
+     'Publica tu primer lugar en ExploraCity.', NULL),
+    ('amigo-del-verde', 2, 'Amigo del verde', 'CATEGORY_PLACES', 'NATURE', 1,
+     'Consigue que se verifique un lugar de naturaleza publicado por ti.', NULL),
+    ('diez-verificadas', 3, '10 verificadas', 'VERIFIED_PLACES', NULL, 10,
+     'Consigue que 10 de tus publicaciones queden verificadas por un moderador.',
+     'Las fotos claras y el pin sobre la entrada ayudan a que la verificación sea más rápida.'),
+    ('cincuenta-comentarios', 4, '50 comentarios', 'COMMENTS', NULL, 50,
+     'Escribe 50 comentarios en lugares de la comunidad.',
+     'Los comentarios más útiles cuentan qué pediste, a qué hora fuiste o cómo se llega.'),
+    ('guardian-de-la-historia', 5, 'Guardián de la historia', 'CATEGORY_PLACES', 'HISTORY', 10,
+     'Consigue que se verifiquen 10 lugares de historia publicados por ti.',
+     'Casas antiguas, iglesias y plazas con su historia cuentan en esta categoría.'),
+    ('voz-de-la-comunidad', 6, 'Voz de la comunidad', 'VOTES_RECEIVED', NULL, 1000,
+     'Suma 1.000 votos «Es importante» entre todos tus lugares.',
+     'Los lugares con buenas fotos y la descripción completa reciben más votos.'),
+    ('caminante', 7, 'Caminante', 'VISITS', NULL, 20,
+     'Marca 20 lugares como visitados.',
+     'Cuando estés en un lugar, márcalo como visitado desde su detalle.'),
+    ('buen-provecho', 8, 'Buen provecho', 'CATEGORY_PLACES', 'GASTRONOMY', 5,
+     'Consigue que se verifiquen 5 lugares de gastronomía publicados por ti.',
+     'Las tiendas de barrio y los puestos de mercado también cuentan.'),
+    ('cultura-viva', 9, 'Cultura viva', 'CATEGORY_PLACES', 'CULTURE', 5,
+     'Consigue que se verifiquen 5 lugares de cultura publicados por ti.',
+     'Galerías, murales y teatros cuentan como cultura.');
