@@ -154,13 +154,14 @@ fun CompareDuplicatesScreen(state: CompareDuplicatesUiState, callbacks: CompareC
     val current = now ?: clock
     val item = state.item
     val candidate = state.candidate
+    val largeFont = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        // Con fuente grande la marca va en el contenido: al lado del título lo partía letra por letra.
         ExploraTopAppBar(
             title = stringResource(R.string.compare_title),
             onBack = callbacks.onBack,
-            actions = { if (item != null) DuplicateFlag(Modifier.padding(end = 12.dp), size = BadgeSize.SMALL) },
+            actions = { if (item != null && !largeFont) DuplicateFlag(Modifier.padding(end = 12.dp), size = BadgeSize.SMALL) },
         )
-        val largeFont = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
         if (state.offline && item != null && !largeFont) AccessOfflineNotice(stringResource(R.string.review_offline))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (state.content) {
@@ -215,6 +216,7 @@ private fun Compare(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (offlineNotice) Box(Modifier.clip(MaterialTheme.shapes.medium)) { AccessOfflineNotice(stringResource(R.string.review_offline)) }
+        if (stacked) DuplicateFlag(size = BadgeSize.SMALL)
         if (state.candidates.size > 1) CompareWith(state, callbacks.onSelect)
         CompareMap(item, candidate, number = state.candidates.indexOf(candidate) + 1)
         val new: @Composable (Modifier) -> Unit = { m -> NewColumn(item, now, m) }

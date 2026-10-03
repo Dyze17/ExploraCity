@@ -240,11 +240,15 @@ private fun Form(item: ResolvedPublication, state: ChangeStateUiState, callbacks
     }
 }
 
-/** La publicación que cambia: foto, nombre, «Verificada hace 5 meses» y sus votos y comentarios (36.a). */
+/**
+ * La publicación que cambia: foto, nombre, «Verificada hace 5 meses» y sus votos y comentarios (36.a). Con fuente grande
+ * va sin la foto, como las tarjetas de la cola: al lado, el estado quedaba en tres líneas.
+ */
 @Composable
 private fun PlaceCard(item: ResolvedPublication, now: Instant) {
     val shape = RoundedCornerShape(16.dp)
     val explora = MaterialTheme.exploraColors
+    val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     Row(
         Modifier
             .fillMaxWidth()
@@ -255,11 +259,13 @@ private fun PlaceCard(item: ResolvedPublication, now: Instant) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(80.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(painterResource(R.drawable.ic_photo_camera), null, tint = explora.textPlaceholder, modifier = Modifier.size(28.dp))
+        if (!stacked) {
+            Box(
+                Modifier.size(80.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(painterResource(R.drawable.ic_photo_camera), null, tint = explora.textPlaceholder, modifier = Modifier.size(28.dp))
+            }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(

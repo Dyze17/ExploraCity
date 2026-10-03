@@ -1385,7 +1385,7 @@
     <string name="compare_title">Comparar lugares</string>
     <string name="compare_with">Comparar con</string>
     <string name="compare_with_option">%1$d · %2$s</string>
-    <string name="compare_distance">a %1$d m entre sí</string>
+    <string name="compare_distance">a %1$d m entre sí</string>
     <string name="compare_map_description">Mapa: la publicación nueva y «%1$s» están a %2$d metros entre sí.</string>
     <string name="compare_new">Publicación nueva</string>
     <string name="compare_existing">Lugar existente</string>
@@ -1410,7 +1410,7 @@
     <string name="reject_reason_inappropriate">Contenido inapropiado o publicidad</string>
     <string name="reject_reason_other">Otro motivo (lo escribo)</string>
     <string name="reject_reason_other_short">Otro motivo</string>
-    <string name="reject_original">%1$s · a %2$d m</string>
+    <string name="reject_original">%1$s · a %2$d m</string>
     <string name="reject_original_spoken">Lugar original: %1$s, a %2$d metros</string>
     <string name="reject_original_change">cambiar el lugar original</string>
     <string name="reject_original_choose">Elige el lugar original</string>

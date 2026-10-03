@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -264,11 +266,14 @@ internal fun ExplainedButton(
 
 /**
  * La barra fija de abajo de 35 y 36: «Cancelar» (1/3) y la acción (2/3), con la línea divisoria arriba. Con fuente
- * grande se apilan, la acción primero.
+ * grande se apilan, la acción primero, y se ocultan mientras el teclado está abierto: apiladas, encima del teclado, no
+ * dejaban ver lo que se escribe (S20+ al 200 %). Vuelven al cerrarlo.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun DecisionBottomBar(onCancel: () -> Unit, cancelEnabled: Boolean, confirm: @Composable (Modifier) -> Unit) {
     val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
+    if (stacked && WindowInsets.isImeVisible) return
     val cancel: @Composable (Modifier) -> Unit = { m ->
         ExploraButton(stringResource(R.string.verify_cancel), onClick = onCancel, modifier = m, style = ExploraButtonStyle.TEXT, enabled = cancelEnabled)
     }
