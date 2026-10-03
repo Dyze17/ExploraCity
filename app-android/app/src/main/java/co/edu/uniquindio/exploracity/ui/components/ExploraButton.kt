@@ -44,6 +44,9 @@ enum class ExploraButtonStyle {
 
     /** Acción destructiva secundaria, como texto en color error («Eliminar publicación», 24.a). */
     DESTRUCTIVE_TEXT,
+
+    /** Acción destructiva junto a la principal, con contorno de 2 dp en color error («Rechazar por duplicado», 33A). */
+    DESTRUCTIVE_OUTLINED,
 }
 
 /**
@@ -72,12 +75,13 @@ fun ExploraButton(
         ExploraButtonStyle.TEXT -> Color.Transparent to scheme.tertiary
         ExploraButtonStyle.DESTRUCTIVE -> scheme.error to scheme.onError
         ExploraButtonStyle.DESTRUCTIVE_TEXT -> Color.Transparent to scheme.error
+        ExploraButtonStyle.DESTRUCTIVE_OUTLINED -> Color.Transparent to scheme.error
     }
     val filled = container != Color.Transparent
-    val border = if (style == ExploraButtonStyle.SECONDARY) {
-        BorderStroke(1.dp, if (enabled) scheme.primary else scheme.outlineVariant)
-    } else {
-        null
+    val border = when (style) {
+        ExploraButtonStyle.SECONDARY -> BorderStroke(1.dp, if (enabled) scheme.primary else scheme.outlineVariant)
+        ExploraButtonStyle.DESTRUCTIVE_OUTLINED -> BorderStroke(2.dp, if (enabled) scheme.error else scheme.outlineVariant)
+        else -> null
     }
     val unavailable = if (!enabled && disabledReason != null) stringResource(R.string.button_unavailable, disabledReason) else null
 

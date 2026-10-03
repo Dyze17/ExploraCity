@@ -20,8 +20,6 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.ui.catalog.DesignCatalog
-import co.edu.uniquindio.exploracity.ui.screens.PlaceholderLink
-import co.edu.uniquindio.exploracity.ui.screens.PlaceholderScreen
 import co.edu.uniquindio.exploracity.ui.screens.access.ExpiredLinkScreen
 import co.edu.uniquindio.exploracity.ui.screens.access.LoginRoute
 import co.edu.uniquindio.exploracity.ui.screens.access.NewPasswordRoute
@@ -40,7 +38,11 @@ import co.edu.uniquindio.exploracity.ui.screens.detail.PoiDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedRoute
 import co.edu.uniquindio.exploracity.ui.screens.legal.LegalDocumentsScreen
 import co.edu.uniquindio.exploracity.ui.screens.map.FeedMapRoute
+import co.edu.uniquindio.exploracity.ui.screens.moderation.ChangeStateRoute
+import co.edu.uniquindio.exploracity.ui.screens.moderation.CompareDuplicatesRoute
 import co.edu.uniquindio.exploracity.ui.screens.moderation.ModerationQueueRoute
+import co.edu.uniquindio.exploracity.ui.screens.moderation.RejectPublicationRoute
+import co.edu.uniquindio.exploracity.ui.screens.moderation.ResolvedPublicationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.moderation.ReviewDetailRoute
 import co.edu.uniquindio.exploracity.ui.screens.notifications.NotificationsRoute
 import co.edu.uniquindio.exploracity.ui.screens.profile.BadgesRoute
@@ -53,14 +55,17 @@ import co.edu.uniquindio.exploracity.ui.screens.publication.RejectedPublicationR
 import co.edu.uniquindio.exploracity.ui.screens.publish.PublishFormRoute
 import co.edu.uniquindio.exploracity.ui.screens.publish.PublishSentScreen
 import co.edu.uniquindio.exploracity.ui.screens.settings.SettingsRoute
+import co.edu.uniquindio.exploracity.viewmodel.Decision
+import co.edu.uniquindio.exploracity.viewmodel.DecisionNotice
 import co.edu.uniquindio.exploracity.viewmodel.FeedViewModel
 import co.edu.uniquindio.exploracity.viewmodel.PublicationMessage
 import co.edu.uniquindio.exploracity.viewmodel.PublishExit
 import co.edu.uniquindio.exploracity.viewmodel.SplashDestination
+import co.edu.uniquindio.exploracity.viewmodel.StateTarget
 
 /**
- * Grafo de navegación completo. Cada destino es por ahora una [PlaceholderScreen] con los enlaces que
- * define el README («Navegación e interacciones»); se reemplaza por la pantalla real al implementarla.
+ * Grafo de navegación completo, con los destinos y enlaces que define el README («Navegación e interacciones»): el
+ * acceso, y Explorar, Publicar, Avisos, Perfil y Moderación con sus pantallas.
  */
 @Composable
 fun ExploraNavHost(
@@ -123,8 +128,30 @@ private fun NavController.backToLogin(notice: SessionNotice? = null, email: Stri
 /** Marca en la revisión siguiente (33) con cuántas quedan: «Verificada. Quedan 6 por revisar» (C1). */
 private const val VERIFIED_NOTICE_KEY = "aviso_verificada"
 
-/** Marca en la cola (32) cuando se verificó la última: ya está vacía (37) y lo dice. */
+/** Como [VERIFIED_NOTICE_KEY], al llegar desde un rechazo (35): «Rechazada. Quedan 5 por revisar». */
+private const val REJECTED_NOTICE_KEY = "aviso_rechazada"
+
+/** Marca en la cola (32) cuando se decidió la última, con la decisión: ya está vacía (37) y lo dice. */
 private const val ALL_REVIEWED_KEY = "cola_revisada"
+
+/** Marca en la revisión (33) al volver de 33A con «Verificar como lugar distinto»: abre 34 sin el aviso de duplicado. */
+private const val VERIFY_DISTINCT_KEY = "verificar_distinto"
+
+/** Marca en «Resueltas» con el cambio de estado hecho en 36, para decirlo una vez. */
+private const val STATE_CHANGED_KEY = "estado_cambiado"
+
+/** C1 · Abre la siguiente pendiente en lugar de la revisión (y de 33A y 35, si estaban encima), con el aviso de lo decidido. */
+private fun NavController.toNextReview(id: String, decision: Decision, remaining: Int) {
+    navigate(ReviewDetail(id)) { popUpTo<ReviewDetail> { inclusive = true } }
+    val key = if (decision == Decision.REJECTED) REJECTED_NOTICE_KEY else VERIFIED_NOTICE_KEY
+    currentBackStackEntry?.savedStateHandle?.set(key, remaining)
+}
+
+/** C1 · Ya no queda ninguna: vuelve a la cola, que está vacía (37) y dice lo último que se decidió. */
+private fun NavController.toEmptyQueue(decision: Decision) {
+    popBackStack<ModerationQueue>(inclusive = false)
+    currentBackStackEntry?.savedStateHandle?.set(ALL_REVIEWED_KEY, decision.name)
+}
 
 /** Marca en la entrada de Ajustes (29) con el correo nuevo ya confirmado, para decirlo una vez. */
 private const val EMAIL_CHANGED_KEY = "correo_cambiado"
@@ -169,8 +196,6 @@ private fun exploreFeedViewModel(nav: NavController, entry: NavBackStackEntry, r
     val exploreEntry = remember(entry) { nav.getBackStackEntry<ExploreGraph>() }
     return viewModel(viewModelStoreOwner = exploreEntry, factory = FeedViewModel.factory(role == UserRole.MODERATOR))
 }
-
-private fun link(label: String, onClick: () -> Unit) = PlaceholderLink(label, onClick)
 
 private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit) {
     navigation<AuthGraph>(startDestination = Splash) {
@@ -454,55 +479,74 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionN
 private fun NavGraphBuilder.moderationGraph(nav: NavController) {
     navigation<ModerationGraph>(startDestination = ModerationQueue) {
         composable<ModerationQueue> { entry ->
-            val allReviewed by entry.savedStateHandle.getStateFlow(ALL_REVIEWED_KEY, false).collectAsStateWithLifecycle()
+            val allReviewed by entry.savedStateHandle.getStateFlow<String?>(ALL_REVIEWED_KEY, null).collectAsStateWithLifecycle()
             ModerationQueueRoute(
                 onOpenReview = { id -> nav.navigate(ReviewDetail(id)) },
                 onOpenResolved = { nav.navigate(ResolvedPublications) },
                 onExplore = { nav.navigateToTab(TopLevelDestination.EXPLORE) },
-                allReviewed = allReviewed,
-                onAllReviewedShown = { entry.savedStateHandle[ALL_REVIEWED_KEY] = false },
+                allReviewed = allReviewed?.let(Decision::valueOf),
+                onAllReviewedShown = { entry.savedStateHandle[ALL_REVIEWED_KEY] = null },
             )
         }
         composable<ReviewDetail> { entry ->
             val id = entry.toRoute<ReviewDetail>().publicationId
-            val notice by entry.savedStateHandle.getStateFlow<Int?>(VERIFIED_NOTICE_KEY, null).collectAsStateWithLifecycle()
+            val handle = entry.savedStateHandle
+            val verified by handle.getStateFlow<Int?>(VERIFIED_NOTICE_KEY, null).collectAsStateWithLifecycle()
+            val rejected by handle.getStateFlow<Int?>(REJECTED_NOTICE_KEY, null).collectAsStateWithLifecycle()
+            val verifyDistinct by handle.getStateFlow(VERIFY_DISTINCT_KEY, false).collectAsStateWithLifecycle()
             ReviewDetailRoute(
                 onBack = nav.back(),
                 onCompare = { nav.navigate(CompareDuplicates(id)) },
-                onReject = { nav.navigate(RejectPublication(id)) },
-                // C1: la siguiente reemplaza a esta; «atrás» vuelve a la cola.
-                onNext = { next, remaining ->
-                    nav.navigate(ReviewDetail(next)) { popUpTo<ReviewDetail> { inclusive = true } }
-                    nav.currentBackStackEntry?.savedStateHandle?.set(VERIFIED_NOTICE_KEY, remaining)
+                // Con aviso de duplicado, 35 abre con «Duplicado» elegido (README 33).
+                onReject = { duplicate -> nav.navigate(RejectPublication(id, duplicate = duplicate)) },
+                onNext = { next, remaining -> nav.toNextReview(next, Decision.VERIFIED, remaining) },
+                onQueueEmpty = { nav.toEmptyQueue(Decision.VERIFIED) },
+                notice = verified?.let { DecisionNotice(Decision.VERIFIED, it) } ?: rejected?.let { DecisionNotice(Decision.REJECTED, it) },
+                onNoticeShown = {
+                    handle[VERIFIED_NOTICE_KEY] = null
+                    handle[REJECTED_NOTICE_KEY] = null
                 },
-                onQueueEmpty = {
-                    nav.popBackStack<ModerationQueue>(inclusive = false)
-                    nav.currentBackStackEntry?.savedStateHandle?.set(ALL_REVIEWED_KEY, true)
-                },
-                verifiedNotice = notice,
-                onNoticeShown = { entry.savedStateHandle[VERIFIED_NOTICE_KEY] = null },
+                verifyDistinct = verifyDistinct,
+                onVerifyDistinctHandled = { handle[VERIFY_DISTINCT_KEY] = false },
             )
         }
         composable<CompareDuplicates> { entry ->
             val id = entry.toRoute<CompareDuplicates>().publicationId
-            PlaceholderScreen(
-                "33A", "Comparar lugares (parte 2)",
-                listOf(link("Rechazar por duplicado") { nav.navigate(RejectPublication(id)) }),
+            CompareDuplicatesRoute(
                 onBack = nav.back(),
+                onOpenPlace = { nav.navigate(PoiDetail(it)) },
+                onVerifyDistinct = {
+                    nav.previousBackStackEntry?.savedStateHandle?.set(VERIFY_DISTINCT_KEY, true)
+                    nav.popBackStack()
+                },
+                onRejectDuplicate = { originalId -> nav.navigate(RejectPublication(id, duplicate = true, originalId = originalId)) },
             )
         }
         composable<RejectPublication> {
-            PlaceholderScreen("35", "Rechazar con motivo (parte 2)", emptyList(), onBack = nav.back())
-        }
-        composable<ResolvedPublications> {
-            PlaceholderScreen(
-                "sin número (E1)", "Resueltas (parte 2)",
-                listOf(link("Casa de la Independencia · cambiar estado") { nav.navigate(FinalizePublication("casa-independencia")) }),
+            RejectPublicationRoute(
                 onBack = nav.back(),
+                onBackToQueue = { nav.popBackStack<ModerationQueue>(inclusive = false) },
+                onNext = { next, remaining -> nav.toNextReview(next, Decision.REJECTED, remaining) },
+                onQueueEmpty = { nav.toEmptyQueue(Decision.REJECTED) },
+            )
+        }
+        composable<ResolvedPublications> { entry ->
+            val changed by entry.savedStateHandle.getStateFlow<String?>(STATE_CHANGED_KEY, null).collectAsStateWithLifecycle()
+            ResolvedPublicationsRoute(
+                onBack = nav.back(),
+                onOpen = { id -> nav.navigate(FinalizePublication(id)) },
+                notice = changed?.let(StateTarget::valueOf),
+                onNoticeShown = { entry.savedStateHandle[STATE_CHANGED_KEY] = null },
             )
         }
         composable<FinalizePublication> {
-            PlaceholderScreen("36", "Pasar a finalizada (parte 2)", emptyList(), onBack = nav.back())
+            ChangeStateRoute(
+                onBack = nav.back(),
+                onDone = { target ->
+                    nav.popBackStack()
+                    nav.currentBackStackEntry?.savedStateHandle?.set(STATE_CHANGED_KEY, target.name)
+                },
+            )
         }
     }
 }

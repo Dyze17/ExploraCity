@@ -21,13 +21,14 @@ sealed interface Notification {
         val points: Int,
     ) : Notification
 
-    /** «… pasó a finalizada» → 13. */
+    /** «… pasó a finalizada» → 13. [reason] es el motivo que eligió el moderador (36), en minúscula; null si no llegó. */
     data class Finalized(
         override val id: String,
         override val createdAt: Instant,
         override val read: Boolean,
         val poiId: String,
         val poiTitle: String,
+        val reason: String? = null,
     ) : Notification
 
     /** «Laura G. comentó en …: «…»» → 14. */

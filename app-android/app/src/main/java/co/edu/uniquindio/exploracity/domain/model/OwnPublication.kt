@@ -2,16 +2,19 @@ package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.Instant
 
-/** Motivos de rechazo del moderador (35.a): la lista del lienzo más «Otro motivo». */
+/**
+ * Motivos de rechazo del moderador, en el orden de 35 (A1 de Daniel): la lista de 35.a con el duplicado primero, como
+ * pide el cambio de alcance de duplicados.
+ */
 enum class RejectionReason {
+    /** «Duplicado de un lugar existente», con el enlace al original: la 24 cambia a la variante de duplicado. */
+    DUPLICATE,
+
     /** «La foto no permite reconocer el lugar». */
     PHOTO,
 
     /** «La ubicación no corresponde». */
     LOCATION,
-
-    /** «El lugar ya está publicado»: la 24 cambia a la variante de duplicado. */
-    DUPLICATE,
 
     /** «Contenido inapropiado o publicidad». */
     INAPPROPRIATE,

@@ -20,6 +20,7 @@ import co.edu.uniquindio.exploracity.domain.model.PriceRange.FREE
 import co.edu.uniquindio.exploracity.domain.model.PriceRange.HIGH
 import co.edu.uniquindio.exploracity.domain.model.PriceRange.LOW
 import co.edu.uniquindio.exploracity.domain.model.PriceRange.MEDIUM
+import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus.FINALIZED
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus.VERIFIED
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
@@ -72,6 +73,7 @@ class FakePoiRepository(
         votes[poi.id] = poi.votes
         comments[poi.id] = mutableListOf()
         removed -= poi.id
+        statuses -= poi.id
     }
 
     /** El detalle de un lugar: el que llegó al verificarlo o, si no, el de los datos de muestra. */
@@ -80,6 +82,14 @@ class FakePoiRepository(
     /** Temporal: el servidor de publicaciones borra aquí las públicas; con la API real esto lo hace el backend. */
     fun remove(id: String) {
         removed += id
+    }
+
+    /** Estados que cambió un moderador en esta sesión (36): una finalizada sigue en el feed con su chip (B2 de Daniel). */
+    private val statuses = mutableMapOf<String, PublicationStatus>()
+
+    /** Temporal: el servidor de moderación cambia aquí el estado de un lugar público (36). */
+    internal fun setStatus(id: String, status: PublicationStatus) {
+        statuses[id] = status
     }
 
     /** Todos los lugares al día, sin la latencia del feed: los usa el servidor de publicaciones (22–24). */
@@ -146,9 +156,16 @@ class FakePoiRepository(
 
     private fun commentsOf(poi: Poi): MutableList<Comment> = comments.getOrPut(poi.id) { sampleComments(poi, clock.instant()).toMutableList() }
 
-    private fun current(): List<Poi> = (pois + published).filter { it.id !in removed }.map { poi ->
-        poi.copy(votes = votes[poi.id] ?: poi.votes, comments = comments[poi.id]?.size ?: poi.comments)
-    }
+    // Uno de muestra que vuelve a verificarse (editado o vuelto a pendiente) queda una sola vez: el publicado de nuevo.
+    private fun current(): List<Poi> = (pois.filter { sample -> published.none { it.id == sample.id } } + published)
+        .filter { it.id !in removed }
+        .map { poi ->
+            poi.copy(
+                status = statuses[poi.id] ?: poi.status,
+                votes = votes[poi.id] ?: poi.votes,
+                comments = comments[poi.id]?.size ?: poi.comments,
+            )
+        }
 
     override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int): FeedPage {
         delay(latency)

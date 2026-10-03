@@ -111,6 +111,8 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.util.HoursWords
 import co.edu.uniquindio.exploracity.util.formatOpeningHours
 import co.edu.uniquindio.exploracity.util.hasMapsApiKey
+import co.edu.uniquindio.exploracity.viewmodel.Decision
+import co.edu.uniquindio.exploracity.viewmodel.DecisionNotice
 import co.edu.uniquindio.exploracity.viewmodel.ReviewContent
 import co.edu.uniquindio.exploracity.viewmodel.ReviewDetailUiState
 import co.edu.uniquindio.exploracity.viewmodel.ReviewDetailViewModel
@@ -132,22 +134,33 @@ import java.util.Locale
 
 /**
  * 33 y 34 · Revisión de una pendiente, conectada a su ViewModel. Al verificar abre la siguiente ([onNext], con cuántas
- * quedan) o vuelve a la cola vacía ([onQueueEmpty]). [verifiedNotice] es el aviso con que se llega desde la anterior.
+ * quedan) o vuelve a la cola vacía ([onQueueEmpty]). [notice] es el aviso con que se llega desde la anterior (verificada
+ * o rechazada). [verifyDistinct] llega de 33A («Verificar como lugar distinto»): abre 34 sin el aviso de duplicado.
+ * «Rechazar» abre 35 con «Duplicado» elegido si la pendiente es un posible duplicado ([onReject] recibe si lo es).
  */
 @Composable
 fun ReviewDetailRoute(
     onBack: () -> Unit,
     onCompare: () -> Unit,
-    onReject: () -> Unit,
+    onReject: (duplicate: Boolean) -> Unit,
     onNext: (id: String, remaining: Int) -> Unit,
     onQueueEmpty: () -> Unit,
-    verifiedNotice: Int? = null,
+    notice: DecisionNotice? = null,
     onNoticeShown: () -> Unit = {},
+    verifyDistinct: Boolean = false,
+    onVerifyDistinctHandled: () -> Unit = {},
     viewModel: ReviewDetailViewModel = viewModel(factory = ReviewDetailViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnNext by rememberUpdatedState(onNext)
     val currentOnQueueEmpty by rememberUpdatedState(onQueueEmpty)
+    val currentOnVerifyDistinctHandled by rememberUpdatedState(onVerifyDistinctHandled)
+    // Espera a que cargue: la hoja de 34 necesita la publicación.
+    LaunchedEffect(verifyDistinct, state.item != null) {
+        if (!verifyDistinct || state.item == null) return@LaunchedEffect
+        viewModel.onVerifyDistinct()
+        currentOnVerifyDistinctHandled()
+    }
     LaunchedEffect(state.done) {
         when (val done = state.done) {
             is ReviewDone.Next -> currentOnNext(done.id, done.remaining)
@@ -165,7 +178,7 @@ fun ReviewDetailRoute(
                 viewModel.onCompared()
                 onCompare()
             },
-            onReject = onReject,
+            onReject = { onReject(state.item?.duplicate != null) },
             onVerify = viewModel::onVerifyClick,
             onNoteChange = viewModel::onNoteChange,
             onConfirmVerify = viewModel::onConfirmVerify,
@@ -174,7 +187,7 @@ fun ReviewDetailRoute(
             onVerifyFailureShown = viewModel::onVerifyFailureShown,
             onNoticeShown = onNoticeShown,
         ),
-        verifiedNotice = verifiedNotice,
+        notice = notice,
     )
 }
 
@@ -203,11 +216,11 @@ fun ReviewDetailScreen(
     state: ReviewDetailUiState,
     callbacks: ReviewDetailCallbacks,
     modifier: Modifier = Modifier,
-    verifiedNotice: Int? = null,
+    notice: DecisionNotice? = null,
     now: Instant? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    NoticeEffect(verifiedNotice, snackbarHostState, callbacks.onNoticeShown)
+    NoticeEffect(notice, snackbarHostState, callbacks.onNoticeShown)
     VerifyFailedEffect(state.verifyFailed, snackbarHostState, callbacks)
     val clock by rememberNow()
     val current = now ?: clock
@@ -734,12 +747,15 @@ private fun RetryButton(onRetry: () -> Unit) {
     ExploraButton(stringResource(R.string.action_retry), onClick = onRetry, modifier = Modifier.fillMaxWidth(), icon = R.drawable.ic_refresh)
 }
 
-/** «Verificada. Quedan 6 por revisar», al llegar desde la anterior (C1). */
+/** «Verificada. Quedan 6 por revisar» o «Rechazada. …», al llegar desde la anterior (C1). */
 @Composable
-private fun NoticeEffect(remaining: Int?, hostState: SnackbarHostState, onShown: () -> Unit) {
+private fun NoticeEffect(notice: DecisionNotice?, hostState: SnackbarHostState, onShown: () -> Unit) {
     val currentOnShown by rememberUpdatedState(onShown)
-    val text = remaining?.let { pluralStringResource(R.plurals.review_verified_next, it, it) }
-    LaunchedEffect(remaining) {
+    val text = notice?.let {
+        val plural = if (it.decision == Decision.REJECTED) R.plurals.review_rejected_next else R.plurals.review_verified_next
+        pluralStringResource(plural, it.remaining, it.remaining)
+    }
+    LaunchedEffect(notice) {
         if (text == null) return@LaunchedEffect
         hostState.showSnackbar(text, withDismissAction = true)
         currentOnShown()

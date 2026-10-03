@@ -44,6 +44,19 @@ sealed interface ReviewDone {
     data object QueueEmpty : ReviewDone
 }
 
+/** Lo que se decidió sobre una pendiente: «Verificada. …» o «Rechazada. …» (C1). */
+enum class Decision { VERIFIED, REJECTED }
+
+/** El aviso con que se llega a la siguiente pendiente: «Rechazada. Quedan 5 por revisar». */
+data class DecisionNotice(val decision: Decision, val remaining: Int)
+
+/** La que venía después de [id] en [order] (la cola al abrirla); si era la última, la primera que quede. */
+internal fun nextReview(order: List<String>, id: String, remaining: List<String>): ReviewDone {
+    if (remaining.isEmpty()) return ReviewDone.QueueEmpty
+    val after = order.dropWhile { it != id }.drop(1).firstOrNull { it in remaining }
+    return ReviewDone.Next(after ?: remaining.first(), remaining.size)
+}
+
 data class ReviewDetailUiState(
     val content: ReviewContent = ReviewContent.Loading,
     /** «1 de 7»: la posición en la cola y su largo; null si no está en la última cola cargada. */
@@ -115,6 +128,12 @@ class ReviewDetailViewModel(
     /** Se abrió «Comparar lugares» (33A). */
     fun onCompared() = _state.update { it.copy(compared = true) }
 
+    /** 33A · «Verificar como lugar distinto»: se abre 34 sin el aviso de duplicado (se retira la marca). */
+    fun onVerifyDistinct() {
+        _state.update { it.copy(compared = true) }
+        onVerifyClick()
+    }
+
     fun onVerifyClick() {
         if (!_state.value.canDecide) return
         _state.update { it.copy(verify = VerifySheet(), verifyFailed = false) }
@@ -148,7 +167,7 @@ class ReviewDetailViewModel(
             when (result.exceptionOrNull()) {
                 null -> {
                     val remaining = catchingNonCancellation { moderation.queueIds() }.getOrNull().orEmpty()
-                    _state.update { it.copy(verify = null, sending = false, retryNote = null, done = next(remaining)) }
+                    _state.update { it.copy(verify = null, sending = false, retryNote = null, done = nextReview(order, id, remaining)) }
                 }
                 is AlreadyReviewedException -> _state.update { it.copy(verify = null, sending = false, retryNote = null, content = ReviewContent.Gone) }
                 // La hoja se cierra para que el aviso se vea; la nota queda para el reintento.
@@ -161,13 +180,6 @@ class ReviewDetailViewModel(
     fun onVerifyFailureShown() = _state.update { it.copy(verifyFailed = false) }
 
     fun onDoneHandled() = _state.update { it.copy(done = null) }
-
-    /** La que venía después de esta en la cola; si era la última, la primera que quede. */
-    private fun next(remaining: List<String>): ReviewDone {
-        if (remaining.isEmpty()) return ReviewDone.QueueEmpty
-        val after = order.dropWhile { it != id }.drop(1).firstOrNull { it in remaining }
-        return ReviewDone.Next(after ?: remaining.first(), remaining.size)
-    }
 
     companion object {
         /** El nombre del argumento de la ruta (ReviewDetail.publicationId). */

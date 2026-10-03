@@ -76,6 +76,7 @@ import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.viewmodel.Decision
 import co.edu.uniquindio.exploracity.viewmodel.ModerationQueueUiState
 import co.edu.uniquindio.exploracity.viewmodel.ModerationQueueViewModel
 import co.edu.uniquindio.exploracity.viewmodel.QueueContent
@@ -84,15 +85,15 @@ import co.edu.uniquindio.exploracity.viewmodel.QueueMessage
 import java.time.Instant
 
 /**
- * 32 y 37 · La cola de moderación, conectada a su ViewModel. [allReviewed] llega de la revisión cuando se verificó la
- * última (C1).
+ * 32 y 37 · La cola de moderación, conectada a su ViewModel. [allReviewed] llega de la revisión cuando se decidió la
+ * última (C1): si se verificó o se rechazó.
  */
 @Composable
 fun ModerationQueueRoute(
     onOpenReview: (String) -> Unit,
     onOpenResolved: () -> Unit,
     onExplore: () -> Unit,
-    allReviewed: Boolean = false,
+    allReviewed: Decision? = null,
     onAllReviewedShown: () -> Unit = {},
     viewModel: ModerationQueueViewModel = viewModel(factory = ModerationQueueViewModel.factory),
 ) {
@@ -100,8 +101,8 @@ fun ModerationQueueRoute(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     val currentOnAllReviewedShown by rememberUpdatedState(onAllReviewedShown)
     LaunchedEffect(allReviewed) {
-        if (!allReviewed) return@LaunchedEffect
-        viewModel.onAllReviewed()
+        val decision = allReviewed ?: return@LaunchedEffect
+        viewModel.onAllReviewed(decision)
         currentOnAllReviewedShown()
     }
     ModerationQueueScreen(
@@ -441,7 +442,9 @@ private fun MessageEffect(message: QueueMessage?, hostState: SnackbarHostState, 
         null -> null
         is QueueMessage.Updated ->
             if (updated == 0) stringResource(R.string.moderation_updated_none) else pluralStringResource(R.plurals.moderation_updated, updated, updated)
-        QueueMessage.AllReviewed -> stringResource(R.string.moderation_all_reviewed)
+        is QueueMessage.AllReviewed -> stringResource(
+            if (message.decision == Decision.REJECTED) R.string.moderation_all_reviewed_rejected else R.string.moderation_all_reviewed,
+        )
     }
     LaunchedEffect(message) {
         if (text == null) return@LaunchedEffect

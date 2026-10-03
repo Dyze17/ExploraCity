@@ -839,6 +839,7 @@
     <string name="notifications_earlier">Anteriores</string>
     <string name="notification_verified">%1$s quedó verificada. Ya está visible para todos.</string>
     <string name="notification_finalized">%1$s pasó a finalizada. Gracias por el aporte.</string>
+    <string name="notification_finalized_reason">%1$s pasó a finalizada: %2$s. Gracias por el aporte.</string>
     <string name="notification_commented">%1$s comentó en %2$s: «%3$s»</string>
     <string name="notification_rejected">%1$s fue rechazada: %2$s.</string>
     <string name="notification_duplicate">Tu publicación «%1$s» ya existía como «%2$s»</string>
@@ -1290,6 +1291,7 @@
     </plurals>
     <string name="moderation_updated_none">La cola se actualizó.</string>
     <string name="moderation_all_reviewed">Verificada. Revisaste toda la cola.</string>
+    <string name="moderation_all_reviewed_rejected">Rechazada. Revisaste toda la cola.</string>
     <string name="moderation_empty_title">No hay publicaciones pendientes</string>
     <string name="moderation_empty_body">Revisaste todo lo que había. Cuando alguien publique un lugar nuevo, aparecerá aquí.</string>
     <string name="moderation_work_title">Tu trabajo de hoy</string>
@@ -1363,6 +1365,11 @@
         <item quantity="many">Verificada. Quedan %d por revisar</item>
         <item quantity="other">Verificada. Quedan %d por revisar</item>
     </plurals>
+    <plurals name="review_rejected_next">
+        <item quantity="one">Rechazada. Queda %d por revisar</item>
+        <item quantity="many">Rechazada. Quedan %d por revisar</item>
+        <item quantity="other">Rechazada. Quedan %d por revisar</item>
+    </plurals>
     <string name="review_verify_failed">No pudimos guardar la decisión. La publicación sigue pendiente</string>
     <string name="verify_title">¿Verificar «%1$s»?</string>
     <string name="verify_body">Quedará visible en el feed público y en el mapa. %1$s recibirá el aviso y sus puntos. Podrás cambiar el estado después si hace falta.</string>
@@ -1373,6 +1380,121 @@
     <string name="verify_cancel">Cancelar</string>
     <string name="verify_confirm">Sí, verificar</string>
     <string name="verify_sending">Verificando…</string>
+
+    <!-- 33A · Comparar lugares -->
+    <string name="compare_title">Comparar lugares</string>
+    <string name="compare_with">Comparar con</string>
+    <string name="compare_with_option">%1$d · %2$s</string>
+    <string name="compare_distance">a %1$d m entre sí</string>
+    <string name="compare_map_description">Mapa: la publicación nueva y «%1$s» están a %2$d metros entre sí.</string>
+    <string name="compare_new">Publicación nueva</string>
+    <string name="compare_existing">Lugar existente</string>
+    <string name="compare_open_existing">ver el lugar existente</string>
+    <string name="compare_author">%1$s · %2$s</string>
+    <string name="compare_note_title">Nota de quien la publicó</string>
+    <string name="compare_note">«%1$s»</string>
+    <string name="compare_verify_distinct">Verificar como lugar distinto</string>
+    <string name="compare_reject_duplicate">Rechazar por duplicado</string>
+
+    <!-- 35 · Rechazar con motivo -->
+    <string name="reject_title">Rechazar publicación</string>
+    <string name="reject_intro">Quien la publicó verá el motivo tal como lo escribas. Sé claro y dile qué corregir.</string>
+    <string name="reject_missing_title">Falta el motivo</string>
+    <string name="reject_missing_body">No podemos rechazar sin decirle a quien la publicó por qué.</string>
+    <string name="decision_required">(obligatorio)</string>
+    <string name="reject_reasons">Motivo</string>
+    <string name="reject_choose_reason">Elige un motivo para continuar.</string>
+    <string name="reject_reason_duplicate">Duplicado de un lugar existente</string>
+    <string name="reject_reason_photo">La foto no permite reconocer el lugar</string>
+    <string name="reject_reason_location">La ubicación no corresponde</string>
+    <string name="reject_reason_inappropriate">Contenido inapropiado o publicidad</string>
+    <string name="reject_reason_other">Otro motivo (lo escribo)</string>
+    <string name="reject_reason_other_short">Otro motivo</string>
+    <string name="reject_original">%1$s · a %2$d m</string>
+    <string name="reject_original_spoken">Lugar original: %1$s, a %2$d metros</string>
+    <string name="reject_original_change">cambiar el lugar original</string>
+    <string name="reject_original_choose">Elige el lugar original</string>
+    <string name="reject_original_missing">Elige el lugar original.</string>
+    <string name="reject_original_loading">Buscando lugares publicados cerca…</string>
+    <string name="reject_original_none">No hay lugares publicados cerca para enlazar. Elige otro motivo.</string>
+    <string name="reject_original_dialog_title">¿Cuál es el lugar original?</string>
+    <string name="reject_message">Mensaje para quien la publicó</string>
+    <string name="reject_message_placeholder">Explícale qué debe corregir…</string>
+    <string name="reject_message_suggested">Texto sugerido, puedes editarlo</string>
+    <string name="reject_message_min">Mínimo %1$d caracteres</string>
+    <plurals name="reject_message_short">
+        <item quantity="one">Escribe un poco más: falta %1$d carácter (mínimo %2$d).</item>
+        <item quantity="many">Escribe un poco más: faltan %1$d caracteres (mínimo %2$d).</item>
+        <item quantity="other">Escribe un poco más: faltan %1$d caracteres (mínimo %2$d).</item>
+    </plurals>
+    <string name="reject_duplicate_suggestion">Este lugar ya está publicado como «%1$s». Puedes comentarlo o marcarlo como visitado.</string>
+    <string name="reject_allow_resubmit">Permitir que corrija y la reenvíe</string>
+    <string name="reject_confirm">Rechazar</string>
+    <string name="reject_sending">Rechazando…</string>
+    <string name="reject_no_reason_reason">elige un motivo</string>
+    <string name="reject_no_original_reason">elige el lugar original</string>
+    <string name="reject_short_detail_reason">escribe al menos %1$d caracteres</string>
+
+    <!-- Resueltas (E1) -->
+    <string name="resolved_title">Resueltas</string>
+    <plurals name="resolved_count">
+        <item quantity="one">%d publicación</item>
+        <item quantity="many">%d publicaciones</item>
+        <item quantity="other">%d publicaciones</item>
+    </plurals>
+    <string name="resolved_offline_body">«Resueltas» necesita internet. Vuelve a intentarlo cuando haya conexión.</string>
+    <string name="resolved_error_title">No pudimos cargar las resueltas</string>
+    <string name="resolved_empty_title">Todavía no hay publicaciones resueltas</string>
+    <string name="resolved_empty_body">Aquí aparecerá lo que se verifique, se rechace o se finalice.</string>
+    <string name="resolved_change_state">cambiar estado</string>
+    <string name="resolved_decided_by">%1$s · por %2$s</string>
+    <string name="resolved_author">Publicada por %1$s</string>
+    <string name="resolved_reason">Motivo: %1$s</string>
+    <string name="resolved_note">Nota interna: «%1$s»</string>
+    <string name="decided_verified_ago">Verificada %1$s</string>
+    <string name="decided_verified_on">Verificada el %1$s</string>
+    <string name="decided_rejected_ago">Rechazada %1$s</string>
+    <string name="decided_rejected_on">Rechazada el %1$s</string>
+    <string name="decided_finalized_ago">Finalizada %1$s</string>
+    <string name="decided_finalized_on">Finalizada el %1$s</string>
+
+    <!-- 36 · Cambiar estado -->
+    <string name="change_state_title">Cambiar estado</string>
+    <plurals name="change_state_votes">
+        <item quantity="one">%d voto</item>
+        <item quantity="many">%d votos</item>
+        <item quantity="other">%d votos</item>
+    </plurals>
+    <plurals name="change_state_comments">
+        <item quantity="one">%d comentario</item>
+        <item quantity="many">%d comentarios</item>
+        <item quantity="other">%d comentarios</item>
+    </plurals>
+    <string name="change_state_activity">%1$s · %2$s</string>
+    <string name="change_state_new">Nuevo estado</string>
+    <string name="change_state_pending">Volver a pendiente</string>
+    <string name="change_state_why_finalize">¿Por qué se finaliza?</string>
+    <string name="finalize_reason_closed">El lugar cerró de forma permanente</string>
+    <string name="finalize_reason_event">Fue un evento temporal que ya pasó</string>
+    <string name="finalize_reason_merged">Se unificó con otra publicación</string>
+    <string name="change_state_finalize_hint">Seguirá en el feed y el mapa marcada como finalizada, y el filtro de lugares verificados la ocultará. Se conserva en el perfil de quien la publicó, que recibirá el aviso con el motivo. Sus puntos no se descuentan.</string>
+    <string name="change_state_why_pending">¿Por qué vuelve a pendiente?</string>
+    <string name="change_state_pending_placeholder">Qué hay que revisar otra vez…</string>
+    <string name="change_state_pending_support">Solo la ven los moderadores · mínimo %1$d caracteres</string>
+    <string name="change_state_pending_hint">Sale del feed y del mapa y vuelve a la cola de pendientes como recién enviada. Quien la publicó la verá como pendiente.</string>
+    <string name="change_state_confirm_finalize">Pasar a finalizada</string>
+    <string name="change_state_confirm_pending">Volver a pendiente</string>
+    <string name="change_state_sending">Guardando…</string>
+    <string name="change_state_failed">No pudimos guardar el cambio. La publicación sigue igual</string>
+    <string name="change_state_done_finalized">La publicación pasó a finalizada.</string>
+    <string name="change_state_done_pending">La publicación volvió a pendiente.</string>
+    <string name="change_state_offline">Sin conexión. Puedes ver la publicación, pero no cambiar su estado hasta que vuelva el internet.</string>
+    <string name="change_state_offline_body">Cambiar el estado necesita internet. Vuelve a intentarlo cuando haya conexión.</string>
+    <string name="change_state_offline_reason">necesitas internet para cambiar el estado</string>
+    <string name="change_state_gone_title">Esta publicación ya cambió</string>
+    <string name="change_state_gone_body">Ya no está resuelta: volvió a pendiente o se eliminó. Vuelve a «Resueltas» para ver cómo quedó lo demás.</string>
+    <string name="change_state_back">Volver a Resueltas</string>
+    <string name="change_state_error_title">No pudimos abrir esta publicación</string>
 
     <!-- Fotos a pantalla completa (33) -->
     <string name="photo_viewer_close">Cerrar las fotos</string>
