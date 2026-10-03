@@ -1,0 +1,17 @@
+# Base de datos para desarrollo: PostgreSQL 16 con PostGIS, la misma imagen que usan las pruebas.
+#   docker compose up -d      (desde api-ktor/; toma DATABASE_PASSWORD de .env)
+# Solo escucha en este equipo (127.0.0.1); los datos quedan en el volumen «datos».
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_DB: exploracity
+      POSTGRES_USER: exploracity
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Falta DATABASE_PASSWORD en api-ktor/.env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - datos:/var/lib/postgresql/data
+
+volumes:
+  datos:

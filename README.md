@@ -66,7 +66,7 @@ El inicio de sesión, el registro y la recuperación de contraseña ya funcionan
 
 Las decisiones del moderador cambian esos datos mientras la app está abierta. Por ejemplo, una publicación verificada aparece en el feed, y a quien la publicó le llega el aviso.
 
-El siguiente paso es conectar la app a `api-ktor` con autenticación JWT. En ese mismo paso se retirarán todos los datos de ejemplo.
+La conexión con `api-ktor` avanza por áreas. Primero se construye la API en cuatro partes: base; acceso y cuenta; explorar y social; y publicar y moderar. Cada parte trae también el cliente de la app para esa área, todavía sin conectar. Al final la app pasa a la API y, en ese mismo paso, se retiran todos los datos de ejemplo.
 
 | Área | Pantallas (numeración del diseño) | Estado |
 |---|---|---|
@@ -77,7 +77,7 @@ El siguiente paso es conectar la app a `api-ktor` con autenticación JWT. En ese
 | Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ Implementada |
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ Implementada |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ Implementada |
-| API (`api-ktor`) | — | ⏳ Esqueleto: solo `/health` y la migración de extensiones |
+| API (`api-ktor`) | — | 🚧 Parte 1 de 4: esquema completo, JWT, errores y ciudad ([contrato](docs/api/README.md)) |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
 
@@ -123,6 +123,10 @@ Paquetes `routes/`, `service/`, `repository/`, `model/`, `integration/`, `config
 
 La IA y la detección de duplicados se ejecutan en el backend, así que la clave de la IA nunca viaja en la app. El despliegue previsto es una imagen Docker en **Google Cloud Run**.
 
+El esquema lo crean las migraciones de Flyway (`src/main/resources/db/migration`). El contrato con la app, con sus endpoints, códigos de error y ejemplos, está en [`docs/api/`](docs/api/README.md).
+
+**Pruebas:** JUnit con `testApplication` de Ktor y PostGIS real con Testcontainers.
+
 ## Cómo ejecutar
 
 ### Requisitos
@@ -160,13 +164,24 @@ Las cuentas creadas en el registro viven en la memoria del servidor falso y se p
 
 ### API
 
+Necesita **Docker Desktop**, que levanta PostgreSQL 16 con PostGIS.
+
+1. Copia `api-ktor/.env.example` como `api-ktor/.env`, que está fuera de git, y completa la contraseña de la base de datos, la clave del JWT y los correos de moderador.
+2. Levanta la base de datos y la API:
+
 ```bash
 cd api-ktor
-./gradlew run          # http://localhost:8080/health
+docker compose up -d   # PostGIS en localhost:5432
+./gradlew run          # http://localhost:8080/health; aplica las migraciones al arrancar
+```
+
+Las pruebas crean su propia base de datos con Testcontainers. Sin Docker, las que la necesitan se omiten en el equipo, pero en el CI siempre corren:
+
+```bash
 ./gradlew test buildFatJar
 ```
 
-Con Docker:
+La imagen de la API, con Docker:
 
 ```bash
 docker build -t exploracity-api api-ktor
