@@ -36,7 +36,20 @@ object RefreshTokens : Table("refresh_tokens") {
     val revokedAt = timestampWithTimeZone("revoked_at").nullable()
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
+    /** El token que lo reemplazó al renovar (V4); null si sigue vigente o se revocó por otra razón. */
+    val replacedBy = javaUUID("replaced_by").nullable()
+
     override val primaryKey = PrimaryKey(id)
+}
+
+/** A1 · Fallos de inicio de sesión por correo (V4). */
+object LoginAttempts : Table("login_attempts") {
+    val email = text("email")
+    val failures = integer("failures")
+    val windowStartedAt = timestampWithTimeZone("window_started_at")
+    val lockedUntil = timestampWithTimeZone("locked_until").nullable()
+
+    override val primaryKey = PrimaryKey(email)
 }
 
 object AccountLinks : Table("account_links") {

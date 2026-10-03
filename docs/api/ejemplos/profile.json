@@ -1,0 +1,98 @@
+{
+  "author": {
+    "id": "3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14",
+    "name": "Ana Ríos",
+    "points": 40
+  },
+  "residency": "RESIDENT",
+  "city": "Armenia",
+  "memberSince": "2026-03",
+  "publications": { "pending": 1, "verified": 1, "rejected": 0, "finalized": 0 },
+  "badges": [
+    {
+      "id": "primera-publicacion",
+      "name": "Primera publicación",
+      "metric": "PUBLICATIONS",
+      "progress": 1,
+      "target": 1,
+      "howTo": "Publica tu primer lugar en ExploraCity."
+    },
+    {
+      "id": "amigo-del-verde",
+      "name": "Amigo del verde",
+      "metric": "CATEGORY_PLACES",
+      "category": "NATURE",
+      "progress": 1,
+      "target": 1,
+      "howTo": "Consigue que se verifique un lugar de naturaleza publicado por ti."
+    },
+    {
+      "id": "diez-verificadas",
+      "name": "10 verificadas",
+      "metric": "VERIFIED_PLACES",
+      "progress": 1,
+      "target": 10,
+      "howTo": "Consigue que 10 de tus publicaciones queden verificadas por un moderador.",
+      "tip": "Las fotos claras y el pin sobre la entrada ayudan a que la verificación sea más rápida."
+    },
+    {
+      "id": "cincuenta-comentarios",
+      "name": "50 comentarios",
+      "metric": "COMMENTS",
+      "progress": 1,
+      "target": 50,
+      "howTo": "Escribe 50 comentarios en lugares de la comunidad.",
+      "tip": "Los comentarios más útiles cuentan qué pediste, a qué hora fuiste o cómo se llega."
+    },
+    {
+      "id": "guardian-de-la-historia",
+      "name": "Guardián de la historia",
+      "metric": "CATEGORY_PLACES",
+      "category": "HISTORY",
+      "progress": 0,
+      "target": 10,
+      "howTo": "Consigue que se verifiquen 10 lugares de historia publicados por ti.",
+      "tip": "Casas antiguas, iglesias y plazas con su historia cuentan en esta categoría."
+    },
+    {
+      "id": "voz-de-la-comunidad",
+      "name": "Voz de la comunidad",
+      "metric": "VOTES_RECEIVED",
+      "progress": 1,
+      "target": 1000,
+      "howTo": "Suma 1.000 votos «Es importante» entre todos tus lugares.",
+      "tip": "Los lugares con buenas fotos y la descripción completa reciben más votos."
+    },
+    {
+      "id": "caminante",
+      "name": "Caminante",
+      "metric": "VISITS",
+      "progress": 1,
+      "target": 20,
+      "howTo": "Marca 20 lugares como visitados.",
+      "tip": "Cuando estés en un lugar, márcalo como visitado desde su detalle."
+    },
+    {
+      "id": "buen-provecho",
+      "name": "Buen provecho",
+      "metric": "CATEGORY_PLACES",
+      "category": "GASTRONOMY",
+      "progress": 0,
+      "target": 5,
+      "howTo": "Consigue que se verifiquen 5 lugares de gastronomía publicados por ti.",
+      "tip": "Las tiendas de barrio y los puestos de mercado también cuentan."
+    },
+    {
+      "id": "cultura-viva",
+      "name": "Cultura viva",
+      "metric": "CATEGORY_PLACES",
+      "category": "CULTURE",
+      "progress": 0,
+      "target": 5,
+      "howTo": "Consigue que se verifiquen 5 lugares de cultura publicados por ti.",
+      "tip": "Galerías, murales y teatros cuentan como cultura."
+    }
+  ],
+  "bio": "Me encanta caminar por los miradores del Quindío.",
+  "photo": "https://res.cloudinary.com/exploracity/image/upload/perfil/ana-rios.jpg"
+}

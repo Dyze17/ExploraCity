@@ -38,6 +38,15 @@ class EmailTakenException : Exception("El correo ya tiene cuenta")
 class EmailDeliveryException : Exception("No se pudo enviar el correo")
 
 /**
+ * 3 · Tras 5 intentos fallidos en 15 minutos, ese correo queda bloqueado 15 minutos, aunque la contraseña sea la
+ * correcta (A1).
+ */
+class TooManyAttemptsException : Exception("Demasiados intentos")
+
+/** 1 · La sesión ya no vale: se cerró desde otro teléfono, cambió la contraseña o pasaron 30 días sin renovarla. */
+class SessionEndedException : Exception("La sesión terminó")
+
+/**
  * 6C · El enlace de recuperación ya no sirve: pasó de los 30 minutos o ya se usó. [email] es la cuenta a la que se
  * envió, para pedir otro con el correo ya escrito.
  */

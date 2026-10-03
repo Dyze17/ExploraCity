@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.model
 import co.edu.uniquindio.exploracity.support.DatabaseTest
 import co.edu.uniquindio.exploracity.support.randomSecret
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -64,10 +65,22 @@ class SchemaTest : DatabaseTest() {
         val other = place(laura, title = "Mirador Secreto", latitude = 4.53395)
         val now = java.time.OffsetDateTime.now()
 
+        val replacement = RefreshTokens.insert {
+            it[userId] = ana
+            it[tokenHash] = randomSecret()
+            it[expiresAt] = now.plusDays(30)
+        }[RefreshTokens.id]
         RefreshTokens.insert {
             it[userId] = ana
             it[tokenHash] = randomSecret()
             it[expiresAt] = now.plusDays(30)
+            it[revokedAt] = now
+            it[replacedBy] = replacement
+        }
+        LoginAttempts.insert {
+            it[email] = "nadie@ejemplo.co"
+            it[failures] = 1
+            it[windowStartedAt] = now
         }
         AccountLinks.insert {
             it[userId] = ana
@@ -133,6 +146,8 @@ class SchemaTest : DatabaseTest() {
         assertEquals(PublicationStatus.PENDING, read[Places.status])
         assertEquals(LocalTime.of(8, 0), read[Places.hoursOpens])
         assertEquals(1, Photos.selectAll().count())
+        assertEquals(replacement, RefreshTokens.selectAll().where { RefreshTokens.replacedBy.isNotNull() }.single()[RefreshTokens.replacedBy])
+        assertEquals(1, LoginAttempts.selectAll().single()[LoginAttempts.failures])
         assertEquals(DecisionAction.REJECTED, ModerationDecisions.selectAll().single()[ModerationDecisions.action])
         assertEquals(5, UserPoints.select(UserPoints.points).where { UserPoints.userId eq ana }.single()[UserPoints.points])
     }

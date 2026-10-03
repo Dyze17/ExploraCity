@@ -1,0 +1,8 @@
+{
+  "accessToken": "token-de-acceso",
+  "refreshToken": "token-de-renovacion",
+  "expiresIn": 900,
+  "userId": "3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14",
+  "role": "USER",
+  "email": "ana.rios@correo.com"
+}
