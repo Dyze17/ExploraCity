@@ -1,8 +1,11 @@
 package co.edu.uniquindio.exploracity.domain.model
 
+import java.util.UUID
+
 /**
  * 20 · Lo que se envía a verificación: el borrador completo. Con [resubmitId] reenvía una rechazada (24), que vuelve a
- * pendiente. Las fotos sin [DraftPhoto.remoteUrl] aún están solo en el teléfono.
+ * pendiente. Las fotos sin [DraftPhoto.remoteUrl] aún están solo en el teléfono. [clientId] es el mismo en cada intento
+ * de enviarla: el servidor no la duplica si un intento llegó y su respuesta no.
  */
 data class PublicationSubmission(
     val title: String,
@@ -15,12 +18,20 @@ data class PublicationSubmission(
     val photos: List<DraftPhoto>,
     val duplicateCheck: DuplicateCheck?,
     val resubmitId: String? = null,
+    /** 17 · La dirección aproximada del pin, la de la tarjeta del mapa; null si no se encontró. */
+    val address: String? = null,
+    val clientId: String = UUID.randomUUID().toString(),
 ) {
     val possibleDuplicate: Boolean get() = duplicateCheck?.possibleDuplicate == true
 
     companion object {
         /** null si al borrador le falta algo de los pasos 1 a 5. */
-        fun from(draft: PublicationDraft, resubmitId: String?): PublicationSubmission? {
+        fun from(
+            draft: PublicationDraft,
+            resubmitId: String?,
+            address: String? = null,
+            clientId: String = UUID.randomUUID().toString(),
+        ): PublicationSubmission? {
             val category = draft.category ?: return null
             val location = draft.location ?: return null
             if (draft.titleMissing > 0 || draft.descriptionMissing > 0 || draft.photos.size < PhotoRules.MIN) return null
@@ -37,6 +48,8 @@ data class PublicationSubmission(
                 // Solo la de este pin: si se movió después, el servidor la repite.
                 duplicateCheck = draft.duplicateCheck?.takeIf { it.location == location },
                 resubmitId = resubmitId,
+                address = address,
+                clientId = clientId,
             )
         }
     }

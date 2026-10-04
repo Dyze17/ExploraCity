@@ -19,6 +19,7 @@ import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.OfflinePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
+import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
@@ -29,6 +30,7 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
+import co.edu.uniquindio.exploracity.domain.model.SubmitResult
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
 import co.edu.uniquindio.exploracity.domain.model.VoteResult
@@ -100,12 +102,12 @@ class PendingSenderTest {
     private val publicationServer = FakePublicationRepository(server, clock = clock)
     private val photoFiles = DeletedPhotos()
 
-    private fun sender(remote: PoiRepository = server) = PendingSender(
+    private fun sender(remote: PoiRepository = server, publications: PublicationRepository = publicationServer) = PendingSender(
         remote,
         notificationServer,
         database.pendingActionsDao(),
         database.savedPlacesDao(),
-        PublicationDelivery(publicationServer, FakePhotoUploader(connectivity, duration = Duration.ZERO), photoFiles),
+        PublicationDelivery(publications, FakePhotoUploader(connectivity, duration = Duration.ZERO), photoFiles),
     )
 
     private fun outbox() = RoomPublicationOutbox(database.pendingActionsDao(), scheduler = {}, clock = clock)
@@ -241,6 +243,20 @@ class PendingSenderTest {
     }
 
     @Test
+    fun `la publicación de la cola viaja con su dirección y siempre con el mismo clientId`() = runTest(dispatcher) {
+        outbox().enqueue(submission.copy(address = "Cl. 45 #19-32, Chapinero"))
+        val recording = RecordingPublications(publicationServer, fail = true)
+
+        assertFalse(sender(publications = recording).flush())
+        recording.fail = false
+        assertTrue(sender(publications = recording).flush())
+
+        assertEquals(2, recording.sent.size)
+        assertEquals(listOf(submission.clientId), recording.sent.map { it.clientId }.distinct())
+        assertEquals("Cl. 45 #19-32, Chapinero", recording.sent.last().address)
+    }
+
+    @Test
     fun `las fotos que no alcanzaron a subir se agregan después a la publicación`() = runTest(dispatcher) {
         val first = submission.photos[0].copy(remoteUrl = "fake://foto-1")
         val result = publicationServer.submit(submission.copy(photos = listOf(first)))
@@ -299,6 +315,20 @@ class PendingSenderTest {
      * Anota qué se envía. Puede simular que se cae la red al enviar comentarios, o que el servidor responde [voteError]
      * a un voto.
      */
+    /** El servidor de publicaciones, que anota cada envío y puede fallar como sin red. */
+    private class RecordingPublications(
+        private val delegate: PublicationRepository,
+        var fail: Boolean,
+    ) : PublicationRepository by delegate {
+        val sent = mutableListOf<PublicationSubmission>()
+
+        override suspend fun submit(submission: PublicationSubmission): SubmitResult {
+            sent += submission
+            if (fail) throw IOException("Sin red")
+            return delegate.submit(submission)
+        }
+    }
+
     private class RecordingRemote(
         private val delegate: PoiRepository,
         var failComments: Boolean = false,

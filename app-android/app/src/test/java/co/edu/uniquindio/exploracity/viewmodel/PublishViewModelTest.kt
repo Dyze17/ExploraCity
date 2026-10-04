@@ -784,6 +784,10 @@ class PublishViewModelTest {
         val queued = outbox.publications.single()
         assertEquals(listOf("foto-1"), queued.photos.map { it.id })
         assertEquals("Es otro local.", queued.duplicateCheck?.note)
+        // Retomó en el paso 5: la dirección del pin se buscó igual y viaja con el envío.
+        assertEquals("Cl. 45 #19-32, Chapinero", queued.address)
+        // Sobrevive si Android cierra la app: cada intento de enviarla lleva el mismo.
+        assertEquals(savedState.get<String>("id_de_envio"), queued.clientId)
         assertNull("El borrador ya está a salvo en la cola", drafts.saved[DraftKey.New])
         assertTrue(photos.deleted.isEmpty())
     }

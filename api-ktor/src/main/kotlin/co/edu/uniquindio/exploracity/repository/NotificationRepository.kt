@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.statements.InsertStatement
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -102,6 +103,45 @@ class NotificationRepository {
             it[badgeId] = nextBadgeId
             it[Notifications.remaining] = remaining
             it[createdAt] = at.atOffset(ZoneOffset.UTC)
+        }
+    }
+
+    /** 34 · Un moderador verificó su publicación; [points] son los que ganó con eso (0 si ya la habían verificado). */
+    fun verified(userId: UUID, placeId: UUID, placeTitle: String, points: Int, at: Instant) = insert(userId, NotificationType.VERIFIED, at) {
+        it[Notifications.placeId] = placeId
+        it[Notifications.placeTitle] = placeTitle
+        it[Notifications.points] = points
+    }
+
+    /** 35 · Rechazada; [reason] es la frase del motivo («la foto no permite reconocer el lugar»). */
+    fun rejected(userId: UUID, placeId: UUID, placeTitle: String, reason: String, at: Instant) = insert(userId, NotificationType.REJECTED, at) {
+        it[Notifications.placeId] = placeId
+        it[Notifications.placeTitle] = placeTitle
+        it[Notifications.reason] = reason
+    }
+
+    /** 35 · Rechazada por duplicado de [existingId]. */
+    fun duplicateRejected(userId: UUID, placeId: UUID, placeTitle: String, existingId: UUID, existingTitle: String, at: Instant) =
+        insert(userId, NotificationType.DUPLICATE_REJECTED, at) {
+            it[Notifications.placeId] = placeId
+            it[Notifications.placeTitle] = placeTitle
+            it[existingPlaceId] = existingId
+            it[Notifications.existingTitle] = existingTitle
+        }
+
+    /** 36 · Pasó a finalizada; [reason] es el motivo en minúscula. */
+    fun finalized(userId: UUID, placeId: UUID, placeTitle: String, reason: String, at: Instant) = insert(userId, NotificationType.FINALIZED, at) {
+        it[Notifications.placeId] = placeId
+        it[Notifications.placeTitle] = placeTitle
+        it[Notifications.reason] = reason
+    }
+
+    private fun insert(userId: UUID, type: NotificationType, at: Instant, fill: Notifications.(InsertStatement<Number>) -> Unit) {
+        Notifications.insert {
+            it[Notifications.userId] = userId
+            it[Notifications.type] = type
+            it[createdAt] = at.atOffset(ZoneOffset.UTC)
+            fill(it)
         }
     }
 

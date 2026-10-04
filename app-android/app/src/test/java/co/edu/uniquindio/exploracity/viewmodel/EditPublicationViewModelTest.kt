@@ -11,6 +11,7 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
+import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
@@ -316,7 +317,8 @@ class EditPublicationViewModelTest {
 
     @Test
     fun `mover el pin a un lugar sin parecidos cambia la ubicación al confirmar`() = runTest(dispatcher) {
-        val vm = viewModel()
+        val recording = RecordingUpdates(OnlineOnlyPublicationRepository(server, connectivity))
+        val vm = viewModel(publications = recording)
         advanceUntilIdle()
 
         vm.onOpenLocationEditor()
@@ -335,6 +337,7 @@ class EditPublicationViewModelTest {
         advanceUntilIdle()
         assertEquals(nearby, server.publication("murales-calle-26")?.location)
         assertEquals(false, server.publication("murales-calle-26")?.possibleDuplicate)
+        assertEquals("La dirección del lugar nuevo viaja", "Cl. 45 #19-32, Chapinero", recording.updates.single().address)
     }
 
     @Test
@@ -435,5 +438,15 @@ class EditPublicationViewModelTest {
 
         assertEquals(PriceRange.HIGH, recreated.form.price)
         assertEquals(3, recreated.form.photos.size)
+    }
+}
+
+/** El servidor de publicaciones, que anota los cambios que recibe. */
+private class RecordingUpdates(private val delegate: PublicationRepository) : PublicationRepository by delegate {
+    val updates = mutableListOf<PublicationChanges>()
+
+    override suspend fun update(id: String, changes: PublicationChanges): OwnPublication {
+        updates += changes
+        return delegate.update(id, changes)
     }
 }

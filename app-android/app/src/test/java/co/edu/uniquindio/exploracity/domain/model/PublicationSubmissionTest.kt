@@ -22,10 +22,12 @@ class PublicationSubmissionTest {
 
     @Test
     fun `toma el borrador completo, con el título sin espacios de sobra`() {
-        val submission = PublicationSubmission.from(complete, resubmitId = null)
+        val submission = PublicationSubmission.from(complete, resubmitId = null, address = "Cl. 45 #19-32, Chapinero", clientId = "envio-1")
 
         assertEquals("Café Las Acacias", submission?.title)
         assertEquals(OpeningHours(setOf(DayOfWeek.MONDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)), submission?.hours)
+        assertEquals("Cl. 45 #19-32, Chapinero", submission?.address)
+        assertEquals("envio-1", submission?.clientId)
     }
 
     @Test

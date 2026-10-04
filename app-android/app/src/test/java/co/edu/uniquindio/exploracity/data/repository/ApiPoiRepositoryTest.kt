@@ -11,6 +11,7 @@ import co.edu.uniquindio.exploracity.data.remote.contractExample
 import co.edu.uniquindio.exploracity.data.remote.error
 import co.edu.uniquindio.exploracity.data.remote.example
 import co.edu.uniquindio.exploracity.data.remote.json
+import co.edu.uniquindio.exploracity.data.remote.query
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
@@ -30,7 +31,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.net.URLDecoder
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
@@ -201,10 +201,3 @@ class ApiPoiRepositoryTest {
         assertTrue(api.requests.isEmpty())
     }
 }
-
-/** La consulta de la URL como mapa, sin codificar. */
-private val SentRequest.query: Map<String, String>
-    get() = fullUrl.substringAfter('?', "").split('&').filter { it.isNotEmpty() }.associate { pair ->
-        val (name, value) = pair.split('=', limit = 2)
-        URLDecoder.decode(name, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
-    }

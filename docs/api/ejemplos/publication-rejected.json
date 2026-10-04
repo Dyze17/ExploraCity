@@ -1,0 +1,30 @@
+{
+  "id": "d2b3c4d5-e6f7-4a81-9bac-1d2e3f4a5b6c",
+  "title": "Café Las Acacias",
+  "category": "GASTRONOMY",
+  "status": "REJECTED",
+  "location": {
+    "latitude": 4.5402,
+    "longitude": -75.6721
+  },
+  "photos": [],
+  "submittedAt": "2026-09-20T16:30:00Z",
+  "description": "Café de origen con tostión propia y vista al parque principal.",
+  "votes": 0,
+  "comments": 0,
+  "pointsEarned": 0,
+  "possibleDuplicate": false,
+  "rejection": {
+    "reason": "PHOTO",
+    "message": "La foto no permite reconocer el lugar.",
+    "reviewerName": "Laura Gómez",
+    "rejectedAt": "2026-10-03T15:00:00Z",
+    "canResubmit": true,
+    "fixes": [
+      {
+        "kind": "PHOTOS",
+        "text": "Una foto donde se reconozca el lugar"
+      }
+    ]
+  }
+}

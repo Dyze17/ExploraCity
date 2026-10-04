@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
+import java.util.Locale
 
 // DTO de Explorar, Social, Avisos y Perfil público (docs/api).
 
@@ -69,6 +70,13 @@ data class MapAreaDto(val items: List<PlaceDto>, val total: Int) {
 @Serializable
 data class HoursDto(val days: List<String>, val opens: String, val closes: String) {
     fun toDomain() = OpeningHours(days.map(DayOfWeek::valueOf).toSet(), LocalTime.parse(opens), LocalTime.parse(closes))
+
+    companion object {
+        /** Los días de lunes a domingo y las horas como «08:00». */
+        fun of(hours: OpeningHours) = HoursDto(hours.days.sorted().map { it.name }, hours.opens.hourMinute(), hours.closes.hourMinute())
+
+        private fun LocalTime.hourMinute() = "%02d:%02d".format(Locale.ROOT, hour, minute)
+    }
 }
 
 /** 13 · Sin [author], la cuenta que lo publicó se eliminó. */

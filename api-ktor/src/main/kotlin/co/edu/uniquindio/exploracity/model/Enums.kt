@@ -29,6 +29,9 @@ enum class RejectionReason { DUPLICATE, PHOTO, LOCATION, INAPPROPRIATE, OTHER }
 /** 36 · Motivos de finalizar. */
 enum class FinalizeReason { CLOSED, EVENT_ENDED, MERGED }
 
+/** 24.a · Qué corregir antes de reenviar, con el paso del formulario donde se corrige (como FixKind de la app). */
+enum class FixKind { TITLE, DESCRIPTION, CATEGORY, LOCATION, SCHEDULE, PRICE, PHOTOS }
+
 /** 27 · Qué cuenta el avance de una insignia. */
 enum class BadgeMetric { PUBLICATIONS, VERIFIED_PLACES, CATEGORY_PLACES, COMMENTS, VISITS, VOTES_RECEIVED }
 

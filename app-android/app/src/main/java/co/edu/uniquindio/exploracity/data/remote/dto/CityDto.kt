@@ -10,6 +10,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GeoPointDto(val latitude: Double, val longitude: Double) {
     fun toDomain() = GeoPoint(latitude, longitude)
+
+    companion object {
+        fun of(point: GeoPoint) = GeoPointDto(point.latitude, point.longitude)
+    }
 }
 
 @Serializable

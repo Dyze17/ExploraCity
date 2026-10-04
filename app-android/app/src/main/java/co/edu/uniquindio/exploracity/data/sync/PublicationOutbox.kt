@@ -21,6 +21,7 @@ import kotlinx.serialization.json.Json
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalTime
+import java.util.UUID
 
 /**
  * Publicaciones que esperan la red (20 sin conexión) y fotos que terminan de subir después del envío (19). Viven en la
@@ -117,6 +118,9 @@ internal data class QueuedPublication(
     val duplicateCheckFailed: Boolean = false,
     val duplicateChecked: Boolean = false,
     val resubmitId: String? = null,
+    val address: String? = null,
+    /** Lo de antes de la API no lo traía: queda uno nuevo. */
+    val clientId: String? = null,
 ) {
     fun toDomain(): PublicationSubmission {
         val location = GeoPoint(latitude, longitude)
@@ -137,6 +141,8 @@ internal data class QueuedPublication(
             photos = photos.map(QueuedPhoto::toDomain),
             duplicateCheck = if (duplicateChecked) DuplicateCheck(location, similarIds, duplicateNote, duplicateCheckFailed) else null,
             resubmitId = resubmitId,
+            address = address,
+            clientId = clientId ?: UUID.randomUUID().toString(),
         )
     }
 }
@@ -164,4 +170,6 @@ private fun PublicationSubmission.toQueued() = QueuedPublication(
     duplicateCheckFailed = duplicateCheck?.failed == true,
     duplicateChecked = duplicateCheck != null,
     resubmitId = resubmitId,
+    address = address,
+    clientId = clientId,
 )

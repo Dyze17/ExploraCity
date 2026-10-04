@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "id": "d2b3c4d5-e6f7-4a81-9bac-1d2e3f4a5b6c",
+      "title": "Café Las Acacias",
+      "category": "GASTRONOMY",
+      "categoryOrigin": "CHOSEN",
+      "description": "Café de origen con tostión propia y vista al parque principal.",
+      "photos": [],
+      "location": {
+        "latitude": 4.5402,
+        "longitude": -75.6721
+      },
+      "submittedAt": "2026-09-20T16:30:00Z",
+      "author": {
+        "author": {
+          "id": "3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14",
+          "name": "Ana Ríos",
+          "points": 40
+        },
+        "verified": 1,
+        "rejected": 0
+      }
+    }
+  ]
+}

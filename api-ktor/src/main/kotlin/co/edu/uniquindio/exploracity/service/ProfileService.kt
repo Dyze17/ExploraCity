@@ -142,9 +142,6 @@ class ProfileService(
     private fun userNotFound() = ApiException.notFound("user_not_found")
 
     companion object {
-        /** 28 · Hasta 8 MB, como cada foto de una publicación (19). */
-        const val MAX_PHOTO_BYTES = 8L * 1024 * 1024
-
         /** Carpeta del almacén para las fotos de perfil. */
         const val PHOTO_FOLDER = "perfil"
 

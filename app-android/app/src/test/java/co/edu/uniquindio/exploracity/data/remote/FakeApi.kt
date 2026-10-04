@@ -14,6 +14,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import java.io.File
+import java.net.URLDecoder
+import java.util.UUID
 
 /** Ejemplo del contrato (docs/api/ejemplos), el mismo que comprueban las pruebas de api-ktor. */
 internal fun contractExample(name: String): String {
@@ -31,6 +33,13 @@ internal data class SentRequest(
     val authorization: String?,
     val contentType: String?,
 )
+
+/** La consulta de la URL como mapa, sin codificar. */
+internal val SentRequest.query: Map<String, String>
+    get() = fullUrl.substringAfter('?', "").split('&').filter { it.isNotEmpty() }.associate { pair ->
+        val (name, value) = pair.split('=', limit = 2)
+        URLDecoder.decode(name, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
+    }
 
 /** Una API de prueba: responde con [handler] y anota cada petición. */
 internal class FakeApi(private val handler: MockRequestHandleScope.(SentRequest) -> HttpResponseData) {
@@ -81,6 +90,9 @@ internal fun MockRequestHandleScope.error(status: HttpStatusCode, code: String):
 
 internal fun MockRequestHandleScope.empty(status: HttpStatusCode = HttpStatusCode.NoContent): HttpResponseData =
     respond("", status)
+
+/** Un token de prueba, creado al ejecutar: las pruebas no llevan literales que parezcan secretos. */
+internal fun randomSecret(): String = UUID.randomUUID().toString()
 
 /** Lo que lanza [block]; falla si no lanza nada. */
 internal suspend fun failure(block: suspend () -> Unit): Throwable =

@@ -1,9 +1,9 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
@@ -19,7 +19,6 @@ import co.edu.uniquindio.exploracity.data.location.ApproximateAddress
 import co.edu.uniquindio.exploracity.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.data.photos.PhotoStore
 import co.edu.uniquindio.exploracity.data.photos.PhotoUploader
-import co.edu.uniquindio.exploracity.data.photos.UploadProgress
 import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
@@ -27,7 +26,6 @@ import co.edu.uniquindio.exploracity.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
-import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PhotoRules
@@ -44,7 +42,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -52,6 +49,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.DayOfWeek
 import java.time.LocalTime
+import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -265,6 +263,12 @@ class PublishViewModel(
 
     private val key: DraftKey = resubmitId?.let { DraftKey.Resubmit(it) } ?: DraftKey.New
     private val resubmitId: String? = resubmitId
+
+    /**
+     * El mismo en cada intento de enviar este borrador, también si Android cierra la app: si un intento llega al
+     * servidor y su respuesta no, el siguiente no la duplica.
+     */
+    private val clientId: String = savedState[CLIENT_ID_KEY] ?: UUID.randomUUID().toString().also { savedState[CLIENT_ID_KEY] = it }
 
     private val _state = MutableStateFlow(PublishUiState(resubmit = resubmitId != null))
     val state: StateFlow<PublishUiState> = _state.asStateFlow()
@@ -496,7 +500,8 @@ class PublishViewModel(
                     (state.draft.photos.any(DraftPhoto::uploaded) || state.draft.photos.none { state.photoStatus.uploads[it.id] is PhotoUpload.Uploading })
             }
             val draft = ready.draft
-            val submission = PublicationSubmission.from(draft, resubmitId)
+            val address = (ready.pin.address as? PinAddress.Found)?.address?.line?.ifEmpty { null }
+            val submission = PublicationSubmission.from(draft, resubmitId, address, clientId)
             if (submission == null) {
                 // La foto que se esperaba no se pudo leer: queda el resumen de 21.
                 _state.update { it.copy(sending = false, showErrors = true, errorFocusRequest = it.errorFocusRequest + 1) }
@@ -615,8 +620,9 @@ class PublishViewModel(
             val suggestion = if (category != null && draft.categoryOrigin == CategoryOrigin.SUGGESTED) Suggestion.Ready(category) else Suggestion.Idle
             _state.update { it.copy(content = PublishContent.Editing, draft = draft, suggestion = suggestion) }
             if (draft.step == PublishStep.CATEGORY && category == null) startSuggestion(overrideChoice = false)
+            // La dirección viaja con el envío: también se busca si retoma después del paso 3.
             val location = draft.location
-            if (draft.step == PublishStep.LOCATION && location != null) pin.resolveAddress(location)
+            if (location != null) pin.resolveAddress(location)
             // Las fotos que no alcanzaron a subir (se cerró la app) siguen donde quedaron.
             photos.uploadPending()
         }
@@ -628,6 +634,8 @@ class PublishViewModel(
 
         /** Espera tras el último cambio antes de guardar el borrador: no escribe en disco con cada tecla. */
         val SAVE_DELAY = 400.milliseconds
+
+        private const val CLIENT_ID_KEY = "id_de_envio"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

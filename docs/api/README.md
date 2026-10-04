@@ -54,18 +54,29 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `invalid_comment` | 400 | El comentario queda vacío o pasa de 300 caracteres (14) |
 | `invalid_experience` | 400 | La experiencia de «Visitado» pasa de 300 caracteres (14.b) |
 | `invalid_cursor` | 400 | El cursor de los comentarios no es uno que dio la API |
+| `invalid_publication` | 400 | Un dato del formulario está fuera de sus reglas (título, descripción, ubicación, horario, nota de parecidos) |
+| `invalid_photos` | 400 | Las fotos no son de 1 a 5, se repiten, no son de la persona o ya están en otra publicación |
+| `invalid_decision` | 400 | Una decisión de moderación está incompleta (falta el original de un duplicado, el detalle de «Otro» o el motivo de volver a pendiente) |
 | `unauthorized` | 401 | Falta el token de acceso, venció, no es válido o la cuenta ya no existe |
 | `invalid_credentials` | 401 | El correo o la contraseña no coinciden al iniciar sesión. No dice cuál de los dos |
 | `invalid_credentials` | 403 | La contraseña actual no coincide al cambiar el correo; la sesión sigue valiendo |
 | `invalid_refresh_token` | 401 | El token de renovación no existe, venció, se revocó o ya se usó |
 | `forbidden` | 403 | La ruta es de Moderación y la persona no tiene el rol |
+| `own_publication` | 403 | Un moderador intenta decidir sobre su propia publicación (F1) |
 | `not_found` | 404 | La ruta no existe |
 | `user_not_found` | 404 | La persona del perfil o del reporte no existe |
 | `place_not_found` | 404 | El lugar no existe o no es público (pendiente o rechazado) |
 | `notification_not_found` | 404 | El aviso no existe o es de otra persona |
+| `publication_not_found` | 404 | La publicación no existe, es de otra persona o ya no está para moderar |
 | `method_not_allowed` | 405 | La ruta no acepta ese método |
 | `email_taken` | 409 | Ya hay una cuenta con ese correo |
 | `no_pending_email` | 409 | Se pide reenviar el enlace sin un cambio de correo pendiente |
+| `cannot_resubmit` | 409 | Se reenvía una publicación que no está rechazada o que el moderador no permitió corregir |
+| `not_editable` | 409 | Se edita una publicación rechazada o finalizada (solo se editan pendientes y verificadas) |
+| `too_many_photos` | 409 | La publicación ya tiene 5 fotos |
+| `already_reviewed` | 409 | Otra persona ya decidió esa pendiente |
+| `state_changed` | 409 | La publicación ya no está en el estado que vio el moderador |
+| `cannot_reopen` | 409 | Se intenta volver a pendiente un lugar cuya cuenta se eliminó |
 | `link_expired` | 410 | El enlace del correo venció, ya se usó o no existe. Trae `email` si se sabe de quién es |
 | `photo_too_large` | 413 | La foto pasa de 8 MB |
 | `unsupported_media_type` | 415 | El cuerpo no es JSON |
@@ -73,6 +84,7 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `too_many_attempts` | 429 | El correo está bloqueado por intentos fallidos; ver `Retry-After` |
 | `internal_error` | 500 | Fallo inesperado; el detalle queda en el registro del servidor |
 | `photo_upload_failed` | 502 | El almacén de fotos no respondió |
+| `suggestion_unavailable` | 503 | La IA no respondió a tiempo: la app sigue con la elección manual (ADR-12) |
 | `email_delivery_failed` | 503 | El correo no salió. Al recuperar la contraseña, solo se dice si el correo tiene cuenta (5) |
 
 ## Endpoints
@@ -189,12 +201,66 @@ Cada aviso trae `id`, `type`, `createdAt` y `read`, más los campos que pide su 
 |---|---|---|
 | `COMMENTED` | `placeId`, `placeTitle`, `authorName` (no viene si la cuenta se eliminó), `excerpt` | Un comentario en un lugar propio |
 | `ACHIEVEMENT` | `achievement` (la insignia desbloqueada), `nextBadge` y `remaining` (la bloqueada más cercana y lo que le falta) | Desbloquear una insignia, una sola vez (B1) |
-| `VERIFIED` | `placeId`, `placeTitle`, `points` | Moderación (parte 4) |
-| `FINALIZED` | `placeId`, `placeTitle`, `reason` | Moderación (parte 4) |
-| `REJECTED` | `placeId`, `placeTitle`, `reason` | Moderación (parte 4) |
-| `DUPLICATE_REJECTED` | `placeId`, `placeTitle`, `existingPlaceId`, `existingTitle` | Moderación (parte 4) |
+| `VERIFIED` | `placeId`, `placeTitle`, `points` (15 la primera vez, después 0) | Verificar (34) |
+| `FINALIZED` | `placeId`, `placeTitle`, `reason` (el motivo en minúscula) | Pasar a finalizada (36) |
+| `REJECTED` | `placeId`, `placeTitle`, `reason` (la frase del motivo o, con «Otro», lo que escribió el moderador) | Rechazar (35) |
+| `DUPLICATE_REJECTED` | `placeId`, `placeTitle`, `existingPlaceId`, `existingTitle` | Rechazar por duplicado (35) |
 
-Las insignias se revisan después de cada acción que mueve sus cifras: comentar, visitar o recibir un voto.
+Las insignias se revisan después de cada acción que mueve sus cifras: publicar, quedar verificada, comentar, visitar o recibir un voto.
+
+### Publicar (15–24)
+
+| Método y ruta | Acceso | Cuerpo | Respuesta | Ejemplo |
+|---|---|---|---|---|
+| `POST /v1/photos` | Token | `multipart/form-data` con la foto | `201` con su id y su dirección. JPEG, PNG o WebP de hasta 8 MB; queda sin publicación hasta el envío | [`photo.json`](ejemplos/photo.json) |
+| `POST /v1/places/suggest-category` | Token | `{ "title", "description" }` | La categoría sugerida; sin `category` si no hay una clara. Si la IA falla o tarda, `503 suggestion_unavailable` | [`suggestion.json`](ejemplos/suggestion.json) |
+| `GET /v1/places/similar?title&near&excludeId` | Token | — | Hasta 3 lugares a 50 m o menos del pin con un título parecido, del más cercano al más lejano | [`similar-places.json`](ejemplos/similar-places.json) |
+| `POST /v1/publications` | Token | La publicación (abajo) | `201` con su id y, si es la primera de la persona, `firstPublicationPoints`. Con un `clientId` que ya llegó, `200` con la que estaba | [`submit.json`](ejemplos/submit.json) |
+| `GET /v1/publications` | Token | — | Las propias en cualquier estado, de la más reciente a la más antigua | [`publications.json`](ejemplos/publications.json) |
+| `GET /v1/publications/{id}` | Token | — | Una propia. Una rechazada trae el motivo y qué corregir | [`publication-rejected.json`](ejemplos/publication-rejected.json) |
+| `PUT /v1/publications/{id}` | Token | Lo editable (abajo) | `200` con la publicación, que vuelve a verificación | Un ítem de [`publications.json`](ejemplos/publications.json) |
+| `DELETE /v1/publications/{id}` | Token | — | `204`. La borra con sus fotos (también del almacén), comentarios y votos | — |
+| `POST /v1/publications/{id}/photos` | Token | `{ "url" }` | `204`. Una foto que terminó de subir después del envío va al final, hasta 5 | — |
+
+La publicación lleva:
+- `title` (5 a 60), `description` (30 a 600), `category`, `categoryOrigin` (`SUGGESTED` o `CHOSEN`) y `location`.
+- `address`: la dirección aproximada del pin, opcional.
+- `hours`: `{ "days": ["MONDAY", …], "opens": "08:00", "closes": "18:00" }`, con al menos un día y el cierre después de la apertura. Sin él, el lugar no tiene horario.
+- `price`, opcional.
+- `photos`: las direcciones de 1 a 5 fotos ya subidas, en orden; la primera es la portada.
+- `duplicateCheck`: la búsqueda de parecidos que se hizo en el teléfono: `location` (dónde estaba el pin), `similarIds` (los parecidos que la persona dijo que son otro lugar), `note` (hasta 200) y `failed`.
+- `clientId` y `resubmitId`, opcionales: con el primero, repetir un envío cuya respuesta se perdió (o uno de la cola) responde el mismo en vez de duplicarlo; el segundo reenvía una rechazada.
+
+Al editar (`PUT`) se manda lo mismo salvo `categoryOrigin`, `clientId` y `resubmitId`. Sin mover el pin y sin `address`, queda la dirección que tenía.
+
+- **Puntos (D1):** la primera publicación de la persona gana **+20** al enviarla. Se pierden si se elimina, o si un moderador la rechaza sin permitir que se reenvíe.
+- **Posible duplicado (ADR-14):** con la búsqueda del teléfono para ese mismo pin, los parecidos que la persona dijo que son otro lugar marcan la publicación. Si no hubo búsqueda, falló o el pin se movió después, la API la repite. La advertencia nunca bloquea; el moderador ve la marca.
+- **Parecidos (17):** se compara con los lugares públicos y con las pendientes propias, nunca con las pendientes de otras personas.
+- **Editar (23):** solo pendientes y verificadas. Una verificada sale del feed y entra a la cola como recién enviada. Las fotos que salen se borran del almacén.
+- **Reenviar (24):** solo una rechazada que el moderador permitió corregir. Un duplicado no se reenvía.
+
+### Moderar (32–37)
+
+Solo con el rol de moderador (`403 forbidden` con otro rol). Un moderador nunca ve ni decide sus propias publicaciones (F1): no salen en su cola y decidirlas responde `403 own_publication`.
+
+| Método y ruta | Cuerpo | Respuesta | Ejemplo |
+|---|---|---|---|
+| `GET /v1/moderation/summary` | — | Cuántas esperan y desde hace cuántos días la más antigua (7.c) | [`moderation-summary.json`](ejemplos/moderation-summary.json) |
+| `GET /v1/moderation/queue` | — | Las pendientes, de la más antigua a la más reciente, con el historial del autor y, si es posible duplicado, los lugares con que se compara (33A) | [`review-queue.json`](ejemplos/review-queue.json) |
+| `GET /v1/moderation/queue/{id}` | — | Una pendiente | Un ítem de [`review-queue.json`](ejemplos/review-queue.json) |
+| `POST /v1/moderation/queue/{id}/verify` | `{ "note" }` (hasta 300, interna) | `204`. Entra al feed; el autor recibe el aviso y +15 la primera vez | — |
+| `GET /v1/moderation/queue/{id}/duplicate-options` | — | Con qué enlazar el original: los parecidos que trae o, si no, hasta 5 publicados a 500 m o menos | — |
+| `POST /v1/moderation/queue/{id}/reject` | `{ "reason", "message", "canResubmit", "originalId" }` | `204`. Con `OTHER`, `message` de 20 a 400; con `DUPLICATE`, `originalId` obligatorio | — |
+| `GET /v1/moderation/today` | — | Lo que decidió este moderador desde la medianoche de Armenia (37) | [`moderation-today.json`](ejemplos/moderation-today.json) |
+| `GET /v1/moderation/resolved` | — | Lo ya decidido, de lo más reciente a lo más antiguo, con su última decisión | [`resolved.json`](ejemplos/resolved.json) |
+| `GET /v1/moderation/resolved/{id}` | — | Una resuelta; `404` si volvió a pendiente | Un ítem de [`resolved.json`](ejemplos/resolved.json) |
+| `POST /v1/moderation/resolved/{id}/finalize` | `{ "reason" }` (`CLOSED`, `EVENT_ENDED` o `MERGED`) | `204`. Sigue en el feed con su chip; los puntos se quedan | — |
+| `POST /v1/moderation/resolved/{id}/reopen` | `{ "reason" }` (20 a 300, interna) | `204`. Sale del feed y entra a la cola como recién enviada | — |
+
+- **Dos moderadores a la vez:** si otra persona ya decidió, la respuesta es `409 already_reviewed`; si la publicación cambió de estado, `409 state_changed`.
+- **Qué corregir (E1):** sale del motivo del rechazo. `PHOTO` pide una foto donde se reconozca el lugar y `LOCATION`, el pin sobre la entrada. Los demás motivos llevan solo el mensaje. Sin mensaje del moderador, va el del motivo.
+- **Lo que no existe todavía:** el reporte de un lugar. `reportReason` no viene en la revisión.
+- **Lugares sin autor:** una pendiente cuya cuenta se eliminó no sale en la cola, y un lugar sin autor no vuelve a pendiente (`409 cannot_reopen`).
 
 ### Desarrollo
 

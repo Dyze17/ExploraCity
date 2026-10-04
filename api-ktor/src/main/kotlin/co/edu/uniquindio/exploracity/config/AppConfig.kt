@@ -14,6 +14,7 @@ data class AppConfig(
     val city: CitySettings,
     val mail: MailSettings = MailSettings(),
     val media: MediaSettings = MediaSettings(),
+    val ai: AiSettings = AiSettings(),
 ) {
     companion object {
         fun load(config: ApplicationConfig): AppConfig {
@@ -24,6 +25,7 @@ data class AppConfig(
             val mail = root.config("mail")
             val media = root.config("media")
             val cloudinary = media.config("cloudinary")
+            val ai = root.config("ai")
             return AppConfig(
                 database = DatabaseSettings(
                     url = database.property("url").getString(),
@@ -61,6 +63,10 @@ data class AppConfig(
                     ),
                     localDir = media.text("localDir").ifEmpty { MediaSettings.DEFAULT_DIR },
                     publicBaseUrl = media.text("publicBaseUrl").ifEmpty { MediaSettings.DEFAULT_BASE_URL }.trimEnd('/'),
+                ),
+                ai = AiSettings(
+                    openRouterApiKey = ai.text("openRouterApiKey"),
+                    model = ai.text("model").ifEmpty { AiSettings.DEFAULT_MODEL },
                 ),
             )
         }
@@ -145,6 +151,19 @@ data class MediaSettings(
     companion object {
         const val DEFAULT_DIR = "media"
         const val DEFAULT_BASE_URL = "http://localhost:8080"
+    }
+}
+
+/**
+ * C1 · Sugerencia de categoría (16, ADR-11). Con [openRouterApiKey] la hace [model] por OpenRouter; sin ella, una versión
+ * de desarrollo por palabras clave.
+ */
+data class AiSettings(val openRouterApiKey: String = "", val model: String = DEFAULT_MODEL) {
+    val usesOpenRouter: Boolean get() = openRouterApiKey.isNotEmpty()
+
+    companion object {
+        /** ADR-11: DeepSeek por OpenRouter. */
+        const val DEFAULT_MODEL = "deepseek/deepseek-chat"
     }
 }
 

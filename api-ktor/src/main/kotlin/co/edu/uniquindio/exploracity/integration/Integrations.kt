@@ -16,7 +16,12 @@ import java.time.Clock
  * C1 · Las integraciones de la API: la real cuando su clave está en la configuración y la de desarrollo cuando no. Las
  * pruebas arman las suyas.
  */
-class Integrations(val mail: MailClient, val media: MediaStore, private val http: HttpClient? = null) : Closeable {
+class Integrations(
+    val mail: MailClient,
+    val media: MediaStore,
+    val classifier: CategoryClassifier = KeywordClassifier(),
+    private val http: HttpClient? = null,
+) : Closeable {
 
     override fun close() {
         http?.close()
@@ -55,7 +60,14 @@ class Integrations(val mail: MailClient, val media: MediaStore, private val http
                 log.warn("Fotos: sin Cloudinary van a la carpeta {}.", directory)
                 LocalMediaStore(directory, config.media.publicBaseUrl)
             }
-            return Integrations(mail, media, http)
+            val classifier = if (config.ai.usesOpenRouter) {
+                log.info("Sugerencia de categoría: OpenRouter ({}).", config.ai.model)
+                OpenRouterClassifier(http, config.ai.openRouterApiKey, config.ai.model)
+            } else {
+                log.warn("Sugerencia de categoría: sin OPENROUTER_API_KEY sale de palabras clave.")
+                KeywordClassifier()
+            }
+            return Integrations(mail, media, classifier, http)
         }
     }
 }

@@ -12,7 +12,6 @@ import co.edu.uniquindio.exploracity.model.Users
 import co.edu.uniquindio.exploracity.model.Visits
 import co.edu.uniquindio.exploracity.model.Votes
 import org.jetbrains.exposed.v1.core.DoubleColumnType
-import org.jetbrains.exposed.v1.core.IColumnType
 import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -22,13 +21,11 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.java.UUIDColumnType
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.or
-import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertIgnore
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.update
 import java.sql.ResultSet
 import java.time.Instant
@@ -107,6 +104,30 @@ class PlaceRepository {
         sql.append("SELECT $COLUMNS, ST_Distance(p.location, ").point(from).append(") AS distance FROM places p ")
         sql.append("WHERE p.status IN $PUBLIC AND p.id = ").param(UUIDColumnType(), id)
         return sql.query(::placeRow).singleOrNull()
+    }
+
+    /** Los públicos de [ids] que aún existen, medidos desde [from], del más cercano al más lejano. */
+    fun findPublic(ids: Collection<UUID>, from: GeoPoint): List<PlaceRow> {
+        if (ids.isEmpty()) return emptyList()
+        val sql = Sql()
+        sql.append("SELECT $COLUMNS, ST_Distance(p.location, ").point(from).append(") AS distance FROM places p ")
+        sql.append("WHERE p.status IN $PUBLIC AND p.id IN (")
+        ids.forEachIndexed { i, id ->
+            if (i > 0) sql.append(", ")
+            sql.param(UUIDColumnType(), id)
+        }
+        sql.append(") ORDER BY distance, p.id")
+        return sql.query(::placeRow)
+    }
+
+    /** 35 · Los públicos a [radiusMeters] o menos de [from], del más cercano al más lejano, sin [excludeId]. */
+    fun nearby(from: GeoPoint, radiusMeters: Double, limit: Int, excludeId: UUID): List<PlaceRow> {
+        val sql = Sql()
+        sql.append("SELECT $COLUMNS, ST_Distance(p.location, ").point(from).append(") AS distance FROM places p ")
+        sql.append("WHERE p.status IN $PUBLIC AND p.id <> ").param(UUIDColumnType(), excludeId)
+        sql.append(" AND ST_DWithin(p.location, ").point(from).append(", ").param(DoubleColumnType(), radiusMeters).append(")")
+        sql.append(" ORDER BY distance, p.id LIMIT ").param(IntegerColumnType(), limit)
+        return sql.query(::placeRow)
     }
 
     fun photos(placeId: UUID): List<String> =
@@ -274,31 +295,6 @@ class PlaceRepository {
         opens = rs.getObject("hours_opens", LocalTime::class.java),
         closes = rs.getObject("hours_closes", LocalTime::class.java),
     )
-
-    /** SQL con parámetros: los valores nunca se pegan en el texto. */
-    private class Sql {
-        private val text = StringBuilder()
-        private val args = mutableListOf<Pair<IColumnType<*>, Any?>>()
-
-        fun append(part: String) = apply { text.append(part) }
-
-        fun param(type: IColumnType<*>, value: Any?) = apply {
-            text.append('?')
-            args += type to value
-        }
-
-        /** El punto como geografía, para medir en metros. */
-        fun point(at: GeoPoint) = apply {
-            append("ST_SetSRID(ST_MakePoint(").param(DoubleColumnType(), at.longitude).append(", ")
-            param(DoubleColumnType(), at.latitude).append("), 4326)::geography")
-        }
-
-        fun <T> query(row: (ResultSet) -> T): List<T> {
-            return TransactionManager.current().exec(text.toString(), args, StatementType.SELECT) { rs ->
-                buildList { while (rs.next()) add(row(rs)) }
-            }.orEmpty()
-        }
-    }
 
     private companion object {
         /** 9 · Radio de «Cercanos». */
