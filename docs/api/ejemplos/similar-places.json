@@ -1,0 +1,14 @@
+[
+  {
+    "id": "c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b",
+    "title": "Mirador de la Secreta",
+    "category": "NATURE",
+    "status": "VERIFIED",
+    "location": {
+      "latitude": 4.5521,
+      "longitude": -75.6589
+    },
+    "distanceMeters": 3,
+    "photo": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"
+  }
+]

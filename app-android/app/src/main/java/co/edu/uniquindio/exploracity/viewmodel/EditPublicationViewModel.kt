@@ -331,7 +331,10 @@ class EditPublicationViewModel(
                 _state.update { it.copy(saving = false, saveError = error) }
                 return@launch
             }
-            val result = catchingNonCancellation { publications.update(publicationId, form.trimmed()) }
+            // 17 · Con el pin movido viaja la dirección de la tarjeta, que es la del lugar nuevo.
+            val moved = ready.original?.location?.let { it != form.location } == true
+            val address = (ready.pin.address as? PinAddress.Found)?.address?.line?.ifEmpty { null }?.takeIf { moved }
+            val result = catchingNonCancellation { publications.update(publicationId, form.trimmed().copy(address = address)) }
             if (result.isSuccess) {
                 // Ya están en el servidor: los archivos del teléfono sobran.
                 photos.deleteFiles(form.photos)

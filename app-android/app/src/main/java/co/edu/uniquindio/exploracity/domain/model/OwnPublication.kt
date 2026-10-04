@@ -125,6 +125,8 @@ data class PublicationChanges(
     val photos: List<DraftPhoto> = emptyList(),
     /** 17A/17B · Solo si se movió el pin: la búsqueda de parecidos del lugar nuevo. */
     val duplicateCheck: DuplicateCheck? = null,
+    /** 17 · Solo si se movió el pin: la dirección aproximada del lugar nuevo, si se encontró. */
+    val address: String? = null,
 ) {
     val titleLength: Int get() = title.trim().length
 

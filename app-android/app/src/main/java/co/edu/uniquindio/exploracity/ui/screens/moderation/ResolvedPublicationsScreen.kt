@@ -211,7 +211,7 @@ private fun ResolvedCard(item: ResolvedPublication, now: Instant, onOpen: () -> 
                 style = small,
                 color = explora.textSecondary,
             )
-            Text(stringResource(R.string.resolved_author, item.authorName), style = small, color = explora.textSecondary)
+            Text(stringResource(R.string.resolved_author, item.authorName ?: stringResource(R.string.deleted_user)), style = small, color = explora.textSecondary)
             if (reason != null) Text(stringResource(R.string.resolved_reason, reason), style = small, color = scheme.onSurface)
             item.note?.let { note ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

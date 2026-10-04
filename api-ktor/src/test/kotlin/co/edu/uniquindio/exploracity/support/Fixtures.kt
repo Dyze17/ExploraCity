@@ -26,6 +26,7 @@ object Fixtures {
     val MIRADOR: UUID = UUID.fromString("c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b")
     val CAFE: UUID = UUID.fromString("d2b3c4d5-e6f7-4a81-9bac-1d2e3f4a5b6c")
     val PLAZA: UUID = UUID.fromString("e3c4d5e6-f7a8-4b92-acbd-2e3f4a5b6c7d")
+    val MIRADOR_PHOTO: UUID = UUID.fromString("b4c5d6e7-f8a9-4bc0-9d1e-3f4a5b6c7d8e")
 
     const val ANA_EMAIL = "ana.rios@correo.com"
     const val LAURA_EMAIL = "laura.gomez@correo.com"
@@ -91,6 +92,7 @@ object Fixtures {
                 it[submittedAt] = Instant.parse("2026-08-10T12:00:00Z").atOffset(ZoneOffset.UTC)
             }
             Photos.insert {
+                it[id] = MIRADOR_PHOTO
                 it[ownerId] = ANA
                 it[placeId] = MIRADOR
                 it[position] = 0

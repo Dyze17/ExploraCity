@@ -334,7 +334,7 @@ class FakeModerationRepository internal constructor(
         title = title,
         category = category,
         status = status,
-        authorName = pois.detailsOf(this).author?.name.orEmpty(),
+        authorName = pois.detailsOf(this).author?.name,
         decidedAt = decision.at,
         decidedBy = decision.by,
         note = decision.note,

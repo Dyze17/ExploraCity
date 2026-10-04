@@ -1,0 +1,54 @@
+[
+  {
+    "id": "d2b3c4d5-e6f7-4a81-9bac-1d2e3f4a5b6c",
+    "title": "Café Las Acacias",
+    "category": "GASTRONOMY",
+    "status": "PENDING",
+    "location": {
+      "latitude": 4.5402,
+      "longitude": -75.6721
+    },
+    "photos": [],
+    "submittedAt": "2026-09-20T16:30:00Z",
+    "description": "Café de origen con tostión propia y vista al parque principal.",
+    "votes": 0,
+    "comments": 0,
+    "pointsEarned": 0,
+    "possibleDuplicate": false
+  },
+  {
+    "id": "c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b",
+    "title": "Mirador de la Secreta",
+    "category": "NATURE",
+    "status": "VERIFIED",
+    "location": {
+      "latitude": 4.5521,
+      "longitude": -75.6589
+    },
+    "photos": [
+      {
+        "id": "b4c5d6e7-f8a9-4bc0-9d1e-3f4a5b6c7d8e",
+        "url": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"
+      }
+    ],
+    "submittedAt": "2026-09-01T14:00:00Z",
+    "description": "Un mirador con vista a toda la ciudad, ideal al atardecer.",
+    "photo": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg",
+    "hours": {
+      "days": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "opens": "08:00",
+      "closes": "18:00"
+    },
+    "price": "FREE",
+    "votes": 1,
+    "comments": 0,
+    "pointsEarned": 35,
+    "possibleDuplicate": false
+  }
+]

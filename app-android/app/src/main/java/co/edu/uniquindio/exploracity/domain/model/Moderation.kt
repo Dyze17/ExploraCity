@@ -92,14 +92,15 @@ enum class FinalizeReason {
 
 /**
  * «Resueltas» (E1): una publicación ya decidida, con su estado de ahora (verificada, rechazada o finalizada), quién la
- * decidió y cuándo. [note] es la nota interna de 34, que solo ven los moderadores.
+ * decidió y cuándo. [note] es la nota interna de 34, que solo ven los moderadores. Sin [authorName], la cuenta que la
+ * publicó se eliminó.
  */
 data class ResolvedPublication(
     val id: String,
     val title: String,
     val category: Category,
     val status: PublicationStatus,
-    val authorName: String,
+    val authorName: String?,
     val decidedAt: Instant,
     val decidedBy: String,
     val note: String? = null,

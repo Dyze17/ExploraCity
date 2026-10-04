@@ -93,6 +93,18 @@ class AppConfigTest {
     }
 
     @Test
+    fun `la sugerencia de categoría usa OpenRouter solo con su clave`() {
+        val without = load("exploracity.jwt.secret" to randomSecret())
+        val apiKey = randomSecret()
+        val with = load("exploracity.jwt.secret" to randomSecret(), "exploracity.ai.openRouterApiKey" to apiKey, "exploracity.ai.model" to "deepseek/deepseek-r1")
+
+        assertFalse(without.ai.usesOpenRouter)
+        assertEquals("deepseek/deepseek-chat", without.ai.model)
+        assertTrue(with.ai.usesOpenRouter)
+        assertEquals("deepseek/deepseek-r1", with.ai.model)
+    }
+
+    @Test
     fun `una integración a medias no arranca`() {
         val sendGrid = assertFailsWith<IllegalStateException> {
             load("exploracity.jwt.secret" to randomSecret(), "exploracity.mail.sendGridApiKey" to randomSecret())

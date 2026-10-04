@@ -4,9 +4,11 @@ import co.edu.uniquindio.exploracity.config.AppConfig
 import co.edu.uniquindio.exploracity.config.JwtConfig
 import co.edu.uniquindio.exploracity.config.UserPrincipal
 import co.edu.uniquindio.exploracity.exploraModule
+import co.edu.uniquindio.exploracity.integration.CategoryClassifier
 import co.edu.uniquindio.exploracity.integration.DevMailbox
 import co.edu.uniquindio.exploracity.integration.ImageType
 import co.edu.uniquindio.exploracity.integration.Integrations
+import co.edu.uniquindio.exploracity.integration.KeywordClassifier
 import co.edu.uniquindio.exploracity.integration.MailClient
 import co.edu.uniquindio.exploracity.integration.MailDeliveryException
 import co.edu.uniquindio.exploracity.integration.MailMessage
@@ -22,6 +24,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -29,12 +33,16 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.time.Instant
 import java.util.UUID
@@ -84,6 +92,7 @@ abstract class ApiTest : DatabaseTest() {
     protected fun apiTest(
         moderators: Set<String> = emptySet(),
         devMailbox: Boolean = false,
+        classifier: CategoryClassifier = KeywordClassifier(),
         block: suspend TestApi.() -> Unit,
     ) = testApplication {
         val settings = testConfig(moderators, devMailbox)
@@ -91,7 +100,7 @@ abstract class ApiTest : DatabaseTest() {
         val mail: MailClient = if (devMailbox) DevMailbox() else TestMail()
         val media = TestMedia()
         environment { config = MapApplicationConfig() }
-        application { exploraModule(settings, database, clock, Integrations(mail, media), PasswordHasher(cost = 4)) }
+        application { exploraModule(settings, database, clock, Integrations(mail, media, classifier), PasswordHasher(cost = 4)) }
         TestApi(client, database, settings, clock, mail, media).block()
     }
 
@@ -148,6 +157,52 @@ class TestApi(
         return response.session(password)
     }
 
+    /** 19 · Sube una foto JPEG de prueba y devuelve su dirección. */
+    suspend fun uploadPhoto(token: String, bytes: ByteArray = JPEG): String {
+        val response = uploadPhotoResponse(token, bytes)
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        return Json.parseToJsonElement(response.bodyAsText()).jsonObject["url"]!!.jsonPrimitive.content
+    }
+
+    suspend fun uploadPhotoResponse(token: String, bytes: ByteArray): HttpResponse =
+        client.post("/v1/photos") {
+            bearerAuth(token)
+            setBody(
+                MultiPartFormDataContent(
+                    formData {
+                        append(
+                            "photo",
+                            bytes,
+                            Headers.build {
+                                append(HttpHeaders.ContentType, "image/jpeg")
+                                append(HttpHeaders.ContentDisposition, "filename=\"foto.jpg\"")
+                            },
+                        )
+                    },
+                ),
+            )
+        }
+
+    /** 20 · Publica un lugar con una foto y devuelve su id. [extra] se agrega al JSON del envío. */
+    suspend fun publish(
+        token: String,
+        title: String = "Café de la Estación",
+        latitude: Double = 4.5450,
+        longitude: Double = -75.6750,
+        extra: String = "",
+    ): String {
+        val photo = uploadPhoto(token)
+        val response = post(
+            "/v1/publications",
+            """{"title":"$title","description":"Un café pequeño frente a la vieja estación del tren, con tostión propia.",""" +
+                """"category":"GASTRONOMY","categoryOrigin":"SUGGESTED","location":{"latitude":$latitude,"longitude":$longitude},""" +
+                """"photos":["$photo"]$extra}""",
+            token,
+        )
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        return Json.parseToJsonElement(response.bodyAsText()).jsonObject["publicationId"]!!.jsonPrimitive.content
+    }
+
     suspend fun login(email: String, password: String): HttpResponse =
         post("/v1/auth/login", """{"email":"$email","password":"$password"}""")
 
@@ -170,3 +225,6 @@ class TestApi(
 }
 
 suspend fun HttpResponse.json(): JsonElement = Json.parseToJsonElement(bodyAsText())
+
+/** Los primeros bytes de un JPEG: lo que el almacén reconoce como foto. */
+val JPEG = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte(), 1, 2, 3)

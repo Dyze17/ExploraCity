@@ -88,6 +88,12 @@ object Places : Table("places") {
     val submittedAt = timestampWithTimeZone("submitted_at").defaultExpression(CurrentTimestampWithTimeZone)
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
+    /** 20 · Lo pone la app al enviar, para que un reenvío de la cola no la duplique (V6). */
+    val clientId = javaUUID("client_id").nullable()
+
+    /** D1 · Tiene los +20 de la primera publicación de su autor (V6). */
+    val firstPublication = bool("first_publication").default(false)
+
     override val primaryKey = PrimaryKey(id)
 }
 
