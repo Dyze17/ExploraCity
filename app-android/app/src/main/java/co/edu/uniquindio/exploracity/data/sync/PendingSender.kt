@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.data.local.QueuedVisit
 import co.edu.uniquindio.exploracity.data.local.QueuedVote
 import co.edu.uniquindio.exploracity.data.local.SavedPlacesDao
 import co.edu.uniquindio.exploracity.data.local.payloadAs
+import co.edu.uniquindio.exploracity.data.remote.ApiException
 import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import kotlinx.coroutines.CancellationException
@@ -22,8 +23,8 @@ import java.io.IOException
  *
  * - Si sale bien, la acción se borra y lo guardado para ver sin conexión se pone al día.
  * - Si falla la red, se detiene y la cola queda como estaba: WorkManager reintenta después.
- * - Si el servidor la rechaza (p. ej. el lugar ya no existe), se descarta: reintentar no la arreglaría. Con la API
- *   real, un 4xx se descarta y un 5xx reintenta, como la red.
+ * - Si el servidor la rechaza (un 4xx: el lugar ya no existe…), se descarta: reintentar no la arreglaría. Un 5xx es un
+ *   fallo del servidor y se reintenta después, como la red.
  */
 class PendingSender(
     private val remote: PoiRepository,
@@ -53,8 +54,15 @@ class PendingSender(
         throw e
     } catch (e: IOException) {
         false
+    } catch (e: ApiException) {
+        // Un 5xx es un fallo del servidor y se reintenta como la red; un 4xx no tiene arreglo y se descarta.
+        e.status < SERVER_ERROR
     } catch (e: Exception) {
         true
+    }
+
+    private companion object {
+        const val SERVER_ERROR = 500
     }
 
     private suspend fun send(action: PendingActionEntity) {
@@ -67,7 +75,8 @@ class PendingSender(
                 saved.saveVote(poiId, voted, remote.setVote(poiId, voted).votes)
             }
             PendingType.COMMENT -> {
-                remote.addComment(poiId, action.payloadAs<QueuedComment>().text)
+                val queued = action.payloadAs<QueuedComment>()
+                remote.addComment(poiId, queued.text, queued.clientId)
                 saved.addComment(poiId)
             }
             PendingType.NOTIFICATION_READ -> action.payloadAs<QueuedRead>().id?.let { notifications.markRead(it) } ?: notifications.markAllRead()

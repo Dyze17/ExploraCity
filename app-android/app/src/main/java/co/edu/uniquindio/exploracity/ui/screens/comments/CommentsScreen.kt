@@ -81,6 +81,7 @@ import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.Comment
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+import co.edu.uniquindio.exploracity.ui.components.DeletedUserAvatar
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
@@ -261,15 +262,18 @@ private fun CommentList(content: CommentsContent.Loaded, state: CommentsUiState,
     }
 }
 
-/** Comentario publicado: un solo nodo para el lector («María Paula, nivel Explorador, hace 2 días. El pan…»). */
+/**
+ * Comentario publicado: un solo nodo para el lector («María Paula, nivel Explorador, hace 2 días. El pan…»). El de una
+ * cuenta eliminada dice «Usuario eliminado», sin nivel (30).
+ */
 @Composable
 private fun CommentItem(comment: Comment, now: Instant) {
     val author = comment.author
     val time = relativeTimeText(comment.createdAt, now)
-    val description = if (comment.mine) {
-        stringResource(R.string.comments_mine_description, time, comment.text)
-    } else {
-        stringResource(R.string.comments_description, author.name, stringResource(author.level.labelRes), time, comment.text)
+    val description = when {
+        comment.mine -> stringResource(R.string.comments_mine_description, time, comment.text)
+        author == null -> stringResource(R.string.comments_deleted_description, time, comment.text)
+        else -> stringResource(R.string.comments_description, author.name, stringResource(author.level.labelRes), time, comment.text)
     }
     CommentLayout(author, comment.mine, Modifier.clearAndSetSemantics { contentDescription = description }, status = { MetaText(time) }) {
         CommentText(comment.text, MaterialTheme.exploraColors.textSecondary)
@@ -319,14 +323,14 @@ private fun OwnCommentItem(own: OwnComment, user: Author, now: Instant, onRetry:
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CommentLayout(
-    author: Author,
+    author: Author?,
     mine: Boolean,
     modifier: Modifier,
     status: @Composable () -> Unit,
     body: @Composable () -> Unit,
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        InitialsAvatar(author)
+        if (author != null) InitialsAvatar(author) else DeletedUserAvatar()
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             // Nombre, nivel (README: visible en cada comentario) y, si es de la persona, «Tú»: el lienzo pone «Tú»
             // en lugar del nivel, pero el README pide el nivel siempre.
@@ -336,11 +340,11 @@ private fun CommentLayout(
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    author.name,
+                    author?.name ?: stringResource(R.string.deleted_user),
                     style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.W700),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (author != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.exploraColors.textSecondary,
                 )
-                LevelChip(author.level)
+                author?.let { LevelChip(it.level) }
                 if (mine) YouChip()
                 status()
             }

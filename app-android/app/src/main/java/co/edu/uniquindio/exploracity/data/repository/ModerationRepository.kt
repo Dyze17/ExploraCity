@@ -281,7 +281,7 @@ class FakeModerationRepository internal constructor(
         val now = clock.instant()
         pois.setStatus(id, PublicationStatus.FINALIZED)
         decisions += Decision(id, now, moderatorName, finalizeReason = reason)
-        if (pois.detailsOf(poi).author.id == currentUser.id) {
+        if (pois.detailsOf(poi).author?.id == currentUser.id) {
             notifications.deliver(Notification.Finalized("finalizada-$id-${now.toEpochMilli()}", now, read = false, id, poi.title, reason.sentence()))
         }
         work = work.copy(finalized = work.finalized + 1)
@@ -334,7 +334,7 @@ class FakeModerationRepository internal constructor(
         title = title,
         category = category,
         status = status,
-        authorName = pois.detailsOf(this).author.name,
+        authorName = pois.detailsOf(this).author?.name.orEmpty(),
         decidedAt = decision.at,
         decidedBy = decision.by,
         note = decision.note,
@@ -394,7 +394,7 @@ class FakeModerationRepository internal constructor(
 
     private fun Reopened.toItem(): ReviewItem {
         val poi = details.poi
-        val (verified, rejected) = sampleReviewHistory[details.author.id] ?: (0 to 0)
+        val (verified, rejected) = sampleReviewHistory[details.author?.id] ?: (0 to 0)
         return ReviewItem(
             id = poi.id,
             title = poi.title,
@@ -407,7 +407,8 @@ class FakeModerationRepository internal constructor(
             address = details.address,
             location = poi.location,
             submittedAt = submittedAt,
-            author = ReviewAuthor(details.author, verified, rejected),
+            // Los lugares de muestra siempre tienen autor.
+            author = ReviewAuthor(checkNotNull(details.author), verified, rejected),
         )
     }
 

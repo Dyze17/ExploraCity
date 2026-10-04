@@ -50,13 +50,19 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `bio_too_long` | 400 | «Sobre mí» pasa de 150 caracteres (28) |
 | `photo_missing` | 400 | El multipart no trae una foto |
 | `cannot_report_self` | 400 | La persona intenta reportar su propio perfil |
+| `invalid_query` | 400 | Un criterio de búsqueda no se entiende (categoría, alcance, punto, área, página) |
+| `invalid_comment` | 400 | El comentario queda vacío o pasa de 300 caracteres (14) |
+| `invalid_experience` | 400 | La experiencia de «Visitado» pasa de 300 caracteres (14.b) |
+| `invalid_cursor` | 400 | El cursor de los comentarios no es uno que dio la API |
 | `unauthorized` | 401 | Falta el token de acceso, venció, no es válido o la cuenta ya no existe |
 | `invalid_credentials` | 401 | El correo o la contraseña no coinciden al iniciar sesión. No dice cuál de los dos |
 | `invalid_credentials` | 403 | La contraseña actual no coincide al cambiar el correo; la sesión sigue valiendo |
 | `invalid_refresh_token` | 401 | El token de renovación no existe, venció, se revocó o ya se usó |
 | `forbidden` | 403 | La ruta es de Moderación y la persona no tiene el rol |
 | `not_found` | 404 | La ruta no existe |
-| `user_not_found` | 404 | La persona que se quiere reportar no existe |
+| `user_not_found` | 404 | La persona del perfil o del reporte no existe |
+| `place_not_found` | 404 | El lugar no existe o no es público (pendiente o rechazado) |
+| `notification_not_found` | 404 | El aviso no existe o es de otra persona |
 | `method_not_allowed` | 405 | La ruta no acepta ese método |
 | `email_taken` | 409 | Ya hay una cuenta con ese correo |
 | `no_pending_email` | 409 | Se pide reenviar el enlace sin un cambio de correo pendiente |
@@ -128,7 +134,67 @@ La sesión trae los dos tokens, `expiresIn` (segundos del token de acceso), la p
 | `POST /v1/users/{id}/reports` | Token | `{ "reason" }` | `204`. Reporte anónimo para la moderación (`IMPERSONATION`, `INAPPROPRIATE_CONTENT` o `SPAM`) | — |
 
 - El avance de cada insignia nunca pasa de su meta. Las verificadas cuentan también si después pasaron a finalizadas.
-- El perfil público (31) llega con el área de Explorar, porque muestra los lugares con el formato del feed.
+- Una insignia desbloqueada no se pierde: si la cifra baja después (se quita un voto, por ejemplo), sigue completa.
+
+### Explorar (7, 8, 9, 10, 13 y 31)
+
+| Método y ruta | Acceso | Respuesta | Ejemplo |
+|---|---|---|---|
+| `GET /v1/places` | Token | Una página del feed (`page` desde 0, `pageSize` de 1 a 50, 20 por omisión), del más cercano al más lejano | [`feed-page.json`](ejemplos/feed-page.json) |
+| `GET /v1/places/count` | Token | Cuántos lugares cumplen los criterios: el conteo en vivo de la hoja de filtros (9) | [`count.json`](ejemplos/count.json) |
+| `GET /v1/places/map` | Token | Los del área visible (`bounds`), los más cercanos primero, como máximo `limit` (200), y cuántos hay en el área | [`map-area.json`](ejemplos/map-area.json) |
+| `GET /v1/places/{id}` | Token | El detalle: fotos, dirección, horario, autor con sus puntos y si quien lo abre ya votó o lo visitó | [`place.json`](ejemplos/place.json) |
+| `GET /v1/users/{id}` | Token | El perfil público: sin correo, sus lugares verificados y finalizados con el formato del feed y cuántas insignias tiene | [`public-profile.json`](ejemplos/public-profile.json) |
+
+Los criterios van en la consulta:
+- `categories=NATURE,CULTURE`: una o varias categorías; sin ella, todas.
+- `scope=NEARBY`: a 5 km o menos del punto. `CITY`, el valor por omisión, es toda la ciudad.
+- `verifiedOnly=true`: solo las verificadas. Sin él salen también las finalizadas.
+- `q=texto`: parte del título, sin importar mayúsculas ni tildes («cafe» encuentra «Café»).
+- `near=4.5339,-75.6811`: la ubicación de la persona. La distancia (`distanceMeters`) y el orden se miden desde ahí; sin ella, desde el centro de la ciudad.
+- `bounds=4.50,-75.70,4.56,-75.65`: solo en el mapa, el área visible (sur, oeste, norte, este).
+
+En cada lugar:
+- `photo` es la portada, la primera foto.
+- `openNow` sale del horario y de la hora de la ciudad; sin horario no viene.
+- `summary` es la primera oración de la descripción, para la tarjeta del mapa.
+- En el detalle, `photos` trae todas las fotos en orden, y los días del horario van de `MONDAY` a `SUNDAY`. Si la cuenta que publicó el lugar se eliminó, no viene `author` y la app muestra «Usuario eliminado».
+
+### Social (13, 14 y 14.b)
+
+| Método y ruta | Acceso | Cuerpo | Respuesta | Ejemplo |
+|---|---|---|---|---|
+| `PUT /v1/places/{id}/vote` | Token | — | El total de votos «Es importante». Votar dos veces no suma | [`vote.json`](ejemplos/vote.json) |
+| `DELETE /v1/places/{id}/vote` | Token | — | El total, sin el voto de la persona | [`vote.json`](ejemplos/vote.json) |
+| `PUT /v1/places/{id}/visit` | Token | `{ "recommends", "text", "showName" }`, todo opcional | Los puntos que ganó con esta visita | [`visit.json`](ejemplos/visit.json) |
+| `GET /v1/places/{id}/comments` | Token | — | Del más reciente al más antiguo (`pageSize` de 1 a 50, 20 por omisión). `nextCursor` pide la página siguiente y no viene en la última | [`comments-page.json`](ejemplos/comments-page.json) |
+| `POST /v1/places/{id}/comments` | Token | `{ "text", "clientId" }` | `201` con el comentario. Con un `clientId` que ya llegó responde `200` con el que estaba | [`comment.json`](ejemplos/comment.json) |
+
+- **Puntos (G2):** marcar un lugar como visitado da **+5** la primera vez. Marcarlo otra vez solo cambia la experiencia. Comentar no da puntos.
+- **Lo propio no suma (C1):** se puede votar y marcar como visitado un lugar propio. El voto cuenta en el total del lugar, pero no para la insignia «Voz de la comunidad»; la visita da 0 puntos y no cuenta para «Caminante».
+- **Comentarios:** tienen de 1 a 300 caracteres, sin los espacios de los extremos. `clientId` es un UUID que pone la app; así, si la cola sin conexión reenvía un comentario, no se duplica. Sin `author`, la cuenta que lo escribió se eliminó («Usuario eliminado»). `mine` dice si lo escribió quien lo lee.
+- **Aviso a quien publicó:** cuando otra persona comenta, le llega un aviso `COMMENTED`. No llega por los comentarios propios.
+
+### Avisos (25 y 27)
+
+| Método y ruta | Acceso | Respuesta | Ejemplo |
+|---|---|---|---|
+| `GET /v1/notifications` | Token | Los últimos 100, del más reciente al más antiguo, y cuántos hay sin leer (`unread`) | [`notifications.json`](ejemplos/notifications.json) |
+| `POST /v1/notifications/{id}/read` | Token | `204`. Leer uno ya leído no cambia nada | — |
+| `POST /v1/notifications/read-all` | Token | `204` | — |
+
+Cada aviso trae `id`, `type`, `createdAt` y `read`, más los campos que pide su frase:
+
+| `type` | Campos | Lo crea |
+|---|---|---|
+| `COMMENTED` | `placeId`, `placeTitle`, `authorName` (no viene si la cuenta se eliminó), `excerpt` | Un comentario en un lugar propio |
+| `ACHIEVEMENT` | `achievement` (la insignia desbloqueada), `nextBadge` y `remaining` (la bloqueada más cercana y lo que le falta) | Desbloquear una insignia, una sola vez (B1) |
+| `VERIFIED` | `placeId`, `placeTitle`, `points` | Moderación (parte 4) |
+| `FINALIZED` | `placeId`, `placeTitle`, `reason` | Moderación (parte 4) |
+| `REJECTED` | `placeId`, `placeTitle`, `reason` | Moderación (parte 4) |
+| `DUPLICATE_REJECTED` | `placeId`, `placeTitle`, `existingPlaceId`, `existingTitle` | Moderación (parte 4) |
+
+Las insignias se revisan después de cada acción que mueve sus cifras: comentar, visitar o recibir un voto.
 
 ### Desarrollo
 

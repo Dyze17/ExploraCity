@@ -9,9 +9,9 @@ import co.edu.uniquindio.exploracity.data.local.QueuedComment
 import co.edu.uniquindio.exploracity.data.local.QueuedVote
 import co.edu.uniquindio.exploracity.data.local.SavedPlacesDao
 import co.edu.uniquindio.exploracity.data.local.payloadAs
-import co.edu.uniquindio.exploracity.data.local.toQueued
 import co.edu.uniquindio.exploracity.data.local.toDomain
 import co.edu.uniquindio.exploracity.data.local.toEntity
+import co.edu.uniquindio.exploracity.data.local.toQueued
 import co.edu.uniquindio.exploracity.data.sync.PendingScheduler
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.Comment
@@ -189,9 +189,11 @@ class OfflinePoiRepository(
         return remote.comments(poiId, cursor, pageSize)
     }
 
-    override suspend fun addComment(poiId: String, text: String): Comment {
-        if (!connectivity.isOnline.value) return enqueue(PendingType.COMMENT, poiId, Json.encodeToString(QueuedComment(text))).toPendingComment()
-        val comment = remote.addComment(poiId, text)
+    override suspend fun addComment(poiId: String, text: String, clientId: String): Comment {
+        if (!connectivity.isOnline.value) {
+            return enqueue(PendingType.COMMENT, poiId, Json.encodeToString(QueuedComment(text, clientId))).toPendingComment()
+        }
+        val comment = remote.addComment(poiId, text, clientId)
         ignoringStorageErrors { dao.addComment(poiId) }
         return comment
     }

@@ -101,7 +101,7 @@ private fun sampleNotifications(now: Instant): List<Notification> {
             read = true,
             poiId = sendero.id,
             poiTitle = sendero.title,
-            authorName = latestComment.author.name,
+            authorName = latestComment.author?.name,
             excerpt = latestComment.text,
         ),
         Notification.Finalized("n-finalizada", ago(5.days), read = true, "casa-independencia", "Casa de la Independencia"),

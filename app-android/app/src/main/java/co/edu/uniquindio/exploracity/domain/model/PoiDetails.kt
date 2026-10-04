@@ -55,7 +55,8 @@ data class PoiDetails(
     val photos: List<PoiPhoto>,
     val address: String,
     val hours: OpeningHours?,
-    val author: Author,
+    /** null si la cuenta que lo publicó se eliminó: el lugar sigue publicado sin su nombre (30). */
+    val author: Author?,
     val voted: Boolean,
     val visited: Boolean,
     /** Cuándo se guardó, si viene de lo guardado para ver sin conexión (12.a); null si llegó del servidor. */

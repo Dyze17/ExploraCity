@@ -48,7 +48,7 @@ class FakePoiRepositoryTest {
 
         assertEquals("Café Las Acacias", page.poiTitle)
         assertEquals(12, page.total)
-        assertEquals(listOf("María Paula", "Juan David"), page.items.take(2).map { it.author.name })
+        assertEquals(listOf("María Paula", "Juan David"), page.items.take(2).map { it.author?.name })
         assertEquals(page.items.sortedByDescending { it.createdAt }, page.items)
         assertNull(page.nextCursor)
     }

@@ -103,7 +103,7 @@ class FakePoiRepository(
             visits = visited.mapNotNull { (id, experience) -> places[id]?.let { it to experience } },
             comments = comments.flatMap { (id, list) ->
                 val poi = places[id] ?: return@flatMap emptyList()
-                list.filter { it.author.id == currentUser.id }.map { poi to it }
+                list.filter { it.author?.id == currentUser.id }.map { poi to it }
             },
         )
     }
@@ -142,7 +142,7 @@ class FakePoiRepository(
         return CommentsPage(poi.title, items, total = all.size, nextCursor = items.lastOrNull()?.id?.takeIf { hasMore })
     }
 
-    override suspend fun addComment(poiId: String, text: String): Comment {
+    override suspend fun addComment(poiId: String, text: String, clientId: String): Comment {
         delay(actionLatency)
         val poi = current().firstOrNull { it.id == poiId } ?: error("Lugar desconocido: $poiId")
         require(text.isNotBlank() && text.length <= Comment.MAX_LENGTH) { "Comentario vacío o de más de ${Comment.MAX_LENGTH} caracteres" }

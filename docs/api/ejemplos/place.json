@@ -1,0 +1,42 @@
+{
+  "place": {
+    "id": "c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b",
+    "title": "Mirador de la Secreta",
+    "category": "NATURE",
+    "status": "VERIFIED",
+    "location": {
+      "latitude": 4.5521,
+      "longitude": -75.6589
+    },
+    "distanceMeters": 1969,
+    "votes": 1,
+    "comments": 0,
+    "photo": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg",
+    "price": "FREE",
+    "openNow": false,
+    "summary": "Un mirador con vista a toda la ciudad, ideal al atardecer."
+  },
+  "description": "Un mirador con vista a toda la ciudad, ideal al atardecer.",
+  "photos": [
+    "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"
+  ],
+  "address": "Vía al Mirador, Armenia",
+  "hours": {
+    "days": [
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY"
+    ],
+    "opens": "08:00",
+    "closes": "18:00"
+  },
+  "author": {
+    "id": "3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14",
+    "name": "Ana Ríos",
+    "points": 40
+  },
+  "voted": true,
+  "visited": false
+}

@@ -25,6 +25,8 @@ internal fun contractExample(name: String): String {
 internal data class SentRequest(
     val method: String,
     val path: String,
+    /** La dirección completa, con la consulta. */
+    val fullUrl: String,
     val body: String,
     val authorization: String?,
     val contentType: String?,
@@ -38,6 +40,7 @@ internal class FakeApi(private val handler: MockRequestHandleScope.(SentRequest)
         val sent = SentRequest(
             method = request.method.value,
             path = request.url.encodedPath,
+            fullUrl = request.url.toString(),
             body = String(request.body.toByteArray()),
             authorization = request.headers[HttpHeaders.Authorization],
             contentType = request.body.contentType?.toString(),

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.ui.theme.CategoryColors
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
@@ -54,6 +57,22 @@ fun InitialsAvatar(author: Author, modifier: Modifier = Modifier, size: Dp = 40.
 /** «María Paula» → «MP», «Camilo R.» → «CR», «Laura» → «L». */
 internal fun initialsOf(name: String): String =
     name.split(' ').mapNotNull { word -> word.firstOrNull { it.isLetter() } }.take(2).joinToString("").uppercase()
+
+/** Avatar de una cuenta eliminada (30): sin iniciales ni color propio, solo la silueta. Decorativo, como el otro. */
+@Composable
+fun DeletedUserAvatar(modifier: Modifier = Modifier, size: Dp = 40.dp) {
+    Box(
+        modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh).clearAndSetSemantics { },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_person),
+            contentDescription = null,
+            tint = MaterialTheme.exploraColors.iconSecondary,
+            modifier = Modifier.size(size * 0.55f),
+        )
+    }
+}
 
 @Composable
 private fun avatarColors(id: String): CategoryColors {

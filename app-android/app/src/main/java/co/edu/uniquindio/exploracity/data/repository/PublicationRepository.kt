@@ -220,7 +220,7 @@ class FakePublicationRepository(
     }
 
     private fun publicOnes(feed: List<Poi> = pois.places()): List<OwnPublication> =
-        feed.filter { pois.detailsOf(it).author.id == currentUser.id }.map { poi ->
+        feed.filter { pois.detailsOf(it).author?.id == currentUser.id }.map { poi ->
             val details = pois.detailsOf(poi)
             val submission = samplePublicSubmissions[poi.id]
             val verifiedAt = verifiedNow[poi.id]

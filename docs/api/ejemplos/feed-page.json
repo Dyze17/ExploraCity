@@ -1,0 +1,37 @@
+{
+  "items": [
+    {
+      "id": "e3c4d5e6-f7a8-4b92-acbd-2e3f4a5b6c7d",
+      "title": "Plaza de Bolívar",
+      "category": "HISTORY",
+      "status": "VERIFIED",
+      "location": {
+        "latitude": 4.5339,
+        "longitude": -75.6811
+      },
+      "distanceMeters": 1218,
+      "votes": 1,
+      "comments": 1,
+      "summary": "La plaza principal, con la catedral y el monumento al Esfuerzo."
+    },
+    {
+      "id": "c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b",
+      "title": "Mirador de la Secreta",
+      "category": "NATURE",
+      "status": "VERIFIED",
+      "location": {
+        "latitude": 4.5521,
+        "longitude": -75.6589
+      },
+      "distanceMeters": 1969,
+      "votes": 1,
+      "comments": 0,
+      "photo": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg",
+      "price": "FREE",
+      "openNow": false,
+      "summary": "Un mirador con vista a toda la ciudad, ideal al atardecer."
+    }
+  ],
+  "total": 2,
+  "hasMore": false
+}

@@ -54,6 +54,7 @@ data class SavedDetailsEntity(
     val openDays: String?,
     val opensAt: String?,
     val closesAt: String?,
+    /** Vacío si la cuenta que lo publicó se eliminó ([DELETED_AUTHOR]). */
     val authorId: String,
     val authorName: String,
     val authorPoints: Int,
@@ -64,6 +65,9 @@ data class SavedDetailsEntity(
 
 @Serializable
 data class SavedPhoto(val url: String?, val description: String)
+
+/** Sin autor (cuenta eliminada) en saved_details: un id vacío, así la tabla no cambia de esquema. */
+internal const val DELETED_AUTHOR = ""
 
 /** Cuándo se guardó cada conjunto (hoy solo el feed): «guardados hace 2 horas». */
 @Entity(tableName = "cache_info")
@@ -117,9 +121,9 @@ fun PoiDetails.toEntity(savedAt: Instant) = SavedDetailsEntity(
     openDays = hours?.days?.sorted()?.joinToString(",") { it.name },
     opensAt = hours?.opens?.toString(),
     closesAt = hours?.closes?.toString(),
-    authorId = author.id,
-    authorName = author.name,
-    authorPoints = author.points,
+    authorId = author?.id ?: DELETED_AUTHOR,
+    authorName = author?.name.orEmpty(),
+    authorPoints = author?.points ?: 0,
     voted = voted,
     visited = visited,
     savedAtMillis = savedAt.toEpochMilli(),
@@ -135,7 +139,7 @@ fun SavedDetailsEntity.toDomain(poi: SavedPoiEntity) = PoiDetails(
     } else {
         null
     },
-    author = Author(authorId, authorName, authorPoints),
+    author = Author(authorId, authorName, authorPoints).takeUnless { authorId == DELETED_AUTHOR },
     voted = voted,
     visited = visited,
     savedAt = Instant.ofEpochMilli(savedAtMillis),

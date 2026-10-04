@@ -32,7 +32,7 @@ class FakeUserRepositoryTest {
         assertEquals(Residency.RESIDENT, profile.residency)
         assertTrue(profile.places.isNotEmpty())
         assertTrue(profile.places.none { it.id == "pendiente" || it.id == "rechazado" })
-        assertTrue(profile.places.all { sampleDetails(it).author.id == camilo })
+        assertTrue(profile.places.all { sampleDetails(it).author?.id == camilo })
         assertEquals(profile.places.size, profile.verifiedCount + profile.finalizedCount)
     }
 

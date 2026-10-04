@@ -71,7 +71,7 @@ class FakeOfflineRepository(
         return delegate.comments(poiId, cursor, pageSize)
     }
 
-    override suspend fun addComment(poiId: String, text: String): Comment {
+    override suspend fun addComment(poiId: String, text: String, clientId: String): Comment {
         if (connectivity.online) return delegate.addComment(poiId, text)
         val comment = Comment("pending-${++nextPendingId}", sampleCurrentUser, text, Instant.now(), mine = true, pending = true)
         queuedComments.value += poiId to comment

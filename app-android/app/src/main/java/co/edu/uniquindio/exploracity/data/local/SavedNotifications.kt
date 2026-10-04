@@ -103,7 +103,7 @@ fun SavedNotificationEntity.toDomain(): Notification {
     return when (type) {
         NotificationType.VERIFIED -> Notification.Verified(id, createdAt, read, poiId!!, title!!, points ?: 0)
         NotificationType.FINALIZED -> Notification.Finalized(id, createdAt, read, poiId!!, title!!, reason)
-        NotificationType.COMMENTED -> Notification.Commented(id, createdAt, read, poiId!!, title!!, authorName!!, excerpt!!)
+        NotificationType.COMMENTED -> Notification.Commented(id, createdAt, read, poiId!!, title!!, authorName, excerpt!!)
         NotificationType.REJECTED -> Notification.Rejected(id, createdAt, read, publicationId!!, title!!, reason!!)
         NotificationType.DUPLICATE_REJECTED ->
             Notification.DuplicateRejected(id, createdAt, read, publicationId!!, title!!, existingPoiId!!, existingTitle!!)

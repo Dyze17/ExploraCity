@@ -161,6 +161,7 @@
     <string name="detail_view_on_map">Ver en el mapa</string>
     <string name="detail_published_by">Publicado por %1$s</string>
     <string name="detail_author_description">Publicado por %1$s, nivel %2$s. Ver su perfil</string>
+    <string name="detail_published_by_deleted">Publicado por un usuario eliminado</string>
     <string name="detail_vote">Es importante · %1$d</string>
     <string name="detail_voted">Ya votaste · %1$d</string>
     <plurals name="detail_vote_description">
@@ -270,7 +271,10 @@
     <string name="comments_sending">Enviando…</string>
     <string name="comments_failed">No se envió</string>
     <string name="comments_sent">Publicado</string>
+    <!-- 30 · En lugar del nombre de una cuenta eliminada: comentarios (14) y avisos (25). -->
+    <string name="deleted_user">Usuario eliminado</string>
     <string name="comments_description">%1$s, nivel %2$s, %3$s. %4$s</string>
+    <string name="comments_deleted_description">Usuario eliminado, %1$s. %2$s</string>
     <string name="comments_mine_description">Tu comentario, %1$s. %2$s</string>
     <string name="comments_own_description">Tu comentario: %1$s</string>
     <string name="comments_placeholder">Escribe un comentario…</string>

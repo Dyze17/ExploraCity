@@ -21,11 +21,11 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
-import io.ktor.utils.io.readRemaining
+import io.ktor.utils.io.readBuffer
 import kotlinx.io.IOException
 import kotlinx.io.readByteArray
 
-/** /v1/profile y /v1/users · El perfil propio (26 y 28) y el reporte de un perfil (31A). */
+/** /v1/profile y /v1/users · El perfil propio (26 y 28), el perfil público (31) y su reporte (31A). */
 fun Route.profileRoutes(profiles: ProfileService) {
     authenticate(ACCESS) {
         route("/profile") {
@@ -44,6 +44,9 @@ fun Route.profileRoutes(profiles: ProfileService) {
                 }
             }
         }
+        get("/users/{id}") {
+            call.respond(profiles.publicProfile(call.parameters["id"].orEmpty(), call.request.queryParameters.near()))
+        }
         post("/users/{id}/reports") {
             profiles.report(call.user().id, call.parameters["id"].orEmpty(), call.receive<ReportRequest>().reason)
             call.respond(HttpStatusCode.NoContent)
@@ -59,8 +62,8 @@ private suspend fun ApplicationCall.receivePhoto(): ByteArray {
     var photo: ByteArray? = null
     try {
         receiveMultipart(formFieldLimit = max + 1).forEachPart { part ->
-            if (photo == null && part is PartData.FileItem) photo = part.provider().readRemaining(max + 1).readByteArray()
-            part.dispose()
+            if (photo == null && part is PartData.FileItem) photo = part.provider().readBuffer(max + 1).readByteArray()
+            part.release()
         }
     } catch (e: IOException) {
         // Ktor corta la lectura al pasar del límite.

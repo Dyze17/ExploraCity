@@ -1,0 +1,17 @@
+{
+  "placeTitle": "Plaza de Bolívar",
+  "items": [
+    {
+      "id": "5d2c8e1a-7f3b-4a6c-9e0d-2b4f6a8c1e3d",
+      "author": {
+        "id": "3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14",
+        "name": "Ana Ríos",
+        "points": 40
+      },
+      "text": "Muy bonita de noche, con la catedral iluminada.",
+      "createdAt": "2026-09-25T22:10:00Z",
+      "mine": false
+    }
+  ],
+  "total": 1
+}

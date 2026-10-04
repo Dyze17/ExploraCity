@@ -1,0 +1,26 @@
+{
+  "author": {
+    "id": "9b2d4f6a-1c3e-4a5b-8d7f-0e2c4a6b8d10",
+    "name": "Laura Gómez",
+    "points": 35
+  },
+  "residency": "VISITOR",
+  "city": "Armenia",
+  "places": [
+    {
+      "id": "e3c4d5e6-f7a8-4b92-acbd-2e3f4a5b6c7d",
+      "title": "Plaza de Bolívar",
+      "category": "HISTORY",
+      "status": "VERIFIED",
+      "location": {
+        "latitude": 4.5339,
+        "longitude": -75.6811
+      },
+      "distanceMeters": 1218,
+      "votes": 1,
+      "comments": 1,
+      "summary": "La plaza principal, con la catedral y el monumento al Esfuerzo."
+    }
+  ],
+  "badges": 1
+}

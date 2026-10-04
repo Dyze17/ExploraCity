@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.domain.model.VisitResult
 import co.edu.uniquindio.exploracity.domain.model.VoteResult
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
+import java.util.UUID
 
 /** Tamaño de página del feed (README: paginación de 20). */
 const val FEED_PAGE_SIZE = 20
@@ -85,9 +86,10 @@ interface PoiRepository {
 
     /**
      * 14 · Publica el comentario de la persona. Comentar no da puntos (Daniel, 24/09/2026). Sin red queda en la cola de
-     * envío y vuelve con [Comment.pending]. Lanza excepción si falla la red.
+     * envío y vuelve con [Comment.pending]. Lanza excepción si falla la red. [clientId] lo identifica: si se reenvía
+     * (un reintento, la cola), el servidor no lo duplica.
      */
-    suspend fun addComment(poiId: String, text: String): Comment
+    suspend fun addComment(poiId: String, text: String, clientId: String = UUID.randomUUID().toString()): Comment
 
     /** 14 · Comentarios de la persona en [poiId] que esperan la red; cambia a medida que se envían. */
     fun pendingComments(poiId: String): Flow<List<Comment>>

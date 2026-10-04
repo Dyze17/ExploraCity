@@ -135,7 +135,7 @@ class AccountService(
             reputation = ExportReputation(
                 points = points,
                 level = ExportLabels.of(UserLevel.fromPoints(points)),
-                badges = reputation.badges(user).map { ExportBadge(it.name, it.progress, it.target, it.progress >= it.target) },
+                badges = reputation.badges(user.id).map { ExportBadge(it.name, it.progress, it.target, it.progress >= it.target) },
             ),
             publications = personalData.places(user.id).map { it.toExport() },
             comments = personalData.comments(user.id).map { ExportComment(it.placeTitle, it.text, it.createdAt.iso()) },

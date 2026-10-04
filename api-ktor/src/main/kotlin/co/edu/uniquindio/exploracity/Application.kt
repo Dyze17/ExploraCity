@@ -12,19 +12,26 @@ import co.edu.uniquindio.exploracity.plugins.configureSerialization
 import co.edu.uniquindio.exploracity.plugins.configureStatusPages
 import co.edu.uniquindio.exploracity.repository.AccountLinkRepository
 import co.edu.uniquindio.exploracity.repository.LoginAttemptRepository
+import co.edu.uniquindio.exploracity.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.repository.PersonalDataRepository
+import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.ReputationRepository
 import co.edu.uniquindio.exploracity.repository.SessionRepository
 import co.edu.uniquindio.exploracity.repository.UserRepository
 import co.edu.uniquindio.exploracity.routes.accountRoutes
 import co.edu.uniquindio.exploracity.routes.authRoutes
 import co.edu.uniquindio.exploracity.routes.devRoutes
+import co.edu.uniquindio.exploracity.routes.notificationRoutes
+import co.edu.uniquindio.exploracity.routes.placeRoutes
 import co.edu.uniquindio.exploracity.routes.profileRoutes
 import co.edu.uniquindio.exploracity.service.AccountMail
 import co.edu.uniquindio.exploracity.service.AccountService
 import co.edu.uniquindio.exploracity.service.AuthService
 import co.edu.uniquindio.exploracity.service.DevMailboxService
+import co.edu.uniquindio.exploracity.service.NotificationService
 import co.edu.uniquindio.exploracity.service.PasswordHasher
+import co.edu.uniquindio.exploracity.service.PlaceCards
+import co.edu.uniquindio.exploracity.service.PlaceService
 import co.edu.uniquindio.exploracity.service.ProfileService
 import co.edu.uniquindio.exploracity.service.ReputationService
 import co.edu.uniquindio.exploracity.service.SecurityService
@@ -65,14 +72,19 @@ fun Application.exploraModule(
 
     val jwt = JwtConfig(config.jwt, clock)
     val mail = AccountMail(integrations.mail, config.mail.linkBaseUrl)
-    val reputation = ReputationService(ReputationRepository(), config.city)
+    val notifications = NotificationRepository()
+    val places = PlaceRepository()
+    val cards = PlaceCards(config.city, clock)
+    val reputation = ReputationService(ReputationRepository(), notifications, config.city, clock)
     val auth = AuthService(
         database, users, SessionRepository(), links, LoginAttemptRepository(), security, passwords, jwt, config.jwt, mail, clock,
     )
     val accounts = AccountService(
         database, users, links, PersonalDataRepository(), reputation, passwords, mail, integrations.media, config.city, clock,
     )
-    val profiles = ProfileService(database, users, reputation, integrations.media, clock)
+    val profiles = ProfileService(database, users, reputation, places, cards, config.city, integrations.media, clock)
+    val placeService = PlaceService(database, places, notifications, reputation, cards, clock)
+    val notificationService = NotificationService(database, notifications, clock)
     val devMailbox = devMailbox(config, integrations)?.let { DevMailboxService(database, it, mail, users, links, clock) }
 
     configureSerialization()
@@ -82,6 +94,8 @@ fun Application.exploraModule(
         authRoutes(auth)
         accountRoutes(accounts)
         profileRoutes(profiles)
+        placeRoutes(placeService)
+        notificationRoutes(notificationService)
         devMailbox?.let { devRoutes(it) }
     }
     // C1 · Sin Cloudinary, la API sirve las fotos de su carpeta local.
