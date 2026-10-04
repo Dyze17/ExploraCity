@@ -59,6 +59,7 @@ object Fixtures {
                 it[latitude] = 4.5521
                 it[longitude] = -75.6589
                 it[price] = PriceRange.FREE
+                it[address] = "Vía al Mirador, Armenia"
                 it[hoursDays] = 0b0011111
                 it[hoursOpens] = LocalTime.of(8, 0)
                 it[hoursCloses] = LocalTime.of(18, 0)
@@ -118,6 +119,29 @@ object Fixtures {
                 it[pointsAwarded] = 5
             }
         }
+
+    /** Un lugar más para las pruebas de búsqueda; por omisión verificado y en el centro de Armenia. */
+    fun place(
+        database: Database,
+        author: UUID?,
+        title: String,
+        category: Category = Category.CULTURE,
+        status: PublicationStatus = PublicationStatus.VERIFIED,
+        latitude: Double = 4.5339,
+        longitude: Double = -75.6811,
+        description: String = "Un lugar de la comunidad, con su historia y su gente.",
+    ): UUID = transaction(database) {
+        Places.insert {
+            it[authorId] = author
+            it[Places.title] = title
+            it[Places.description] = description
+            it[Places.category] = category
+            it[categoryOrigin] = CategoryOrigin.CHOSEN
+            it[Places.status] = status
+            it[Places.latitude] = latitude
+            it[Places.longitude] = longitude
+        }[Places.id]
+    }
 
     private fun user(id: UUID, email: String, name: String, passwordHash: String, createdAt: Instant) = Users.insert {
         it[Users.id] = id

@@ -66,7 +66,7 @@ class CommentsViewModelTest {
         assertEquals(12, loaded.total)
         assertEquals(12, loaded.comments.size)
         assertNull(loaded.nextCursor)
-        assertEquals("María Paula", loaded.comments.first().author.name)
+        assertEquals("María Paula", loaded.comments.first().author?.name)
         assertEquals(loaded.comments.sortedByDescending { it.createdAt }, loaded.comments)
         assertFalse(vm.state.value.isEmpty)
     }
@@ -314,7 +314,7 @@ class CommentsViewModelTest {
             return delegate.comments(poiId, cursor, pageSize)
         }
 
-        override suspend fun addComment(poiId: String, text: String): Comment {
+        override suspend fun addComment(poiId: String, text: String, clientId: String): Comment {
             if (failSend) throw IOException("sin red")
             return delegate.addComment(poiId, text)
         }

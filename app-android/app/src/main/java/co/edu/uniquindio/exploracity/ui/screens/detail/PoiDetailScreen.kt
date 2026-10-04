@@ -85,11 +85,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.sampleDetails
 import co.edu.uniquindio.exploracity.data.repository.samplePois
+import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.ui.components.CategoryTag
+import co.edu.uniquindio.exploracity.ui.components.DeletedUserAvatar
 import co.edu.uniquindio.exploracity.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
@@ -446,7 +448,8 @@ private fun DetailBody(details: PoiDetails, voting: Boolean, callbacks: DetailCa
         Text(details.description, style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 21.sp), color = explora.textSecondary)
         InfoBox(details)
         MiniMap(details, callbacks.onOpenMap)
-        AuthorCard(details, onClick = { callbacks.onOpenAuthor(details.author.id) })
+        val author = details.author
+        if (author != null) AuthorCard(author, onClick = { callbacks.onOpenAuthor(author.id) }) else DeletedAuthorCard()
         Actions(details, voting, callbacks)
     }
 }
@@ -568,8 +571,7 @@ private fun MiniMap(details: PoiDetails, onOpenMap: () -> Unit) {
 
 /** «Publicado por Camilo R.» con su nivel; lleva al perfil público (31). */
 @Composable
-private fun AuthorCard(details: PoiDetails, onClick: () -> Unit) {
-    val author = details.author
+private fun AuthorCard(author: Author, onClick: () -> Unit) {
     val level = author.level
     val description = stringResource(R.string.detail_author_description, author.name, stringResource(level.labelRes))
     val shape = MaterialTheme.shapes.medium
@@ -601,6 +603,32 @@ private fun AuthorCard(details: PoiDetails, onClick: () -> Unit) {
             LevelChip(level)
         }
         Icon(painterResource(R.drawable.ic_chevron_right), null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+    }
+}
+
+/** La cuenta que lo publicó se eliminó (30): el lugar sigue sin su nombre, y no hay perfil al que ir. */
+@Composable
+private fun DeletedAuthorCard() {
+    val shape = MaterialTheme.shapes.medium
+    val text = stringResource(R.string.detail_published_by_deleted)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .exploraShadow(ExploraElevation.Card, shape, MaterialTheme.exploraColors.shadow)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+            .clearAndSetSemantics { contentDescription = text }
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DeletedUserAvatar()
+        Text(
+            text,
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+            color = MaterialTheme.exploraColors.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

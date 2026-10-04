@@ -64,7 +64,7 @@ class FakeModerationRepositoryTest {
         assertEquals(6, moderation.pendingCount.value)
         val place = pois.places().first { it.id == "mirador-cruz-de-piedra" }
         assertEquals(PublicationStatus.VERIFIED, place.status)
-        assertEquals("camilo-r", pois.detailsOf(place).author.id)
+        assertEquals("camilo-r", pois.detailsOf(place).author?.id)
         assertEquals(ModerationWork(verified = 1, rejected = 0, finalized = 0), moderation.todayWork())
     }
 

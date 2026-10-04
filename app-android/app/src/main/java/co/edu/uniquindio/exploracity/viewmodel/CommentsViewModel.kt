@@ -176,7 +176,8 @@ class CommentsViewModel(
     private fun send(own: OwnComment) {
         saveUnsent()
         viewModelScope.launch {
-            val sent = runCatchingNonCancellation { poiRepository.addComment(poiId, own.text) }
+            // El mismo id en cada reintento: si el anterior sí llegó, el servidor no lo duplica.
+            val sent = runCatchingNonCancellation { poiRepository.addComment(poiId, own.text, clientId = own.localId) }
             val published = sent != null && !sent.pending
             _state.update { state ->
                 val content = state.content

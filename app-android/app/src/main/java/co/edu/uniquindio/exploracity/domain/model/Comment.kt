@@ -3,12 +3,13 @@ package co.edu.uniquindio.exploracity.domain.model
 import java.time.Instant
 
 /**
- * 14 · Comentario publicado sobre un lugar. [mine] si lo escribió la persona de la sesión; [pending] si se escribió sin
- * conexión y espera en la cola de envío (todavía no lo ve nadie más).
+ * 14 · Comentario publicado sobre un lugar. [author] es null si la cuenta que lo escribió se eliminó: se muestra como
+ * «Usuario eliminado» (30). [mine] si lo escribió la persona de la sesión; [pending] si se escribió sin conexión y
+ * espera en la cola de envío (todavía no lo ve nadie más).
  */
 data class Comment(
     val id: String,
-    val author: Author,
+    val author: Author?,
     val text: String,
     val createdAt: Instant,
     val mine: Boolean = false,

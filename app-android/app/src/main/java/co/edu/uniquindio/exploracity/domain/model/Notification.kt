@@ -31,14 +31,14 @@ sealed interface Notification {
         val reason: String? = null,
     ) : Notification
 
-    /** «Laura G. comentó en …: «…»» → 14. */
+    /** «Laura G. comentó en …: «…»» → 14. [authorName] es null si esa cuenta se eliminó («Usuario eliminado»). */
     data class Commented(
         override val id: String,
         override val createdAt: Instant,
         override val read: Boolean,
         val poiId: String,
         val poiTitle: String,
-        val authorName: String,
+        val authorName: String?,
         val excerpt: String,
     ) : Notification
 

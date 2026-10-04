@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "id": "8e4a1c7f-3b2d-4e9a-a5c6-0f1d2e3b4a5c",
+      "type": "COMMENTED",
+      "createdAt": "2026-10-03T15:05:00Z",
+      "read": false,
+      "placeId": "e3c4d5e6-f7a8-4b92-acbd-2e3f4a5b6c7d",
+      "placeTitle": "Plaza de Bolívar",
+      "authorName": "Ana Ríos",
+      "excerpt": "La catedral de noche es otra cosa."
+    },
+    {
+      "id": "2f9b6d3e-1a4c-4b7e-8d0f-6c5a3e2b1d9f",
+      "type": "VERIFIED",
+      "createdAt": "2026-10-03T13:00:00Z",
+      "read": false,
+      "placeId": "e3c4d5e6-f7a8-4b92-acbd-2e3f4a5b6c7d",
+      "placeTitle": "Plaza de Bolívar",
+      "points": 35
+    }
+  ],
+  "unread": 2
+}

@@ -12,6 +12,7 @@ import co.edu.uniquindio.exploracity.data.local.QueuedRead
 import co.edu.uniquindio.exploracity.data.local.QueuedVote
 import co.edu.uniquindio.exploracity.data.photos.FakePhotoUploader
 import co.edu.uniquindio.exploracity.data.photos.PhotoStore
+import co.edu.uniquindio.exploracity.data.remote.ApiException
 import co.edu.uniquindio.exploracity.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.data.repository.FakePublicationRepository
@@ -251,6 +252,34 @@ class PendingSenderTest {
         assertEquals(listOf("foto-2"), photoFiles.deleted)
     }
 
+    @Test
+    fun `un error del servidor se reintenta después y un rechazo se descarta`() = runTest(dispatcher) {
+        val repository = offlineWithSavedFeed()
+        repository.setVote(cafe, voted = true)
+        val failing = RecordingRemote(server, voteError = ApiException(503, "http_503"))
+
+        assertFalse(sender(failing).flush())
+        assertEquals(1, database.pendingActionsDao().count())
+
+        failing.voteError = ApiException(404, "place_not_found")
+        assertTrue(sender(failing).flush())
+        assertEquals(0, database.pendingActionsDao().count())
+    }
+
+    @Test
+    fun `el comentario de la cola viaja siempre con el mismo clientId`() = runTest(dispatcher) {
+        val repository = offlineWithSavedFeed()
+        repository.addComment(cafe, "Volvimos y sigue igual de bueno.")
+        val recording = RecordingRemote(server, failComments = true)
+
+        assertFalse(sender(recording).flush())
+        recording.failComments = false
+        assertTrue(sender(recording).flush())
+
+        assertEquals(2, recording.clientIds.size)
+        assertEquals(1, recording.clientIds.toSet().size)
+    }
+
     /** Archivos del teléfono: solo anota cuáles se borran. */
     private class DeletedPhotos : PhotoStore {
         val deleted = mutableListOf<String>()
@@ -266,9 +295,17 @@ class PendingSenderTest {
         override suspend fun deleteAll() = Unit
     }
 
-    /** Anota qué se envía y puede simular que se cae la red al enviar comentarios. */
-    private class RecordingRemote(private val delegate: PoiRepository, var failComments: Boolean = false) : PoiRepository by delegate {
+    /**
+     * Anota qué se envía. Puede simular que se cae la red al enviar comentarios, o que el servidor responde [voteError]
+     * a un voto.
+     */
+    private class RecordingRemote(
+        private val delegate: PoiRepository,
+        var failComments: Boolean = false,
+        var voteError: Exception? = null,
+    ) : PoiRepository by delegate {
         val calls = mutableListOf<String>()
+        val clientIds = mutableListOf<String>()
 
         override suspend fun markVisited(id: String, experience: VisitExperience): VisitResult {
             calls += "visita"
@@ -277,13 +314,15 @@ class PendingSenderTest {
 
         override suspend fun setVote(id: String, voted: Boolean): VoteResult {
             calls += "voto"
+            voteError?.let { throw it }
             return delegate.setVote(id, voted)
         }
 
-        override suspend fun addComment(poiId: String, text: String): Comment {
+        override suspend fun addComment(poiId: String, text: String, clientId: String): Comment {
             calls += "comentario"
+            clientIds += clientId
             if (failComments) throw IOException("sin red")
-            return delegate.addComment(poiId, text)
+            return delegate.addComment(poiId, text, clientId)
         }
     }
 }

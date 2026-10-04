@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.UUID
 
 // Cola de envío: lo que la persona hizo sin conexión y se manda al servidor cuando vuelve la red (WorkManager).
 // No depende de lo guardado para ver sin conexión: si el feed reemplaza su caché, la cola sigue intacta.
@@ -50,8 +51,9 @@ data class QueuedVisit(val recommends: Boolean?, val text: String, val showName:
 @Serializable
 data class QueuedVote(val voted: Boolean)
 
+/** [clientId] viaja con el comentario: si la cola lo reenvía, el servidor no lo duplica. Las filas de antes no lo traían. */
 @Serializable
-data class QueuedComment(val text: String)
+data class QueuedComment(val text: String, val clientId: String = UUID.randomUUID().toString())
 
 /** Aviso leído; [id] null = «Marcar leídas». */
 @Serializable
