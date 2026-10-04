@@ -12,6 +12,7 @@ Es un proyecto de la Universidad del Quindío. Es un monorepo con la app Android
 - **Detalle del lugar**: fotos, descripción, horario, rango de precio, ubicación y estado de verificación.
 - **Interacción**: voto «Es importante», «Marcar como visitado» con una experiencia opcional, y comentarios de hasta 300 caracteres. Los comentarios se envían de forma optimista y se pueden reintentar.
 - **Perfil público** de otras personas, con la opción de reportarlo.
+- **Cuentas eliminadas**: sus lugares verificados, sus comentarios y los avisos que generaron siguen a la vista como «Usuario eliminado», sin nivel ni enlace al perfil.
 
 ### Publicar
 - **Formulario en 5 pasos**: título y descripción, categoría con **sugerencia de IA**, ubicación en el mapa, horario y rango de precio, y de 1 a 5 fotos.
@@ -68,7 +69,14 @@ Las decisiones del moderador cambian esos datos mientras la app está abierta. P
 
 La conexión con `api-ktor` avanza por áreas. Primero se construye la API en cuatro partes: base; acceso y cuenta; explorar y social; y publicar y moderar. Cada parte trae también el cliente de la app para esa área, todavía sin conectar. Al final la app pasa a la API y, en ese mismo paso, se retiran todos los datos de ejemplo.
 
-Las partes 1 y 2 ya están. La API atiende la sesión, la recuperación de contraseña, la cuenta y el perfil propio. En la app esperan su turno `AuthApi`, `AccountApi` y `ProfileApi`, la sesión con renovación del token, y `ApiAuthRepository` y `ApiAccountRepository`. Mientras tanto, la app sigue con el servidor falso.
+Las partes 1, 2 y 3 ya están. La API atiende:
+- la sesión y la recuperación de contraseña;
+- la cuenta y el perfil propio;
+- el feed, el mapa y el detalle de cada lugar;
+- los votos, las visitas y los comentarios;
+- los avisos y el perfil público.
+
+En la app esperan su turno los clientes de esas áreas (`AuthApi`, `AccountApi`, `ProfileApi`, `PoiApi` y `NotificationApi`), la sesión con renovación del token y los repositorios `Api*`. Mientras tanto, la app sigue con el servidor falso. Falta la parte 4: publicar y moderar.
 
 | Área | Pantallas (numeración del diseño) | Estado |
 |---|---|---|
@@ -79,7 +87,7 @@ Las partes 1 y 2 ya están. La API atiende la sesión, la recuperación de contr
 | Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ Implementada |
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ Implementada |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ Implementada |
-| API (`api-ktor`) | — | 🚧 Partes 1 y 2 de 4: base (esquema, JWT, errores y ciudad) y acceso y cuenta ([contrato](docs/api/README.md)) |
+| API (`api-ktor`) | — | 🚧 Partes 1 a 3 de 4: base, acceso y cuenta, y explorar y social ([contrato](docs/api/README.md)) |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
 
@@ -129,6 +137,14 @@ La IA y la detección de duplicados se ejecutan en el backend, así que la clave
 - Las contraseñas se guardan con BCrypt de costo 12.
 - La sesión usa un JWT de acceso de 15 minutos y un token de renovación de 30 días, que cambia en cada uso y del que solo se guarda el hash. Si llega uno que ya se usó, se cierran todas las sesiones de la cuenta.
 - Tras 5 intentos fallidos en 15 minutos con el mismo correo, el inicio de sesión queda bloqueado 15 minutos.
+
+**Búsqueda:** el feed, el mapa y el perfil público ordenan por cercanía con PostGIS, desde la ubicación de la persona o, sin ella, desde el centro de la ciudad. La búsqueda por título ignora mayúsculas y tildes (`unaccent`).
+
+**Reputación:**
+- Marcar un lugar como visitado da +5 puntos la primera vez. Comentar no da puntos.
+- Votar o visitar un lugar propio no suma: ni puntos ni avance de insignias.
+- Al desbloquear una insignia llega un aviso de logro, una sola vez, y la insignia no se pierde aunque la cifra baje después.
+- Los puntos por publicar (+20 la primera vez) y por quedar verificada (+15) llegan con la parte 4.
 
 **Integraciones:** cada una tiene una versión real y otra de desarrollo. La real se activa cuando su clave está en `api-ktor/.env`.
 - Sin SendGrid, los correos no salen: quedan en un buzón en memoria.
