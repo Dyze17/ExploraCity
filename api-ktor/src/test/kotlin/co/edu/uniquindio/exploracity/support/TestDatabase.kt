@@ -32,8 +32,8 @@ object TestDatabase {
 
     fun reset() {
         transaction(database) {
-            // CASCADE vacía también todo lo que cuelga de personas y lugares.
-            exec("TRUNCATE users, places RESTART IDENTITY CASCADE")
+            // CASCADE vacía también todo lo que cuelga de personas y lugares; los intentos de acceso van por correo.
+            exec("TRUNCATE users, places, login_attempts RESTART IDENTITY CASCADE")
         }
     }
 }

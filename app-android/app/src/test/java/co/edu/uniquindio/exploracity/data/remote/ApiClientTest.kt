@@ -13,7 +13,6 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.io.File
 
 /** El cliente de la API: la ciudad según el contrato y los errores como [ApiException]. */
 class ApiClientTest {
@@ -61,9 +60,4 @@ class ApiClientTest {
 
     private suspend fun failure(block: suspend () -> Unit): ApiException =
         runCatching { block() }.exceptionOrNull() as? ApiException ?: throw AssertionError("Se esperaba ApiException")
-
-    private fun contractExample(name: String): String {
-        val dir = System.getProperty("exploracity.contract") ?: error("Falta la propiedad exploracity.contract")
-        return File(dir, name).readText()
-    }
 }

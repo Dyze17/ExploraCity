@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.plugins
 
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -10,15 +11,28 @@ import io.ktor.server.plugins.CannotTransformContentToTypeException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.plugins.UnsupportedMediaTypeException
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
+import java.time.Duration
 
-/** Cuerpo de error común: un código estable que la app traduce a su propio microcopy, sin trazas. */
+/**
+ * Cuerpo de error común: un código estable que la app traduce a su propio microcopy, sin trazas. [email] solo lo trae
+ * un enlace vencido (6C), para pedir otro con el correo ya escrito.
+ */
 @Serializable
-data class ErrorResponse(val code: String)
+data class ErrorResponse(val code: String, val email: String? = null)
 
-/** Un error que la app sabe explicar: [status] HTTP y [code] estable (docs/api). */
-open class ApiException(val status: HttpStatusCode, val code: String) : RuntimeException(code) {
+/**
+ * Un error que la app sabe explicar: [status] HTTP y [code] estable (docs/api). Con [retryAfter], la respuesta dice en
+ * `Retry-After` cuántos segundos esperar.
+ */
+open class ApiException(
+    val status: HttpStatusCode,
+    val code: String,
+    val email: String? = null,
+    val retryAfter: Duration? = null,
+) : RuntimeException(code) {
     companion object {
         fun badRequest(code: String = "bad_request") = ApiException(HttpStatusCode.BadRequest, code)
 
@@ -35,7 +49,12 @@ open class ApiException(val status: HttpStatusCode, val code: String) : RuntimeE
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<ApiException> { call, cause ->
-            call.respond(cause.status, ErrorResponse(cause.code))
+            cause.retryAfter?.let { wait ->
+                // En segundos enteros, redondeando hacia arriba: esperar menos daría otra vez el error.
+                val seconds = (wait.toMillis() + 999) / 1000
+                call.response.header(HttpHeaders.RetryAfter, seconds.coerceAtLeast(1).toString())
+            }
+            call.respond(cause.status, ErrorResponse(cause.code, cause.email))
         }
         // JSON mal formado o que no corresponde al cuerpo esperado.
         exception<BadRequestException> { call, _ ->

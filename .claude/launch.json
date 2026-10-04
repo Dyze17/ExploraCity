@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api-ktor",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d api-ktor && .\\gradlew.bat run"],
+      "port": 8080
+    }
+  ]
+}

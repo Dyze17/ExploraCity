@@ -37,3 +37,16 @@ enum class NotificationType { VERIFIED, FINALIZED, COMMENTED, REJECTED, DUPLICAT
 
 /** 31A · Motivos de reporte de un perfil. */
 enum class ReportReason { IMPERSONATION, INAPPROPRIATE_CONTENT, SPAM }
+
+/** Niveles de reputación según los puntos (G2), los mismos de la app (UserLevel). */
+enum class UserLevel(val minPoints: Int) {
+    TOURIST(0),
+    EXPLORER(100),
+    ADVENTURER(250),
+    LOCAL_AMBASSADOR(500),
+    ;
+
+    companion object {
+        fun fromPoints(points: Int): UserLevel = entries.last { points >= it.minPoints }
+    }
+}

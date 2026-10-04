@@ -24,3 +24,10 @@ captures/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Fotos de la API sin Cloudinary (api-ktor/.env: MEDIA_DIR)
+api-ktor/media/
+
+# Claude Code: lo local de cada equipo
+.claude/settings.local.json
+.claude/worktrees/

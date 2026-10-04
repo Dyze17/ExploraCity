@@ -1,0 +1,79 @@
+{
+    "generado": "2026-10-03T15:00:00Z",
+    "cuenta": {
+        "correo": "ana.rios@correo.com",
+        "nombre": "Ana Ríos",
+        "comoSePresenta": "Residente",
+        "ciudad": "Armenia",
+        "miembroDesde": "2026-03",
+        "sobreMi": "Me encanta caminar por los miradores del Quindío.",
+        "foto": "https://res.cloudinary.com/exploracity/image/upload/perfil/ana-rios.jpg"
+    },
+    "reputacion": {
+        "puntos": 40,
+        "nivel": "Turista",
+        "insignias": [
+            { "nombre": "Primera publicación", "avance": 1, "meta": 1, "desbloqueada": true },
+            { "nombre": "Amigo del verde", "avance": 1, "meta": 1, "desbloqueada": true },
+            { "nombre": "10 verificadas", "avance": 1, "meta": 10, "desbloqueada": false },
+            { "nombre": "50 comentarios", "avance": 1, "meta": 50, "desbloqueada": false },
+            { "nombre": "Guardián de la historia", "avance": 0, "meta": 10, "desbloqueada": false },
+            { "nombre": "Voz de la comunidad", "avance": 1, "meta": 1000, "desbloqueada": false },
+            { "nombre": "Caminante", "avance": 1, "meta": 20, "desbloqueada": false },
+            { "nombre": "Buen provecho", "avance": 0, "meta": 5, "desbloqueada": false },
+            { "nombre": "Cultura viva", "avance": 0, "meta": 5, "desbloqueada": false }
+        ]
+    },
+    "publicaciones": [
+        {
+            "id": "d2b3c4d5-e6f7-4a81-9bac-1d2e3f4a5b6c",
+            "titulo": "Café Las Acacias",
+            "categoria": "Gastronomía",
+            "estado": "Pendiente de verificación",
+            "descripcion": "Café de origen con tostión propia y vista al parque principal.",
+            "latitud": 4.5402,
+            "longitud": -75.6721,
+            "fotos": [],
+            "enviada": "2026-09-20T16:30:00Z",
+            "votos": 0,
+            "comentarios": 0,
+            "posibleDuplicado": false
+        },
+        {
+            "id": "c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b",
+            "titulo": "Mirador de la Secreta",
+            "categoria": "Naturaleza",
+            "estado": "Verificada",
+            "descripcion": "Un mirador con vista a toda la ciudad, ideal al atardecer.",
+            "latitud": 4.5521,
+            "longitud": -75.6589,
+            "horario": {
+                "dias": ["lunes", "martes", "miércoles", "jueves", "viernes"],
+                "abre": "08:00",
+                "cierra": "18:00"
+            },
+            "precio": "Entrada libre",
+            "fotos": ["https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"],
+            "enviada": "2026-09-01T14:00:00Z",
+            "votos": 1,
+            "comentarios": 0,
+            "posibleDuplicado": false
+        }
+    ],
+    "comentarios": [
+        {
+            "lugar": "Plaza de Bolívar",
+            "texto": "Muy bonita de noche, con la catedral iluminada.",
+            "fecha": "2026-09-25T22:10:00Z"
+        }
+    ],
+    "votos": ["Plaza de Bolívar"],
+    "visitados": [
+        {
+            "lugar": "Plaza de Bolívar",
+            "loRecomienda": true,
+            "experiencia": "Fui un domingo en la tarde.",
+            "conMiNombre": false
+        }
+    ]
+}
