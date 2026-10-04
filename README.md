@@ -68,6 +68,8 @@ Las decisiones del moderador cambian esos datos mientras la app está abierta. P
 
 La conexión con `api-ktor` avanza por áreas. Primero se construye la API en cuatro partes: base; acceso y cuenta; explorar y social; y publicar y moderar. Cada parte trae también el cliente de la app para esa área, todavía sin conectar. Al final la app pasa a la API y, en ese mismo paso, se retiran todos los datos de ejemplo.
 
+Las partes 1 y 2 ya están. La API atiende la sesión, la recuperación de contraseña, la cuenta y el perfil propio. En la app esperan su turno `AuthApi`, `AccountApi` y `ProfileApi`, la sesión con renovación del token, y `ApiAuthRepository` y `ApiAccountRepository`. Mientras tanto, la app sigue con el servidor falso.
+
 | Área | Pantallas (numeración del diseño) | Estado |
 |---|---|---|
 | Acceso (splash, onboarding, inicio de sesión, registro y recuperación) | 1–6, 6C | ✅ Implementada |
@@ -77,7 +79,7 @@ La conexión con `api-ktor` avanza por áreas. Primero se construye la API en cu
 | Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ Implementada |
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ Implementada |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ Implementada |
-| API (`api-ktor`) | — | 🚧 Parte 1 de 4: esquema completo, JWT, errores y ciudad ([contrato](docs/api/README.md)) |
+| API (`api-ktor`) | — | 🚧 Partes 1 y 2 de 4: base (esquema, JWT, errores y ciudad) y acceso y cuenta ([contrato](docs/api/README.md)) |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
 
@@ -103,9 +105,9 @@ Paquete `co.edu.uniquindio.exploracity`, organizado por capas:
 | `ui/` | Pantallas Compose, componentes del sistema de diseño y tema Material 3 |
 | `navigation/` | Navegación con rutas tipadas y una barra inferior según el rol |
 | `viewmodel/` | Estado de la UI con `StateFlow` |
-| `data/remote` | Cliente de la API (Ktor Client, DTO) |
-| `data/local` | Sesión y preferencias en DataStore, caché sin conexión en Room |
-| `data/repository` | Repositorios (hoy `Fake*` con datos de ejemplo) |
+| `data/remote` | Cliente de la API (Ktor Client, DTO) y sesión que renueva el token con un 401 |
+| `data/local` | Sesión (rol, tokens y cuenta) y preferencias en DataStore, caché sin conexión en Room |
+| `data/repository` | Repositorios: hoy `Fake*` con datos de ejemplo; los `Api*` esperan la conexión |
 | `data/sync` | Cola de envío sin conexión con WorkManager |
 | `data/connectivity`, `data/location`, `data/photos` | Estado de la red, ubicación y geocodificación, fotos |
 | `domain/` | Modelos del dominio |
@@ -119,9 +121,18 @@ Paquete `co.edu.uniquindio.exploracity`, organizado por capas:
 
 Paquetes `routes/`, `service/`, `repository/`, `model/`, `integration/`, `config/` y `plugins/`.
 
-**Stack:** Ktor 3.6 (Netty) · autenticación JWT · Exposed + HikariCP · PostgreSQL con **PostGIS** y **pg_trgm** para detectar duplicados · Flyway · BCrypt. Las integraciones con Cloudinary (fotos), el servicio de correo y OpenRouter (sugerencia de categoría con IA) se hacen con Ktor Client.
+**Stack:** Ktor 3.6 (Netty) · autenticación JWT · Exposed + HikariCP · PostgreSQL con **PostGIS** y **pg_trgm** para detectar duplicados · Flyway · BCrypt. Las integraciones con Cloudinary (fotos), SendGrid (correo) y OpenRouter (sugerencia de categoría con IA) se hacen con Ktor Client.
 
 La IA y la detección de duplicados se ejecutan en el backend, así que la clave de la IA nunca viaja en la app. El despliegue previsto es una imagen Docker en **Google Cloud Run**.
+
+**Seguridad de la sesión:**
+- Las contraseñas se guardan con BCrypt de costo 12.
+- La sesión usa un JWT de acceso de 15 minutos y un token de renovación de 30 días, que cambia en cada uso y del que solo se guarda el hash. Si llega uno que ya se usó, se cierran todas las sesiones de la cuenta.
+- Tras 5 intentos fallidos en 15 minutos con el mismo correo, el inicio de sesión queda bloqueado 15 minutos.
+
+**Integraciones:** cada una tiene una versión real y otra de desarrollo. La real se activa cuando su clave está en `api-ktor/.env`.
+- Sin SendGrid, los correos no salen: quedan en un buzón en memoria.
+- Sin Cloudinary, las fotos van a `api-ktor/media/`, que está fuera de git, y la API las sirve en `/media`.
 
 El esquema lo crean las migraciones de Flyway (`src/main/resources/db/migration`). El contrato con la app, con sus endpoints, códigos de error y ejemplos, está en [`docs/api/`](docs/api/README.md).
 
@@ -166,7 +177,11 @@ Las cuentas creadas en el registro viven en la memoria del servidor falso y se p
 
 Necesita **Docker Desktop**, que levanta PostgreSQL 16 con PostGIS.
 
-1. Copia `api-ktor/.env.example` como `api-ktor/.env`, que está fuera de git, y completa la contraseña de la base de datos, la clave del JWT y los correos de moderador.
+1. Copia `api-ktor/.env.example` como `api-ktor/.env`, que está fuera de git, y completa la contraseña de la base de datos, la clave del JWT y los correos de moderador. Ningún valor puede llevar `$`, porque Docker Compose lo toma como una variable. Las demás variables son opcionales:
+   - `DEV_MAILBOX=true` abre `/v1/dev/mailbox`, para leer los enlaces del buzón de desarrollo. Lo usarán los botones de «Correo de prueba» cuando la app se conecte. Nunca va en producción.
+   - `SENDGRID_API_KEY` y `MAIL_FROM` envían los correos de verdad.
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`, las tres juntas, suben las fotos a Cloudinary.
+   - `PUBLIC_BASE_URL` es el comienzo de las direcciones de la carpeta local. Desde el teléfono, pon la IP del equipo en la red (`http://192.168.x.x:8080`).
 2. Levanta la base de datos y la API:
 
 ```bash
