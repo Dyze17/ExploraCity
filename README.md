@@ -7,7 +7,7 @@ Es un proyecto de la Universidad del Quindío. Es un monorepo con la app Android
 ## Funcionalidad
 
 ### Explorar
-- **Feed en lista y en mapa** (Google Maps), con marcadores agrupados y una tarjeta inferior para el lugar seleccionado.
+- **Feed en lista y en mapa** (Google Maps), con marcadores agrupados y una tarjeta inferior para el lugar seleccionado. La lista se recarga deslizando hacia abajo.
 - **Búsqueda y filtros**: categorías, «Cercanos» (5 km, con permiso de ubicación) o toda la ciudad, y «Solo verificados».
 - **Detalle del lugar**: fotos, descripción, horario, rango de precio, ubicación y estado de verificación.
 - **Interacción**: voto «Es importante», «Marcar como visitado» con una experiencia opcional, y comentarios de hasta 300 caracteres. Los comentarios se envían de forma optimista y se pueden reintentar.
@@ -22,7 +22,7 @@ Es un proyecto de la Universidad del Quindío. Es un monorepo con la app Android
 
 ### Social y reputación
 - **Notificaciones** dentro de la app (sin push): comentarios, verificación, rechazo, rechazo por duplicado, logros y publicaciones finalizadas.
-- **Perfil propio**, con puntos, **niveles** (Turista, Explorador, Aventurero y Embajador Local) e **insignias** con su progreso.
+- **Perfil propio**, con puntos, **niveles** (Recién llegado, Explorador, Aventurero y Embajador Local) e **insignias** con su progreso.
 
 ### Moderación
 - Una 5.ª pestaña **«Moderación»** aparece solo con el rol Moderador, dentro de la misma app. No hay panel web. Su insignia cuenta las publicaciones pendientes.
@@ -37,10 +37,10 @@ Es un proyecto de la Universidad del Quindío. Es un monorepo con la app Android
 - **Resueltas**: lo ya decidido, con su motivo y su nota interna. Con la cola vacía se muestra un resumen del trabajo del día.
 
 ### Acceso y cuenta
-- **Arranque**: el splash decide por dónde se entra. La primera vez va al onboarding de tres paneles, después al inicio de sesión, y con una sesión guardada entra directo al feed. Si la red falla, se puede seguir sin conexión con lo guardado.
-- **Inicio de sesión**: valida el correo y la contraseña. Ante un error no revela cuál de los dos datos falló, y sin conexión el botón queda deshabilitado con su explicación.
+- **Arranque**: el splash decide por dónde se entra. La primera vez va al onboarding de tres paneles, después al inicio de sesión, y con una sesión guardada entra directo al feed. Si la red falla, se puede seguir sin conexión con lo guardado. Si la API ya no acepta la sesión guardada, el inicio de sesión avisa «Tu sesión terminó. Vuelve a entrar.».
+- **Inicio de sesión**: valida el correo y la contraseña. Ante un error no revela cuál de los dos datos falló, y sin conexión el botón queda deshabilitado con su explicación. Tras 5 intentos fallidos con el mismo correo, pide esperar 15 minutos.
 - **Registro**: pide la autorización de tratamiento de datos (**Ley 1581 de 2012**), que nunca viene marcada. La cuenta se crea aunque falle el correo de bienvenida.
-- **Recuperación de contraseña**: llega un enlace por correo que vence a los 30 minutos, y se puede reenviar después de una cuenta regresiva de 60 s. La app nunca revela si un correo tiene cuenta.
+- **Recuperación de contraseña**: llega un enlace por correo que abre la app en «Nueva contraseña». Vence a los 30 minutos, y se puede reenviar después de una cuenta regresiva de 60 s. La app nunca revela si un correo tiene cuenta.
 - **Editar perfil**: foto, nombre, «Sobre mí» y cómo se presenta la persona («De visita» o «Residente»).
 - **Ajustes**: tema claro, oscuro o del sistema; documentos legales; **descargar mis datos** en JSON; y cerrar sesión.
 - **Cambiar correo**: pide la contraseña y envía un enlace al correo nuevo. El cambio se aplica al abrir ese enlace, y mientras tanto Ajustes muestra que falta confirmarlo.
@@ -59,26 +59,28 @@ Es un proyecto de la Universidad del Quindío. Es un monorepo con la app Android
 
 ## Estado del proyecto
 
-Las pantallas se construyen primero con **datos de ejemplo**, a través de repositorios `Fake*` y `Sample*` que implementan las mismas interfaces que usará la API.
+**Todas las pantallas del diseño están implementadas**, y la app ya trabaja con la API (`api-ktor`). No le quedan datos de ejemplo: las cuentas, los lugares, los avisos, las publicaciones y la moderación vienen del servidor.
 
-**Todas las pantallas del diseño están implementadas**, y no queda ninguna provisional.
+La conexión se hizo por áreas, en cinco partes:
+1. La base de la API.
+2. Acceso y cuenta.
+3. Explorar y social.
+4. Publicar y moderar.
+5. El paso de la app a la API.
 
-El inicio de sesión, el registro y la recuperación de contraseña ya funcionan, pero contra un servidor falso (`FakeAuthRepository`). La sesión y su rol se guardan en DataStore. Cualquier cuenta, también una recién creada, ve los datos de ejemplo de Ana Ríos.
+Las cuatro primeras traían la API de su área y el cliente de la app, todavía sin conectar. La quinta conectó la app y retiró los datos de ejemplo. Los `Fake*` y `Sample*` con los que se construyeron las pantallas quedan solo como dobles de prueba, en `src/test`. Las vistas previas de Compose usan `ui/preview/PreviewData.kt`.
 
-Las decisiones del moderador cambian esos datos mientras la app está abierta. Por ejemplo, una publicación verificada aparece en el feed, y a quien la publicó le llega el aviso.
-
-La conexión con `api-ktor` avanza por áreas. Primero se construye la API en cuatro partes: base; acceso y cuenta; explorar y social; y publicar y moderar. Cada parte trae también el cliente de la app para esa área, todavía sin conectar. Al final la app pasa a la API y, en ese mismo paso, se retiran todos los datos de ejemplo.
-
-Las cuatro partes de la API ya están. La API atiende:
+La API atiende:
 - la sesión y la recuperación de contraseña;
 - la cuenta y el perfil propio;
 - el feed, el mapa y el detalle de cada lugar;
 - los votos, las visitas y los comentarios;
 - los avisos y el perfil público;
 - la publicación: las fotos, la sugerencia de categoría, los lugares parecidos y las publicaciones propias;
-- la moderación: la cola, las decisiones y «Resueltas».
+- la moderación: la cola, las decisiones y «Resueltas»;
+- la ciudad: su nombre, el centro del mapa y los límites de la búsqueda por dirección. Hoy es Armenia, y se cambia en `api-ktor/src/main/resources/application.conf`.
 
-En la app esperan su turno los clientes de esas áreas (`AuthApi`, `AccountApi`, `ProfileApi`, `PoiApi`, `NotificationApi`, `PublicationApi` y `ModerationApi`), la sesión con renovación del token, la subida de fotos con su progreso y los repositorios `Api*`. Mientras tanto, la app sigue con el servidor falso. Falta el último paso: conectar la app con la API y retirar los datos de ejemplo.
+Falta el despliegue. La API corre todavía en el equipo, y un APK de producción apunta a `localhost`. El siguiente paso es publicarla en Google Cloud Run.
 
 La API todavía no recibe reportes de lugares, así que la revisión de una pendiente (33) no muestra ninguno.
 
@@ -91,7 +93,8 @@ La API todavía no recibe reportes de lugares, así que la revisión de una pend
 | Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ Implementada |
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ Implementada |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ Implementada |
-| API (`api-ktor`) | — | ✅ Las 4 partes: base, acceso y cuenta, explorar y social, y publicar y moderar ([contrato](docs/api/README.md)). Falta conectar la app |
+| API (`api-ktor`) | — | ✅ Las 4 partes: base, acceso y cuenta, explorar y social, y publicar y moderar ([contrato](docs/api/README.md)) |
+| Conexión de la app con la API | — | ✅ Conectada. Falta el despliegue en Cloud Run |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
 
@@ -119,15 +122,15 @@ Paquete `co.edu.uniquindio.exploracity`, organizado por capas:
 | `viewmodel/` | Estado de la UI con `StateFlow` |
 | `data/remote` | Cliente de la API (Ktor Client, DTO) y sesión que renueva el token con un 401 |
 | `data/local` | Sesión (rol, tokens y cuenta) y preferencias en DataStore, caché sin conexión en Room |
-| `data/repository` | Repositorios: hoy `Fake*` con datos de ejemplo; los `Api*` esperan la conexión |
+| `data/repository` | Repositorios `Api*` sobre la API. Los envoltorios `Offline*` guardan una copia para usar sin conexión, y los `OnlineOnly*` ni lo intentan sin red. `CityRepository` guarda la ciudad en el teléfono |
 | `data/sync` | Cola de envío sin conexión con WorkManager |
-| `data/connectivity`, `data/location`, `data/photos` | Estado de la red, ubicación y geocodificación, fotos |
+| `data/connectivity`, `data/location`, `data/photos` | Estado de la red; ubicación del teléfono (`FusedLocationProvider`) y geocodificación; fotos |
 | `domain/` | Modelos del dominio |
 | `util/` | Formateadores y permisos |
 
-**Stack:** Kotlin 2.4 · Jetpack Compose (BOM 2026.09) · Material 3 · Navigation Compose · Lifecycle/ViewModel · Coroutines · Ktor Client · kotlinx.serialization · DataStore · Room · WorkManager · Maps Compose. Usa `minSdk 28` y `targetSdk`/`compileSdk 37`.
+**Stack:** Kotlin 2.4 · Jetpack Compose (BOM 2026.09) · Material 3 · Navigation Compose · Lifecycle/ViewModel · Coroutines · Ktor Client (OkHttp) · kotlinx.serialization · DataStore · Room · WorkManager · Maps Compose · Play Services Location. Usa `minSdk 28` y `targetSdk`/`compileSdk 37`.
 
-**Pruebas:** JUnit, kotlinx-coroutines-test, Robolectric y Compose UI Test. Entre ellas está `ThemeContrastTest`, que exige el contraste mínimo de cada par de colores del tema.
+**Pruebas:** JUnit, kotlinx-coroutines-test, Robolectric y Compose UI Test. Entre ellas está `ThemeContrastTest`, que exige el contraste mínimo de cada par de colores del tema. Los clientes de la API se prueban con el `MockEngine` de Ktor y los ejemplos del contrato (`docs/api/ejemplos`), los mismos que comprueba `api-ktor`.
 
 ### API (`api-ktor/`)
 
@@ -175,11 +178,25 @@ El esquema lo crean las migraciones de Flyway (`src/main/resources/db/migration`
 
 ### App Android
 
+La app necesita la API en marcha: primero sigue los pasos de [API](#api).
+
 Agrega la clave de Maps a `app-android/local.properties`. Ese archivo está fuera de git:
 
 ```properties
 MAPS_API_KEY=tu_clave
+# Opcional: la dirección de la API. Por omisión, http://localhost:8080/
+API_BASE_URL=http://localhost:8080/
 ```
+
+Con el teléfono por USB, deja `API_BASE_URL` como viene y reenvía el puerto de la API al equipo. En el emulador funciona igual:
+
+```bash
+adb reverse tcp:8080 tcp:8080
+```
+
+El reenvío se pierde al desconectar el teléfono o al activar el modo avión, y hay que repetirlo. Si prefieres la red local, pon la IP del equipo (`http://192.168.x.x:8080/`) en `API_BASE_URL` y en `PUBLIC_BASE_URL` de la API.
+
+Las compilaciones de depuración pueden usar HTTP, para la API del equipo. La de producción solo acepta HTTPS.
 
 Compila, prueba y revisa:
 
@@ -195,22 +212,27 @@ En Windows usa `gradlew.bat`. También puedes abrir `app-android/` en Android St
 
 Estas opciones solo aparecen en las compilaciones de depuración:
 
-- **Cuentas de prueba**: en el inicio de sesión, rellenan la cuenta de Ana o la del moderador. Para esas cuentas vale cualquier contraseña que cumpla las reglas. Con la del moderador aparece la pestaña «Moderación».
-- **Correo de prueba**: aparece en «Revisa tu correo» (6.a) y en «Confirma tu correo nuevo». «Abrir el enlace del correo» hace lo que haría el enlace real: abre «Nueva contraseña» (6.b) o confirma el correo nuevo. «Abrir un enlace vencido» lleva a la pantalla de enlace vencido.
+- **Correo de prueba**: aparece en «Revisa tu correo» (6.a) y en «Confirma tu correo nuevo». Lee el buzón de desarrollo de la API, así que necesita `DEV_MAILBOX=true`. «Abrir el enlace del correo» hace lo que haría el enlace real: abre «Nueva contraseña» (6.b) o confirma el correo nuevo. «Abrir un enlace vencido» lleva a la pantalla de enlace vencido.
 - **Muestrario del sistema de diseño**: un acceso desde Ajustes.
 
-Las cuentas creadas en el registro viven en la memoria del servidor falso y se pierden al cerrar la app.
+No hay cuentas de prueba: se crean en el registro de la app, contra la API. Una cuenta con uno de los correos de `MODERATOR_EMAILS` tiene la pestaña «Moderación». Si la lista cambia, el rol se pone al día al reiniciar la API, y la app lo ve al volver a entrar.
+
+Los enlaces de los correos abren la app: `exploracity://enlace/restablecer?token=…` y `exploracity://enlace/confirmar-correo?token=…`. Sin el botón de prueba, también se pueden abrir con `adb`:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "exploracity://enlace/restablecer?token=..."
+```
 
 ### API
 
 Necesita **Docker Desktop**, que levanta PostgreSQL 16 con PostGIS.
 
 1. Copia `api-ktor/.env.example` como `api-ktor/.env`, que está fuera de git, y completa la contraseña de la base de datos, la clave del JWT y los correos de moderador. Ningún valor puede llevar `$`, porque Docker Compose lo toma como una variable. Las demás variables son opcionales:
-   - `DEV_MAILBOX=true` abre `/v1/dev/mailbox`, para leer los enlaces del buzón de desarrollo. Lo usarán los botones de «Correo de prueba» cuando la app se conecte. Nunca va en producción.
+   - `DEV_MAILBOX=true` abre `/v1/dev/mailbox`, para leer los enlaces del buzón de desarrollo. Lo usan los botones de «Correo de prueba» de la app. Nunca va en producción.
    - `SENDGRID_API_KEY` y `MAIL_FROM` envían los correos de verdad.
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`, las tres juntas, suben las fotos a Cloudinary.
    - `OPENROUTER_API_KEY` sugiere la categoría con IA en OpenRouter. `OPENROUTER_MODEL` cambia el modelo; sin él, `deepseek/deepseek-chat`.
-   - `PUBLIC_BASE_URL` es el comienzo de las direcciones de la carpeta local. Desde el teléfono, pon la IP del equipo en la red (`http://192.168.x.x:8080`).
+   - `PUBLIC_BASE_URL` es el comienzo de las direcciones de la carpeta local. Por omisión, `http://localhost:8080`, que también sirve en el teléfono con `adb reverse`. Si la app usa la IP del equipo, pon esa misma (`http://192.168.x.x:8080`).
 2. Levanta la base de datos y la API:
 
 ```bash
