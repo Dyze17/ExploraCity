@@ -87,12 +87,18 @@ fun ExploraNavHost(
     }
 }
 
-/** Cambia de pestaña conservando la pila de cada una. «Publicar» se abre encima: al cerrar vuelve a la anterior (15A). */
+/**
+ * Cambia de pestaña conservando la pila de cada una. «Publicar» se abre encima: al cerrar vuelve a la anterior (15A).
+ * Al ir a otra pestaña (p. ej. «Volver a explorar» en 20), «Publicar» se descarta sin guardarse: si quedara en la pila
+ * guardada, restoreState volvería a abrir la confirmación (20) al entrar a esa pestaña o a Explorar.
+ */
 fun NavController.navigateToTab(tab: TopLevelDestination) {
     if (tab == TopLevelDestination.PUBLISH) {
         navigate(PublishGraph) { launchSingleTop = true }
         return
     }
+    // Si «Publicar» no está en la pila, no hace nada.
+    popBackStack<PublishGraph>(inclusive = true, saveState = false)
     navigate(tab.graph) {
         popUpTo<Feed> { saveState = true }
         launchSingleTop = true
