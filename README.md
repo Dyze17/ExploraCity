@@ -69,14 +69,18 @@ Las decisiones del moderador cambian esos datos mientras la app está abierta. P
 
 La conexión con `api-ktor` avanza por áreas. Primero se construye la API en cuatro partes: base; acceso y cuenta; explorar y social; y publicar y moderar. Cada parte trae también el cliente de la app para esa área, todavía sin conectar. Al final la app pasa a la API y, en ese mismo paso, se retiran todos los datos de ejemplo.
 
-Las partes 1, 2 y 3 ya están. La API atiende:
+Las cuatro partes de la API ya están. La API atiende:
 - la sesión y la recuperación de contraseña;
 - la cuenta y el perfil propio;
 - el feed, el mapa y el detalle de cada lugar;
 - los votos, las visitas y los comentarios;
-- los avisos y el perfil público.
+- los avisos y el perfil público;
+- la publicación: las fotos, la sugerencia de categoría, los lugares parecidos y las publicaciones propias;
+- la moderación: la cola, las decisiones y «Resueltas».
 
-En la app esperan su turno los clientes de esas áreas (`AuthApi`, `AccountApi`, `ProfileApi`, `PoiApi` y `NotificationApi`), la sesión con renovación del token y los repositorios `Api*`. Mientras tanto, la app sigue con el servidor falso. Falta la parte 4: publicar y moderar.
+En la app esperan su turno los clientes de esas áreas (`AuthApi`, `AccountApi`, `ProfileApi`, `PoiApi`, `NotificationApi`, `PublicationApi` y `ModerationApi`), la sesión con renovación del token, la subida de fotos con su progreso y los repositorios `Api*`. Mientras tanto, la app sigue con el servidor falso. Falta el último paso: conectar la app con la API y retirar los datos de ejemplo.
+
+La API todavía no recibe reportes de lugares, así que la revisión de una pendiente (33) no muestra ninguno.
 
 | Área | Pantallas (numeración del diseño) | Estado |
 |---|---|---|
@@ -87,7 +91,7 @@ En la app esperan su turno los clientes de esas áreas (`AuthApi`, `AccountApi`,
 | Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ Implementada |
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ Implementada |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ Implementada |
-| API (`api-ktor`) | — | 🚧 Partes 1 a 3 de 4: base, acceso y cuenta, y explorar y social ([contrato](docs/api/README.md)) |
+| API (`api-ktor`) | — | ✅ Las 4 partes: base, acceso y cuenta, explorar y social, y publicar y moderar ([contrato](docs/api/README.md)). Falta conectar la app |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
 
@@ -144,11 +148,19 @@ La IA y la detección de duplicados se ejecutan en el backend, así que la clave
 - Marcar un lugar como visitado da +5 puntos la primera vez. Comentar no da puntos.
 - Votar o visitar un lugar propio no suma: ni puntos ni avance de insignias.
 - Al desbloquear una insignia llega un aviso de logro, una sola vez, y la insignia no se pierde aunque la cifra baje después.
-- Los puntos por publicar (+20 la primera vez) y por quedar verificada (+15) llegan con la parte 4.
+- La primera publicación da +20 puntos al enviarla. Se pierden si se elimina o si un moderador la rechaza sin permitir que se reenvíe.
+- Quedar verificada da +15 puntos, solo la primera vez: si vuelve a pendiente y se verifica otra vez, no se repiten.
+
+**Publicar y moderar:**
+- Las fotos se suben antes del envío, y el envío lleva sus direcciones. Repetir un envío que ya llegó (por ejemplo, desde la cola sin conexión) no lo duplica.
+- Los lugares parecidos se buscan a 50 m con PostGIS y pg_trgm, entre los lugares públicos y las pendientes propias, nunca entre las pendientes de otras personas. Si la búsqueda del teléfono falló o el pin se movió después, la API la repite.
+- Un moderador nunca ve ni decide sus propias publicaciones: las revisa otro. Si dos moderadores deciden a la vez, el segundo recibe un aviso de que ya está decidida.
+- Lo que hay que corregir antes de reenviar sale del motivo del rechazo.
 
 **Integraciones:** cada una tiene una versión real y otra de desarrollo. La real se activa cuando su clave está en `api-ktor/.env`.
 - Sin SendGrid, los correos no salen: quedan en un buzón en memoria.
 - Sin Cloudinary, las fotos van a `api-ktor/media/`, que está fuera de git, y la API las sirve en `/media`.
+- Sin OpenRouter, la sugerencia de categoría sale de palabras clave del título y la descripción.
 
 El esquema lo crean las migraciones de Flyway (`src/main/resources/db/migration`). El contrato con la app, con sus endpoints, códigos de error y ejemplos, está en [`docs/api/`](docs/api/README.md).
 
@@ -197,6 +209,7 @@ Necesita **Docker Desktop**, que levanta PostgreSQL 16 con PostGIS.
    - `DEV_MAILBOX=true` abre `/v1/dev/mailbox`, para leer los enlaces del buzón de desarrollo. Lo usarán los botones de «Correo de prueba» cuando la app se conecte. Nunca va en producción.
    - `SENDGRID_API_KEY` y `MAIL_FROM` envían los correos de verdad.
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`, las tres juntas, suben las fotos a Cloudinary.
+   - `OPENROUTER_API_KEY` sugiere la categoría con IA en OpenRouter. `OPENROUTER_MODEL` cambia el modelo; sin él, `deepseek/deepseek-chat`.
    - `PUBLIC_BASE_URL` es el comienzo de las direcciones de la carpeta local. Desde el teléfono, pon la IP del equipo en la red (`http://192.168.x.x:8080`).
 2. Levanta la base de datos y la API:
 
