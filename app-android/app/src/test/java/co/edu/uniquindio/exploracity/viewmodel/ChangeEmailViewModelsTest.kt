@@ -213,7 +213,7 @@ class ChangeEmailViewModelsTest {
 
         assertEquals(1, accounts.resends)
         assertEquals(LinkSentMessage.RESENT, vm.state.value.message)
-        assertFalse(vm.state.value.demoLinks)
+        assertFalse(vm.state.value.devLinks)
     }
 
     // Abrir el enlace

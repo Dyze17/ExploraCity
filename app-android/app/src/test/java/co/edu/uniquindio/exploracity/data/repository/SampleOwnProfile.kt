@@ -4,7 +4,6 @@ import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
 import co.edu.uniquindio.exploracity.domain.model.Category
-import co.edu.uniquindio.exploracity.domain.model.DemoAccount
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
@@ -155,12 +154,6 @@ private const val SAMPLE_MODERATOR_EMAIL = "moderador@exploracity.co"
 internal val sampleLogins: Map<String, UserRole> = mapOf(
     sampleAccount.email to UserRole.USER,
     SAMPLE_MODERATOR_EMAIL to UserRole.MODERATOR,
-)
-
-/** Las mismas cuentas, para rellenar el inicio de sesión en las compilaciones de desarrollo. */
-internal val sampleDemoAccounts = listOf(
-    DemoAccount("Ana Ríos", sampleAccount.email),
-    DemoAccount("Moderación", SAMPLE_MODERATOR_EMAIL),
 )
 
 /**

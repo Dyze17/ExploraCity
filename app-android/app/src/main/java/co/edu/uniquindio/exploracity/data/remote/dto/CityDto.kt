@@ -19,9 +19,17 @@ data class GeoPointDto(val latitude: Double, val longitude: Double) {
 @Serializable
 data class GeoBoundsDto(val southwest: GeoPointDto, val northeast: GeoPointDto) {
     fun toDomain() = GeoBounds(southwest.toDomain(), northeast.toDomain())
+
+    companion object {
+        fun of(bounds: GeoBounds) = GeoBoundsDto(GeoPointDto.of(bounds.southwest), GeoPointDto.of(bounds.northeast))
+    }
 }
 
 @Serializable
 data class CityDto(val name: String, val center: GeoPointDto, val bounds: GeoBoundsDto) {
     fun toDomain() = City(name, center.toDomain(), bounds.toDomain())
+
+    companion object {
+        fun of(city: City) = CityDto(city.name, GeoPointDto.of(city.center), GeoBoundsDto.of(city.bounds))
+    }
 }

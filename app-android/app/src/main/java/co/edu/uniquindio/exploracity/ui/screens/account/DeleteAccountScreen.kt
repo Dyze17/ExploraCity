@@ -339,7 +339,7 @@ private fun ConfirmDialog(confirmation: DeleteConfirmation, callbacks: DeleteAcc
 private val previewProfile = OwnProfile(
     author = Author("ana-rios", "Ana Ríos", 340),
     residency = Residency.RESIDENT,
-    city = "Bogotá",
+    city = "Armenia",
     memberSince = YearMonth.of(2026, 3),
     publications = PublicationCounts(),
     badges = emptyList(),

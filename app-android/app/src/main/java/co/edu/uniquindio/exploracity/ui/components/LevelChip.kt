@@ -28,7 +28,7 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 @get:StringRes
 val UserLevel.labelRes: Int
     get() = when (this) {
-        UserLevel.TOURIST -> R.string.level_tourist
+        UserLevel.NEWCOMER -> R.string.level_newcomer
         UserLevel.EXPLORER -> R.string.level_explorer
         UserLevel.ADVENTURER -> R.string.level_adventurer
         UserLevel.LOCAL_AMBASSADOR -> R.string.level_local_ambassador
@@ -37,7 +37,7 @@ val UserLevel.labelRes: Int
 @get:DrawableRes
 val UserLevel.iconRes: Int
     get() = when (this) {
-        UserLevel.TOURIST -> R.drawable.ic_luggage
+        UserLevel.NEWCOMER -> R.drawable.ic_luggage
         UserLevel.EXPLORER -> R.drawable.ic_explore
         UserLevel.ADVENTURER -> R.drawable.ic_hiking
         UserLevel.LOCAL_AMBASSADOR -> R.drawable.ic_workspace_premium
@@ -54,7 +54,7 @@ val UserLevel.colors: ContainerColors
         val scheme = MaterialTheme.colorScheme
         val explora = MaterialTheme.exploraColors
         return when (this) {
-            UserLevel.TOURIST -> ContainerColors(scheme.surfaceContainer, explora.iconSecondary)
+            UserLevel.NEWCOMER -> ContainerColors(scheme.surfaceContainer, explora.iconSecondary)
             UserLevel.EXPLORER -> ContainerColors(scheme.tertiaryContainer, scheme.onTertiaryContainer)
             UserLevel.ADVENTURER -> explora.warning
             UserLevel.LOCAL_AMBASSADOR -> ContainerColors(scheme.primary, scheme.onPrimary)

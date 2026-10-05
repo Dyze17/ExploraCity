@@ -97,6 +97,8 @@ data class FeedUiState(
     val moderation: ModerationSummary? = null,
     val filterSheet: FilterSheetState? = null,
     val message: FeedMessage? = null,
+    /** Deslizar para recargar: lo que se ve sigue ahí mientras llega lo nuevo. */
+    val refreshing: Boolean = false,
 )
 
 /**
@@ -117,7 +119,7 @@ class FeedViewModel(
     private val moderationRepository: ModerationRepository,
     private val connectivity: ConnectivityObserver,
     areaName: String,
-    isModerator: Boolean,
+    private val isModerator: Boolean,
     private val savedStateHandle: SavedStateHandle,
     private val firstPageTimeout: Duration = FIRST_PAGE_TIMEOUT,
 ) : ViewModel() {
@@ -142,12 +144,7 @@ class FeedViewModel(
             connectivity.isOnline.drop(1).collect { online -> if (online) reload() else showSaved(SavedReason.OFFLINE) }
         }
         if (_state.value.filterSheet != null) recount(debounce = false)
-        if (isModerator) {
-            viewModelScope.launch {
-                val summary = runCatchingNonCancellation { moderationRepository.summary() }
-                _state.update { it.copy(moderation = summary) }
-            }
-        }
+        loadModeration()
     }
 
     fun onQueryChange(text: String) {
@@ -222,6 +219,16 @@ class FeedViewModel(
 
     fun onRetry() = reload()
 
+    /**
+     * Deslizar hacia abajo: trae de nuevo los lugares (y, para el moderador, cuántas esperan revisión) sin la silueta de
+     * carga. Sin red se queda con lo guardado.
+     */
+    fun onRefresh() {
+        if (_state.value.refreshing) return
+        loadModeration()
+        reload(refreshing = true)
+    }
+
     /** 12.b «Ver mis lugares guardados». */
     fun onShowSaved() = showSaved(SavedReason.SERVER_ERROR)
 
@@ -282,16 +289,18 @@ class FeedViewModel(
         }
     }
 
-    private fun reload() {
+    private fun reload(refreshing: Boolean = false) {
         nextPage = 0
         if (!connectivity.isOnline.value) {
             showSaved(SavedReason.OFFLINE)
             return
         }
         loadJob?.cancel()
-        _state.update { it.copy(content = FeedContent.Loading) }
+        _state.update { if (refreshing) it.copy(refreshing = true) else it.copy(content = FeedContent.Loading, refreshing = false) }
         val query = currentQuery()
         loadJob = viewModelScope.launch {
+            // Al deslizar, la recarga se ve al menos un momento aunque la API responda al instante.
+            val shown = if (refreshing) launch { delay(REFRESH_MIN) } else null
             val result = catchingNonCancellation { withTimeoutOrNull(firstPageTimeout) { poiRepository.feedPage(query, 0) } }
             val page = result.getOrNull()
             val content = when {
@@ -303,7 +312,17 @@ class FeedViewModel(
                     page.toContent(query)
                 }
             }
-            _state.update { it.copy(content = content) }
+            shown?.join()
+            _state.update { it.copy(content = content, refreshing = false) }
+        }
+    }
+
+    /** 7.c · La tarjeta del moderador: cuántas esperan y desde hace cuánto. */
+    private fun loadModeration() {
+        if (!isModerator) return
+        viewModelScope.launch {
+            val summary = runCatchingNonCancellation { moderationRepository.summary() }
+            _state.update { it.copy(moderation = summary ?: it.moderation) }
         }
     }
 
@@ -312,7 +331,7 @@ class FeedViewModel(
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             val saved = savedPlaces()
-            _state.update { it.copy(content = FeedContent.Saved(saved, reason)) }
+            _state.update { it.copy(content = FeedContent.Saved(saved, reason), refreshing = false) }
         }
     }
 
@@ -329,6 +348,9 @@ class FeedViewModel(
     companion object {
         /** README: skeleton > 8 s → error recuperable. */
         val FIRST_PAGE_TIMEOUT = 8.seconds
+
+        /** Lo mínimo que se ve la recarga al deslizar: con menos, parece que el gesto no hizo nada. */
+        val REFRESH_MIN = 700.milliseconds
         val SEARCH_DEBOUNCE = 300.milliseconds
 
         /** Pausa antes de recontar: tocar varios chips seguidos pide un solo conteo. */
@@ -343,7 +365,7 @@ class FeedViewModel(
                     container.poiRepository,
                     container.moderationRepository,
                     container.connectivity,
-                    container.areaName,
+                    container.city.current.name,
                     isModerator,
                     savedStateHandle = createSavedStateHandle(),
                 )

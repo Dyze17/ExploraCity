@@ -1,6 +1,6 @@
 package co.edu.uniquindio.exploracity.domain.model
 
-/** SAD: el usuario es turista o residente. «De visita» evita chocar con «Turista», el primer nivel (también en 28). */
+/** SAD: el usuario es turista o residente; en la app, «De visita» o «Residente» (también en 28). */
 enum class Residency { RESIDENT, VISITOR }
 
 /** 31A · Motivos de reporte de un perfil. */

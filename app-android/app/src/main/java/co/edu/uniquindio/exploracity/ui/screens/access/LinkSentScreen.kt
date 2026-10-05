@@ -96,7 +96,7 @@ fun LinkSentRoute(texts: LinkSentTexts, onBack: () -> Unit, onOpenLink: (token: 
             onResend = viewModel::onResend,
             onMessageShown = viewModel::onMessageShown,
             onBack = onBack,
-            onDemoLink = viewModel::onDemoLink,
+            onDevLink = viewModel::onDevLink,
         ),
     )
 }
@@ -107,7 +107,7 @@ class LinkSentCallbacks(
     val onResend: () -> Unit = {},
     val onMessageShown: () -> Unit = {},
     val onBack: () -> Unit = {},
-    val onDemoLink: (expired: Boolean) -> Unit = {},
+    val onDevLink: (expired: Boolean) -> Unit = {},
 )
 
 /** [template] con [email] en negrita, como en los lienzos («Enviamos el enlace a **ana.rios@correo.com**…»). */
@@ -145,7 +145,7 @@ fun LinkSentScreen(state: LinkSentUiState, texts: LinkSentTexts, callbacks: Link
             }
             ResendButton(state, callbacks.onResend)
             ExploraButton(texts.back, onClick = callbacks.onBack, modifier = Modifier.fillMaxWidth(), style = ExploraButtonStyle.TEXT)
-            if (state.demoLinks) DemoLinks(state.demoNoMail, callbacks.onDemoLink)
+            if (state.devLinks) DevLinks(state.devNoMail, callbacks.onDevLink)
         }
         ExploraSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
     }
@@ -174,14 +174,14 @@ private fun ResendButton(state: LinkSentUiState, onResend: () -> Unit) {
 /** Solo en compilaciones de desarrollo: lo que haría el enlace del correo. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DemoLinks(noMail: Boolean, onDemoLink: (Boolean) -> Unit) {
+private fun DevLinks(noMail: Boolean, onDevLink: (Boolean) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.sent_demo_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.exploraColors.textSecondary)
+        Text(stringResource(R.string.sent_dev_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.exploraColors.textSecondary)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ExploraButton(stringResource(R.string.sent_demo_open), onClick = { onDemoLink(false) }, style = ExploraButtonStyle.SECONDARY)
-            ExploraButton(stringResource(R.string.sent_demo_expired), onClick = { onDemoLink(true) }, style = ExploraButtonStyle.SECONDARY)
+            ExploraButton(stringResource(R.string.sent_dev_open), onClick = { onDevLink(false) }, style = ExploraButtonStyle.SECONDARY)
+            ExploraButton(stringResource(R.string.sent_dev_expired), onClick = { onDevLink(true) }, style = ExploraButtonStyle.SECONDARY)
         }
-        if (noMail) Text(stringResource(R.string.sent_demo_no_mail), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary)
+        if (noMail) Text(stringResource(R.string.sent_dev_no_mail), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary)
     }
 }
 
@@ -225,7 +225,7 @@ private fun SentPreview() {
 @Preview(name = "6.a · reenvío disponible · oscuro", widthDp = 360, heightDp = 800)
 @Composable
 private fun SentReadyPreview() {
-    ExploraCityTheme(ThemeMode.DARK) { LinkSentScreen(previewState.copy(resendIn = 0, demoLinks = true), previewTexts, LinkSentCallbacks()) }
+    ExploraCityTheme(ThemeMode.DARK) { LinkSentScreen(previewState.copy(resendIn = 0, devLinks = true), previewTexts, LinkSentCallbacks()) }
 }
 
 @Preview(name = "6.a · sin conexión ni app de correo", widthDp = 360, heightDp = 800)

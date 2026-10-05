@@ -3,7 +3,8 @@ package co.edu.uniquindio.exploracity.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
-import co.edu.uniquindio.exploracity.domain.model.DemoAccount
+import co.edu.uniquindio.exploracity.domain.model.SessionEndedException
+import co.edu.uniquindio.exploracity.domain.model.TooManyAttemptsException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,10 +41,35 @@ class AccessViewModelsTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun splash() = SplashViewModel(preferences, sessions, auth, connectivity)
+    /** Hay tokens de la API guardados (una sesión de antes de la API no los tiene). */
+    private var hasTokens = true
 
-    private fun login(savedState: SavedStateHandle = SavedStateHandle()) =
-        LoginViewModel(auth, sessions, preferences, connectivity, savedState, listOf(DemoAccount("Ana", "ana@correo.com")))
+    /** La ciudad está guardada o se pudo traer. */
+    private var cityReady = true
+
+    /** Veces que se borró lo de la cuenta porque la sesión terminó. */
+    private var ended = 0
+
+    private var prepared = 0
+    private var prepareError: Exception? = null
+
+    private fun splash() = SplashViewModel(
+        preferences,
+        sessions,
+        auth,
+        connectivity,
+        hasTokens = { hasTokens },
+        cityReady = { cityReady },
+        endSession = {
+            ended++
+            sessions.close()
+        },
+    )
+
+    private fun login(savedState: SavedStateHandle = SavedStateHandle()) = LoginViewModel(auth, sessions, preferences, connectivity, savedState) {
+        prepared++
+        prepareError?.let { throw it }
+    }
 
     // 1 · Splash
 
@@ -142,8 +168,47 @@ class AccessViewModelsTest {
         advanceUntilIdle()
 
         vm.onContinueOffline()
+        advanceUntilIdle()
 
         assertEquals(SplashState.Done(SplashDestination.FEED), vm.state.value)
+    }
+
+    @Test
+    fun `sin la ciudad guardada no entra al feed, ni con red ni sin ella`() = runTest(dispatcher) {
+        sessions.current.value = UserRole.USER
+        cityReady = false
+        val vm = splash()
+        advanceUntilIdle()
+
+        assertEquals(SplashState.Offline, vm.state.value)
+        connectivity.online = false
+        vm.onContinueOffline()
+        advanceUntilIdle()
+        assertEquals(SplashState.Offline, vm.state.value)
+    }
+
+    @Test
+    fun `una sesión de antes de conectar la API, sin tokens, pide entrar de nuevo`() = runTest(dispatcher) {
+        sessions.current.value = UserRole.USER
+        hasTokens = false
+        val vm = splash()
+        advanceUntilIdle()
+
+        assertEquals(SplashState.Done(SplashDestination.LOGIN), vm.state.value)
+        assertEquals(1, ended)
+        assertEquals(0, auth.resumes)
+    }
+
+    @Test
+    fun `si la API ya no acepta la sesión, la borra y lo dice en el inicio de sesión`() = runTest(dispatcher) {
+        sessions.current.value = UserRole.USER
+        auth.resumeError = SessionEndedException()
+        val vm = splash()
+        advanceUntilIdle()
+
+        assertEquals(SplashState.Done(SplashDestination.SESSION_ENDED), vm.state.value)
+        assertEquals(1, ended)
+        assertNull(sessions.current.value)
     }
 
     @Test
@@ -268,14 +333,37 @@ class AccessViewModelsTest {
     }
 
     @Test
-    fun `una cuenta de prueba rellena el correo y una contraseña válida inventada al momento`() = runTest(dispatcher) {
+    fun `tras demasiados intentos lo dice, sin abrir sesión`() = runTest(dispatcher) {
+        auth.signInError = TooManyAttemptsException()
         val vm = login()
+        vm.onEmailChange("ana@correo.com")
+        vm.onPasswordChange("clave-segura")
 
-        vm.onDemoAccount(vm.state.value.demoAccounts.single())
+        vm.onSubmit()
+        advanceUntilIdle()
 
-        assertEquals("ana@correo.com", vm.state.value.email)
-        assertEquals(12, vm.state.value.password.length)
-        assertTrue(vm.state.value.canSubmit)
+        assertEquals(LoginError.TOO_MANY_ATTEMPTS, vm.state.value.error)
+        assertNull(sessions.current.value)
+    }
+
+    @Test
+    fun `antes de abrir la sesión deja lista la app, y si no puede no entra`() = runTest(dispatcher) {
+        val vm = login()
+        vm.onEmailChange("ana@correo.com")
+        vm.onPasswordChange("clave-segura")
+        prepareError = IOException("sin ciudad")
+
+        vm.onSubmit()
+        advanceUntilIdle()
+
+        assertEquals(1, prepared)
+        assertEquals(LoginError.FAILED, vm.state.value.error)
+        assertNull(sessions.current.value)
+        prepareError = null
+        vm.onSubmit()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.signedIn)
+        assertEquals(UserRole.USER, sessions.current.value)
     }
 
     @Test

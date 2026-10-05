@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.domain.model.DemoAccount
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
@@ -106,7 +105,6 @@ fun LoginRoute(
             onErrorDismissed = viewModel::onErrorDismissed,
             onForgotPassword = { onForgotPassword(state.email.trim()) },
             onCreateAccount = onCreateAccount,
-            onDemoAccount = viewModel::onDemoAccount,
             onNoticeShown = onNoticeShown,
         ),
         notice = notice,
@@ -122,7 +120,6 @@ class LoginCallbacks(
     val onErrorDismissed: () -> Unit = {},
     val onForgotPassword: () -> Unit = {},
     val onCreateAccount: () -> Unit = {},
-    val onDemoAccount: (DemoAccount) -> Unit = {},
     val onNoticeShown: () -> Unit = {},
 )
 
@@ -175,7 +172,6 @@ fun LoginScreen(state: LoginUiState, callbacks: LoginCallbacks, modifier: Modifi
                     ExploraButton(stringResource(R.string.login_forgot_password), onClick = callbacks.onForgotPassword, style = ExploraButtonStyle.TEXT)
                 }
                 SubmitButton(state, callbacks.onSubmit)
-                if (state.demoAccounts.isNotEmpty()) DemoAccounts(state.demoAccounts, enabled = !state.submitting, onPick = callbacks.onDemoAccount)
                 Spacer(Modifier.height(8.dp))
                 FirstTime(callbacks.onCreateAccount)
             }
@@ -237,20 +233,6 @@ private fun SubmitButton(state: LoginUiState, onSubmit: () -> Unit) {
     )
 }
 
-/** Solo en compilaciones de desarrollo: rellenan una cuenta de prueba. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DemoAccounts(accounts: List<DemoAccount>, enabled: Boolean, onPick: (DemoAccount) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.login_demo_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.exploraColors.textSecondary)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            accounts.forEach { account ->
-                ExploraButton(account.label, onClick = { onPick(account) }, style = ExploraButtonStyle.SECONDARY, enabled = enabled)
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FirstTime(onCreateAccount: () -> Unit) {
@@ -269,12 +251,14 @@ private fun FirstTime(onCreateAccount: () -> Unit) {
 private fun ErrorEffect(error: LoginError?, hostState: SnackbarHostState, onDismissed: () -> Unit) {
     val currentOnDismissed by rememberUpdatedState(onDismissed)
     val credentials = stringResource(R.string.login_credentials_error)
+    val tooMany = stringResource(R.string.login_too_many_attempts)
     val failed = stringResource(R.string.login_failed)
     val close = stringResource(R.string.login_close)
     LaunchedEffect(error) {
         val text = when (error) {
             null -> return@LaunchedEffect
             LoginError.CREDENTIALS -> credentials
+            LoginError.TOO_MANY_ATTEMPTS -> tooMany
             LoginError.FAILED -> failed
         }
         val result = hostState.showSnackbar(text, actionLabel = close, duration = SnackbarDuration.Indefinite)

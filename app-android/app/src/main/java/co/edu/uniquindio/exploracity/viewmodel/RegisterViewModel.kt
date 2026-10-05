@@ -32,7 +32,7 @@ data class RegisterUiState(
     val name: String = "",
     val email: String = "",
     val password: String = "",
-    /** «¿Cómo te presentas?»: «De visita» viene elegida, como «Turista» en 4.a. */
+    /** «¿Cómo te presentas?»: «De visita» viene elegida, como en 4.a. */
     val residency: Residency = Residency.VISITOR,
     /** Ley 1581: la autorización nunca viene marcada. */
     val consent: Boolean = false,
@@ -88,6 +88,8 @@ class RegisterViewModel(
     private val preferences: AppPreferences,
     private val connectivity: ConnectivityObserver,
     private val savedStateHandle: SavedStateHandle,
+    /** Lo que la app necesita antes de entrar: la ciudad y el perfil. */
+    private val prepare: suspend () -> Unit = {},
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -160,7 +162,7 @@ class RegisterViewModel(
         _state.update { it.copy(submitting = true, failed = false) }
         viewModelScope.launch {
             val account = NewAccount(state.name.trim(), state.email.trim(), state.password, state.residency)
-            val result = catchingNonCancellation { auth.register(account) }
+            val result = catchingNonCancellation { auth.register(account).also { prepare() } }
             val registration = result.getOrNull()
             if (registration != null) {
                 sessions.open(registration.role)
@@ -200,6 +202,7 @@ class RegisterViewModel(
                     preferences = container.preferences,
                     connectivity = container.connectivity,
                     savedStateHandle = createSavedStateHandle(),
+                    prepare = container::prepareSession,
                 )
             }
         }

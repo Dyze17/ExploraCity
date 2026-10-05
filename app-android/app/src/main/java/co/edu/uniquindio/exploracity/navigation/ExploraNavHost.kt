@@ -211,6 +211,10 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit
                     when (destination) {
                         SplashDestination.ONBOARDING -> nav.navigate(Onboarding) { popUpTo<Splash> { inclusive = true } }
                         SplashDestination.LOGIN -> nav.navigate(Login) { popUpTo<Splash> { inclusive = true } }
+                        SplashDestination.SESSION_ENDED -> {
+                            nav.navigate(Login) { popUpTo<Splash> { inclusive = true } }
+                            nav.currentBackStackEntry?.savedStateHandle?.set(SESSION_NOTICE_KEY, SessionNotice.SESSION_ENDED.name)
+                        }
                         SplashDestination.FEED -> onEnterApp()
                     }
                 },
@@ -238,6 +242,7 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit
                     SessionNotice.SIGNED_OUT -> stringResource(R.string.session_signed_out)
                     SessionNotice.ACCOUNT_DELETED -> stringResource(R.string.session_account_deleted)
                     SessionNotice.PASSWORD_CHANGED -> stringResource(R.string.session_reset_done)
+                    SessionNotice.SESSION_ENDED -> stringResource(R.string.session_ended)
                     null -> null
                 },
                 onNoticeShown = { entry.savedStateHandle[SESSION_NOTICE_KEY] = null },

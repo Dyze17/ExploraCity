@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -20,8 +21,13 @@ import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.navigation.AuthGraph
+import co.edu.uniquindio.exploracity.navigation.ConfirmEmail
+import co.edu.uniquindio.exploracity.navigation.EmailLink
 import co.edu.uniquindio.exploracity.navigation.ExploraNavHost
 import co.edu.uniquindio.exploracity.navigation.MainGraph
+import co.edu.uniquindio.exploracity.navigation.NewPassword
+import co.edu.uniquindio.exploracity.navigation.SessionNotice
+import co.edu.uniquindio.exploracity.navigation.Splash
 import co.edu.uniquindio.exploracity.navigation.TopLevelDestination
 import co.edu.uniquindio.exploracity.navigation.navigateToTab
 import co.edu.uniquindio.exploracity.navigation.openLogin
@@ -29,14 +35,19 @@ import co.edu.uniquindio.exploracity.navigation.routesWithBottomBar
 import co.edu.uniquindio.exploracity.navigation.topLevelDestinations
 import co.edu.uniquindio.exploracity.ui.components.ExploraNavigationBar
 import co.edu.uniquindio.exploracity.ui.components.NavigationBarItem
+import kotlinx.coroutines.flow.first
 
 /**
  * Raíz de la app: barra inferior en las pantallas raíz de cada pestaña y el grafo de navegación.
- * El Scaffold pinta el fondo del tema en toda la ventana, también detrás de las barras del sistema.
+ * El Scaffold pinta el fondo del tema en toda la ventana, también detrás de las barras del sistema. [emailLink] es el
+ * enlace del correo con que se abrió la app; se abre al terminar el arranque (1) y se avisa con [onEmailLinkHandled].
  */
 @Composable
-fun ExploraApp(navController: NavHostController = rememberNavController()) {
-    // Temporal: el rol llegará de la sesión (JWT en DataStore) cuando exista data/; hoy lo elige el inicio de sesión de demo.
+fun ExploraApp(
+    navController: NavHostController = rememberNavController(),
+    emailLink: String? = null,
+    onEmailLinkHandled: () -> Unit = {},
+) {
     val container = (LocalContext.current.applicationContext as ExploraApplication).container
     // El rol llega con la sesión (3), guardada en el teléfono: sobrevive al cierre de la app.
     val session by container.sessionStore.role.collectAsStateWithLifecycle(initialValue = null)
@@ -46,6 +57,27 @@ fun ExploraApp(navController: NavHostController = rememberNavController()) {
     val showBottomBar = destination != null && routesWithBottomBar.any { destination.hasRoute(it) }
     val unread by container.notificationRepository.unreadCount.collectAsStateWithLifecycle()
     val pendingReviews by container.moderationRepository.pendingCount.collectAsStateWithLifecycle()
+
+    // La API ya no acepta la sesión (venció o se cerró desde otro lado): se borra lo de la cuenta y se vuelve a entrar.
+    LaunchedEffect(Unit) {
+        container.sessionEnded.collect {
+            if (container.sessionStore.role.first() == null) return@collect
+            container.sessionManager.sessionEnded()
+            navController.openLogin(SessionNotice.SESSION_ENDED)
+        }
+    }
+
+    // Un enlace del correo, cuando el arranque ya decidió por dónde se entra. Confirmar un correo pide la sesión abierta.
+    val started = destination != null && !destination.hasRoute<Splash>()
+    LaunchedEffect(emailLink, started) {
+        if (emailLink == null || !started) return@LaunchedEffect
+        when (val link = EmailLink.parse(emailLink)) {
+            is EmailLink.ResetPassword -> navController.navigate(NewPassword(link.token))
+            is EmailLink.ConfirmEmail -> if (session != null) navController.navigate(ConfirmEmail(link.token))
+            null -> Unit
+        }
+        onEmailLinkHandled()
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),

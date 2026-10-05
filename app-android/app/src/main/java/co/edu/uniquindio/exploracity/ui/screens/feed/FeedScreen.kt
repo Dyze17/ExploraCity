@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.ui.screens.feed
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -25,11 +26,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -45,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -53,10 +59,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -71,7 +79,6 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.data.repository.SavedPlaces
-import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
@@ -101,6 +108,7 @@ import co.edu.uniquindio.exploracity.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraSpacing
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
@@ -138,6 +146,7 @@ fun FeedRoute(
         callbacks = FeedCallbacks(
             filters = rememberFilterCallbacks(viewModel),
             onRetry = viewModel::onRetry,
+            onRefresh = viewModel::onRefresh,
             onShowSaved = viewModel::onShowSaved,
             onLoadMore = viewModel::onLoadMore,
             onOpenPoi = onOpenPoi,
@@ -153,6 +162,8 @@ fun FeedRoute(
 class FeedCallbacks(
     val filters: FilterCallbacks = FilterCallbacks(),
     val onRetry: () -> Unit = {},
+    /** Deslizar hacia abajo: trae de nuevo los lugares. */
+    val onRefresh: () -> Unit = {},
     /** 12.b «Ver mis lugares guardados». */
     val onShowSaved: () -> Unit = {},
     val onLoadMore: () -> Unit = {},
@@ -163,6 +174,7 @@ class FeedCallbacks(
     val onNoticeShown: () -> Unit = {},
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallbacks, modifier: Modifier = Modifier, notice: String? = null) {
     Box(modifier.fillMaxSize()) {
@@ -178,83 +190,75 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
             PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = !pinnedBanner)
             // Sin conexión no se busca ni se filtra: lo guardado se muestra tal cual.
             if (saved == null) CollapsibleFilters(state, isModerator, callbacks, collapsing)
-            when (val content = state.content) {
-                FeedContent.Loading -> FeedSkeleton()
-                is FeedContent.Loaded -> FeedList(content, state, isModerator, callbacks)
-                is FeedContent.NoResults -> Scrollable {
-                    EmptyState(
-                        icon = R.drawable.ic_search_off,
-                        title = stringResource(R.string.feed_no_results_title),
-                        body = noResultsBody(content.query),
-                    ) {
-                        // Las dos salidas de 10.a son reversibles: amplían o quitan filtros, que se pueden volver a poner.
-                        if (content.query.filters.scope == LocationScope.NEARBY) {
-                            ExploraButton(
-                                stringResource(R.string.feed_search_whole_city),
-                                onClick = callbacks.filters.onSearchWholeCity,
-                                modifier = Modifier.fillMaxWidth(),
-                                icon = R.drawable.ic_location_city,
-                            )
-                        }
-                        ExploraButton(
-                            stringResource(R.string.feed_clear_filters),
-                            onClick = callbacks.filters.onClearFilters,
-                            modifier = Modifier.fillMaxWidth(),
-                            style = ExploraButtonStyle.TEXT,
-                        )
-                    }
-                }
-                FeedContent.EmptyArea -> Scrollable {
-                    EmptyState(
-                        icon = R.drawable.ic_travel_explore,
-                        title = stringResource(R.string.feed_empty_area_title, state.areaName),
-                        body = stringResource(R.string.feed_empty_area_body),
-                    ) {
-                        ExploraButton(
-                            stringResource(R.string.feed_publish_first),
-                            onClick = callbacks.onPublish,
-                            modifier = Modifier.fillMaxWidth(),
-                            icon = R.drawable.ic_add_location_alt,
-                        )
-                    }
-                }
-                is FeedContent.Error -> Scrollable {
-                    EmptyState(
-                        icon = R.drawable.ic_sync_problem,
-                        title = stringResource(R.string.feed_error_title),
-                        body = stringResource(R.string.feed_error_body),
-                        tone = EmptyStateTone.WARNING,
-                    ) {
-                        ExploraButton(
-                            stringResource(R.string.action_retry),
-                            onClick = callbacks.onRetry,
-                            modifier = Modifier.fillMaxWidth(),
-                            icon = R.drawable.ic_refresh,
-                        )
-                        if (content.hasSaved) {
-                            ExploraButton(
-                                stringResource(R.string.feed_show_saved),
-                                onClick = callbacks.onShowSaved,
-                                modifier = Modifier.fillMaxWidth(),
-                                style = ExploraButtonStyle.TEXT,
-                            )
-                        }
-                    }
-                }
-                is FeedContent.Saved -> {
-                    val places = content.places
-                    if (places != null) {
-                        SavedList(
-                            places,
-                            callbacks.onOpenPoi,
-                            banner = if (pinnedBanner) null else { { SavedPlacesBanner(places, content.reason, callbacks.onRetry) } },
-                        )
-                    } else {
-                        Scrollable {
+            // Deslizar hacia abajo recarga; TalkBack tiene la misma acción en el contenido.
+            val refreshLabel = stringResource(R.string.feed_refresh)
+            val pullState = rememberPullToRefreshState()
+            // Mientras recarga, la lista se atenúa y vuelve con lo nuevo: se nota que el gesto hizo algo.
+            val contentAlpha by animateFloatAsState(if (state.refreshing) REFRESHING_ALPHA else 1f, label = "recarga")
+            PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = callbacks.onRefresh,
+                state = pullState,
+                modifier = Modifier.fillMaxSize().semantics {
+                    customActions = listOf(CustomAccessibilityAction(refreshLabel) { callbacks.onRefresh(); true })
+                },
+                indicator = {
+                    // Con los colores del botón de publicar: el gris de serie casi no se ve sobre el fondo oscuro.
+                    PullToRefreshDefaults.Indicator(
+                        state = pullState,
+                        isRefreshing = state.refreshing,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                },
+            ) {
+                Box(Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
+                    when (val content = state.content) {
+                        FeedContent.Loading -> FeedSkeleton()
+                        is FeedContent.Loaded -> FeedList(content, state, isModerator, callbacks)
+                        is FeedContent.NoResults -> Scrollable {
                             EmptyState(
-                                icon = R.drawable.ic_cloud_off,
-                                title = stringResource(R.string.offline_title),
-                                body = stringResource(R.string.feed_nothing_saved_body),
+                                icon = R.drawable.ic_search_off,
+                                title = stringResource(R.string.feed_no_results_title),
+                                body = noResultsBody(content.query),
+                            ) {
+                                // Las dos salidas de 10.a son reversibles: amplían o quitan filtros, que se pueden volver a poner.
+                                if (content.query.filters.scope == LocationScope.NEARBY) {
+                                    ExploraButton(
+                                        stringResource(R.string.feed_search_whole_city),
+                                        onClick = callbacks.filters.onSearchWholeCity,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        icon = R.drawable.ic_location_city,
+                                    )
+                                }
+                                ExploraButton(
+                                    stringResource(R.string.feed_clear_filters),
+                                    onClick = callbacks.filters.onClearFilters,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = ExploraButtonStyle.TEXT,
+                                )
+                            }
+                        }
+                        FeedContent.EmptyArea -> Scrollable {
+                            EmptyState(
+                                icon = R.drawable.ic_travel_explore,
+                                title = stringResource(R.string.feed_empty_area_title, state.areaName),
+                                body = stringResource(R.string.feed_empty_area_body),
+                            ) {
+                                ExploraButton(
+                                    stringResource(R.string.feed_publish_first),
+                                    onClick = callbacks.onPublish,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    icon = R.drawable.ic_add_location_alt,
+                                )
+                            }
+                        }
+                        is FeedContent.Error -> Scrollable {
+                            EmptyState(
+                                icon = R.drawable.ic_sync_problem,
+                                title = stringResource(R.string.feed_error_title),
+                                body = stringResource(R.string.feed_error_body),
                                 tone = EmptyStateTone.WARNING,
                             ) {
                                 ExploraButton(
@@ -263,6 +267,40 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                                     modifier = Modifier.fillMaxWidth(),
                                     icon = R.drawable.ic_refresh,
                                 )
+                                if (content.hasSaved) {
+                                    ExploraButton(
+                                        stringResource(R.string.feed_show_saved),
+                                        onClick = callbacks.onShowSaved,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        style = ExploraButtonStyle.TEXT,
+                                    )
+                                }
+                            }
+                        }
+                        is FeedContent.Saved -> {
+                            val places = content.places
+                            if (places != null) {
+                                SavedList(
+                                    places,
+                                    callbacks.onOpenPoi,
+                                    banner = if (pinnedBanner) null else { { SavedPlacesBanner(places, content.reason, callbacks.onRetry) } },
+                                )
+                            } else {
+                                Scrollable {
+                                    EmptyState(
+                                        icon = R.drawable.ic_cloud_off,
+                                        title = stringResource(R.string.offline_title),
+                                        body = stringResource(R.string.feed_nothing_saved_body),
+                                        tone = EmptyStateTone.WARNING,
+                                    ) {
+                                        ExploraButton(
+                                            stringResource(R.string.action_retry),
+                                            onClick = callbacks.onRetry,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            icon = R.drawable.ic_refresh,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -712,9 +750,9 @@ private fun joinWords(words: List<String>, conjunction: String): String = when (
 }
 
 private val previewState = FeedUiState(
-    areaName = "Bogotá",
+    areaName = "Armenia",
     filters = FeedFilters(categories = setOf(Category.GASTRONOMY), scope = LocationScope.NEARBY),
-    content = FeedContent.Loaded(samplePois.take(5), total = 24, canLoadMore = true, loadingMore = true),
+    content = FeedContent.Loaded(previewPlaces.take(5), total = 24, canLoadMore = true, loadingMore = true),
     moderation = ModerationSummary(pending = 7, oldestWaitingDays = 3),
 )
 
@@ -754,3 +792,6 @@ private fun FeedLoadingPreview() {
 private fun FeedErrorPreview() {
     ExploraCityTheme(ThemeMode.DARK) { FeedScreen(previewState.copy(content = FeedContent.Error(hasSaved = true)), isModerator = false, callbacks = FeedCallbacks()) }
 }
+
+/** Cuánto se atenúa la lista mientras recarga. */
+private const val REFRESHING_ALPHA = 0.4f

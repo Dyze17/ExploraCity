@@ -12,6 +12,7 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -31,6 +32,10 @@ data class SavedProfileEntity(@PrimaryKey val key: String = KEY, val json: Strin
 interface ProfileDao {
     @Query("SELECT * FROM saved_profile WHERE `key` = :key")
     suspend fun get(key: String = SavedProfileEntity.KEY): SavedProfileEntity?
+
+    /** El guardado, y cada vez que cambia: el nombre y los puntos de la persona de la sesión. */
+    @Query("SELECT * FROM saved_profile WHERE `key` = :key")
+    fun observe(key: String = SavedProfileEntity.KEY): Flow<SavedProfileEntity?>
 
     @Upsert
     suspend fun save(profile: SavedProfileEntity)

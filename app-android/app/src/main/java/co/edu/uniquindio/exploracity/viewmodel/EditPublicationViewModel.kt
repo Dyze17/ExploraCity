@@ -488,8 +488,8 @@ class EditPublicationViewModel(
                         addresses = container.addressResolver,
                         locationProvider = container.locationProvider,
                         connectivity = container.connectivity,
-                        cityCenter = container.areaCenter,
-                        cityBounds = container.areaBounds,
+                        cityCenter = container.city.current.center,
+                        cityBounds = container.city.current.bounds,
                     ),
                     delivery = PublishDelivery(container.photoStore, container.photoUploader, container.publicationOutbox),
                 )

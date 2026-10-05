@@ -52,7 +52,8 @@ class OfflinePoiRepository(
     private val connectivity: ConnectivityObserver,
     private val scope: CoroutineScope,
     /** Autor de los comentarios que esperan en la cola. */
-    private val currentUser: Author,
+    /** La persona de la sesión: la autora de sus comentarios en cola. */
+    private val currentUser: () -> Author,
     private val clock: Clock = Clock.systemUTC(),
 ) : PoiRepository {
 
@@ -210,7 +211,7 @@ class OfflinePoiRepository(
 
     private fun PendingActionEntity.toPendingComment() = Comment(
         id = "pending-$id",
-        author = currentUser,
+        author = currentUser(),
         text = payloadAs<QueuedComment>().text,
         createdAt = Instant.ofEpochMilli(createdAtMillis),
         mine = true,

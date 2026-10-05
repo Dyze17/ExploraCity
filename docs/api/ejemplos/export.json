@@ -11,7 +11,7 @@
     },
     "reputacion": {
         "puntos": 40,
-        "nivel": "Turista",
+        "nivel": "Recién llegado",
         "insignias": [
             { "nombre": "Primera publicación", "avance": 1, "meta": 1, "desbloqueada": true },
             { "nombre": "Amigo del verde", "avance": 1, "meta": 1, "desbloqueada": true },

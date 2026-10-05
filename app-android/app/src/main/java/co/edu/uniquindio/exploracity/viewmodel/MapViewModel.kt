@@ -184,7 +184,7 @@ class MapViewModel(
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                MapViewModel(container.poiRepository, container.locationProvider, container.connectivity, container.areaCenter, createSavedStateHandle())
+                MapViewModel(container.poiRepository, container.locationProvider, container.connectivity, container.city.current.center, createSavedStateHandle())
             }
         }
     }

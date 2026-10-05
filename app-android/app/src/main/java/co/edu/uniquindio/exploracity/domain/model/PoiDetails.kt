@@ -22,9 +22,12 @@ enum class PriceRange {
 /** Horario del paso 4: días de atención y una franja; sin horario exacto, el lugar no lo tiene (null). */
 data class OpeningHours(val days: Set<DayOfWeek>, val opens: LocalTime, val closes: LocalTime)
 
-/** Niveles de reputación (README · LevelChip) según los puntos. */
+/**
+ * Niveles de reputación (README · LevelChip) según los puntos. El primero es «Recién llegado» y no «Turista», que se
+ * confundía con quien se presenta «De visita».
+ */
 enum class UserLevel(val minPoints: Int) {
-    TOURIST(0),
+    NEWCOMER(0),
     EXPLORER(100),
     ADVENTURER(250),
     LOCAL_AMBASSADOR(500),
