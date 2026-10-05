@@ -8,7 +8,8 @@ plugins {
     alias(libs.plugins.room)
 }
 
-// La clave de Google Maps vive en local.properties (fuera de git): MAPS_API_KEY=...
+// La clave de Google Maps vive en local.properties (fuera de git): MAPS_API_KEY=... Ahí también puede ir la dirección
+// de la API (API_BASE_URL); sin ella, la del equipo por USB con `adb reverse tcp:8080 tcp:8080` (A1).
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use(::load)
@@ -29,6 +30,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY", "")
+        val apiBaseUrl = localProperties.getProperty("API_BASE_URL", "http://localhost:8080/").trimEnd('/') + "/"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildTypes {
@@ -48,7 +51,8 @@ android {
 
     buildFeatures {
         compose = true
-        // BuildConfig.DEBUG: el muestrario del sistema de diseño solo aparece en Ajustes en las compilaciones de desarrollo.
+        // BuildConfig.DEBUG: el muestrario del sistema de diseño y el buzón de desarrollo solo existen en las compilaciones
+        // de desarrollo. BuildConfig.API_BASE_URL: la dirección de la API.
         buildConfig = true
     }
 
@@ -99,6 +103,7 @@ dependencies {
     implementation(libs.androidx.work.runtime)
 
     implementation(libs.maps.compose)
+    implementation(libs.play.services.location)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

@@ -15,19 +15,21 @@ import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.SessionStore
 import co.edu.uniquindio.exploracity.data.repository.AuthRepository
 import co.edu.uniquindio.exploracity.domain.model.AuthRules
-import co.edu.uniquindio.exploracity.domain.model.DemoAccount
 import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
+import co.edu.uniquindio.exploracity.domain.model.TooManyAttemptsException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 enum class LoginField { EMAIL, PASSWORD }
 
-/** 3.c · El aviso del fallo: queda hasta que la persona lo cierra (README, snackbar de error). */
-enum class LoginError { CREDENTIALS, FAILED }
+/**
+ * 3.c · El aviso del fallo: queda hasta que la persona lo cierra (README, snackbar de error). [TOO_MANY_ATTEMPTS]: la
+ * API bloquea el correo 15 minutos tras 5 intentos fallidos (A1).
+ */
+enum class LoginError { CREDENTIALS, TOO_MANY_ATTEMPTS, FAILED }
 
 data class LoginUiState(
     val email: String = "",
@@ -40,7 +42,6 @@ data class LoginUiState(
     /** Campo al que va el foco tras un intento con errores; [focusRequest] cambia en cada intento. */
     val focusField: LoginField? = null,
     val focusRequest: Int = 0,
-    val demoAccounts: List<DemoAccount> = emptyList(),
     val signedIn: Boolean = false,
 ) {
     val emailValid: Boolean get() = AuthRules.isValidEmail(email)
@@ -56,8 +57,9 @@ data class LoginUiState(
 }
 
 /**
- * 3 · Correo y contraseña con su validación, el aviso sin conexión y el del fallo. Al entrar abre la sesión en el
- * teléfono y marca el onboarding como visto: al volver a abrir la app se entra directo (1).
+ * 3 · Correo y contraseña con su validación, el aviso sin conexión y el del fallo. Al entrar deja lista la app
+ * ([prepare]: la ciudad y el perfil), abre la sesión en el teléfono y marca el onboarding como visto: al volver a abrir
+ * la app se entra directo (1).
  */
 class LoginViewModel(
     private val auth: AuthRepository,
@@ -65,12 +67,10 @@ class LoginViewModel(
     private val preferences: AppPreferences,
     private val connectivity: ConnectivityObserver,
     private val savedStateHandle: SavedStateHandle,
-    demoAccounts: List<DemoAccount> = emptyList(),
+    private val prepare: suspend () -> Unit = {},
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(
-        LoginUiState(email = savedStateHandle[EMAIL_KEY] ?: "", offline = !connectivity.isOnline.value, demoAccounts = demoAccounts),
-    )
+    private val _state = MutableStateFlow(LoginUiState(email = savedStateHandle[EMAIL_KEY] ?: "", offline = !connectivity.isOnline.value))
     val state: StateFlow<LoginUiState> = _state.asStateFlow()
 
     init {
@@ -101,13 +101,6 @@ class LoginViewModel(
         _state.update { it.copy(email = email, password = "", emailTouched = true, passwordTouched = false, error = null) }
     }
 
-    /** Solo en desarrollo: rellena una cuenta de prueba con una contraseña inventada al momento (el servidor falso la acepta). */
-    fun onDemoAccount(account: DemoAccount) {
-        savedStateHandle[EMAIL_KEY] = account.email
-        val password = UUID.randomUUID().toString().take(12)
-        _state.update { it.copy(email = account.email, password = password, emailTouched = true, passwordTouched = true, error = null) }
-    }
-
     fun onSubmit() {
         val state = _state.value
         if (state.submitting || state.offline) return
@@ -118,7 +111,7 @@ class LoginViewModel(
         }
         _state.update { it.copy(submitting = true, error = null) }
         viewModelScope.launch {
-            val result = catchingNonCancellation { auth.signIn(state.email.trim(), state.password) }
+            val result = catchingNonCancellation { auth.signIn(state.email.trim(), state.password).also { prepare() } }
             val role = result.getOrNull()
             if (role != null) {
                 sessions.open(role)
@@ -129,6 +122,7 @@ class LoginViewModel(
             when (result.exceptionOrNull()) {
                 is OfflineException -> _state.update { it.copy(submitting = false, offline = true) }
                 is InvalidCredentialsException -> _state.update { it.copy(submitting = false, error = LoginError.CREDENTIALS) }
+                is TooManyAttemptsException -> _state.update { it.copy(submitting = false, error = LoginError.TOO_MANY_ATTEMPTS) }
                 else -> _state.update { it.copy(submitting = false, error = LoginError.FAILED) }
             }
         }
@@ -148,7 +142,7 @@ class LoginViewModel(
                     preferences = container.preferences,
                     connectivity = container.connectivity,
                     savedStateHandle = createSavedStateHandle(),
-                    demoAccounts = container.demoAccounts,
+                    prepare = container::prepareSession,
                 )
             }
         }

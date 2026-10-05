@@ -128,7 +128,7 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 @Serializable data class EmailLinkExpired(val email: String = "")
 
 /** Aviso que el inicio de sesión (3) muestra una vez al llegar desde la app. */
-@Keep @Serializable enum class SessionNotice { SIGNED_OUT, ACCOUNT_DELETED, PASSWORD_CHANGED }
+@Keep @Serializable enum class SessionNotice { SIGNED_OUT, ACCOUNT_DELETED, PASSWORD_CHANGED, SESSION_ENDED }
 
 @Serializable data object DeleteAccount // 30
 

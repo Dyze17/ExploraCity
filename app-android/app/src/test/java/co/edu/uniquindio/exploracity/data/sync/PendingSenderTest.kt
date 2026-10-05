@@ -94,7 +94,7 @@ class PendingSenderTest {
         scheduler = {},
         connectivity = connectivity,
         scope = appScope,
-        currentUser = sampleCurrentUser,
+        currentUser = { sampleCurrentUser },
         clock = clock,
     )
 

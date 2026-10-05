@@ -79,7 +79,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
-import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Poi
@@ -105,6 +104,7 @@ import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.components.spokenRes
 import co.edu.uniquindio.exploracity.ui.components.symbol
+import co.edu.uniquindio.exploracity.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.ui.screens.feed.FeedMessageEffect
 import co.edu.uniquindio.exploracity.ui.screens.feed.FilterCallbacks
 import co.edu.uniquindio.exploracity.ui.screens.feed.rememberFilterCallbacks
@@ -836,11 +836,11 @@ private fun EmptyArea(hasCriteria: Boolean, onClear: () -> Unit) {
 }
 
 private val previewMap = MapUiState(
-    areaCenter = samplePois.first().location,
-    pois = samplePois,
+    areaCenter = previewPlaces.first().location,
+    pois = previewPlaces,
     totalInArea = 186,
     loading = false,
-    selectedId = samplePois.first().id,
+    selectedId = previewPlaces.first().id,
 )
 
 @Preview(name = "8.a · tarjeta · claro", widthDp = 360)
@@ -848,7 +848,7 @@ private val previewMap = MapUiState(
 private fun PlaceSheetLightPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) {
         Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
-            PlaceSheet(FeedUiState(areaName = "Bogotá"), previewMap, MapCallbacks())
+            PlaceSheet(FeedUiState(areaName = "Armenia"), previewMap, MapCallbacks())
         }
     }
 }
@@ -858,7 +858,7 @@ private fun PlaceSheetLightPreview() {
 private fun PlaceSheetLoadingPreview() {
     ExploraCityTheme(ThemeMode.DARK) {
         Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
-            PlaceSheet(FeedUiState(areaName = "Bogotá"), previewMap.copy(pois = emptyList(), selectedId = null, loading = true), MapCallbacks())
+            PlaceSheet(FeedUiState(areaName = "Armenia"), previewMap.copy(pois = emptyList(), selectedId = null, loading = true), MapCallbacks())
         }
     }
 }
@@ -867,7 +867,7 @@ private fun PlaceSheetLoadingPreview() {
 @Composable
 private fun MapHeaderPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) {
-        MapHeader(FeedUiState(areaName = "Bogotá"), previewMap, MapCallbacks())
+        MapHeader(FeedUiState(areaName = "Armenia"), previewMap, MapCallbacks())
     }
 }
 
@@ -875,6 +875,6 @@ private fun MapHeaderPreview() {
 @Composable
 private fun MapHeaderLargeFontPreview() {
     ExploraCityTheme(ThemeMode.DARK) {
-        MapHeader(FeedUiState(areaName = "Bogotá"), previewMap.copy(error = true), MapCallbacks())
+        MapHeader(FeedUiState(areaName = "Armenia"), previewMap.copy(error = true), MapCallbacks())
     }
 }

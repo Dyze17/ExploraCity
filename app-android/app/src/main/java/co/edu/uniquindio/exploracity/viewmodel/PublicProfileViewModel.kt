@@ -66,7 +66,8 @@ data class PublicProfileUiState(
 class PublicProfileViewModel(
     private val users: UserRepository,
     private val connectivity: ConnectivityObserver,
-    currentUser: Author,
+    /** La persona de la sesión: si el perfil es el suyo, no se reporta. */
+    private val currentUser: StateFlow<Author>,
     private val savedStateHandle: SavedStateHandle,
     private val timeout: Duration = LOAD_TIMEOUT,
 ) : ViewModel() {
@@ -74,13 +75,14 @@ class PublicProfileViewModel(
     /** Argumento de la ruta PublicProfile(userId). */
     val userId: String = checkNotNull(savedStateHandle[USER_ID_KEY]) { "Falta el id de la persona" }
 
-    private val _state = MutableStateFlow(PublicProfileUiState(isOwn = userId == currentUser.id, report = restoredReport()))
+    private val _state = MutableStateFlow(PublicProfileUiState(isOwn = userId == currentUser.value.id, report = restoredReport()))
     val state: StateFlow<PublicProfileUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
 
     init {
         load()
+        viewModelScope.launch { currentUser.collect { user -> _state.update { it.copy(isOwn = userId == user.id) } } }
         viewModelScope.launch {
             // Al volver la red se carga solo si no se pudo traer.
             connectivity.isOnline.drop(1).collect { online ->
@@ -177,7 +179,7 @@ class PublicProfileViewModel(
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                PublicProfileViewModel(container.userRepository, container.connectivity, container.currentUser, createSavedStateHandle())
+                PublicProfileViewModel(container.userRepository, container.connectivity, container.sessionUser.author, createSavedStateHandle())
             }
         }
     }

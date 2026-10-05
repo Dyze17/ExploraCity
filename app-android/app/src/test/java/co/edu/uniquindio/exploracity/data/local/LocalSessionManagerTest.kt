@@ -47,7 +47,19 @@ class LocalSessionManagerTest {
 
     private val sessions = DataStoreSessionStore(MemoryDataStore())
 
-    private fun session() = LocalSessionManager(database, photos, drafts, sessions, cancelSending = { cancelled = true }, io = dispatcher)
+    /** Lo que se le pidió a la sesión con la API: cerrarla («cerrar») o solo borrar sus tokens («olvidar»). */
+    private val remote = mutableListOf<String>()
+
+    private fun session() = LocalSessionManager(
+        database,
+        photos,
+        drafts,
+        sessions,
+        cancelSending = { cancelled = true },
+        closeRemote = { remote += "cerrar" },
+        forgetRemote = { remote += "olvidar" },
+        io = dispatcher,
+    )
 
     private fun submission(vararg photos: DraftPhoto) = PublicationSubmission(
         title = "Mirador del Tunal",
@@ -100,6 +112,18 @@ class LocalSessionManagerTest {
         assertNull(drafts.load(DraftKey.New))
         assertNull(drafts.load(DraftKey.Resubmit("puerta-falsa-tamales")))
         assertTrue(photos.deletedAll)
+    }
+
+    @Test
+    fun `cerrar sesión avisa a la API, y si la sesión terminó o se eliminó la cuenta solo se olvidan los tokens`() = runTest(dispatcher) {
+        sessions.open(UserRole.USER)
+        session().signOut()
+        sessions.open(UserRole.USER)
+        session().sessionEnded()
+        session().deleteAccountData()
+
+        assertEquals(listOf("cerrar", "olvidar", "olvidar"), remote)
+        assertNull(sessions.role.first())
     }
 
     @Test

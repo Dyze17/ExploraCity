@@ -71,7 +71,6 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.data.repository.FeedQuery
 import co.edu.uniquindio.exploracity.data.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.data.repository.SavedPlaces
-import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
@@ -101,6 +100,7 @@ import co.edu.uniquindio.exploracity.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraSpacing
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
@@ -712,9 +712,9 @@ private fun joinWords(words: List<String>, conjunction: String): String = when (
 }
 
 private val previewState = FeedUiState(
-    areaName = "Bogotá",
+    areaName = "Armenia",
     filters = FeedFilters(categories = setOf(Category.GASTRONOMY), scope = LocationScope.NEARBY),
-    content = FeedContent.Loaded(samplePois.take(5), total = 24, canLoadMore = true, loadingMore = true),
+    content = FeedContent.Loaded(previewPlaces.take(5), total = 24, canLoadMore = true, loadingMore = true),
     moderation = ModerationSummary(pending = 7, oldestWaitingDays = 3),
 )
 

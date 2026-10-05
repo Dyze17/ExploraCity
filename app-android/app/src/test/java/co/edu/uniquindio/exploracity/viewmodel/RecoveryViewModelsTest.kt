@@ -58,7 +58,7 @@ class RecoveryViewModelsTest {
         connectivity = connectivity,
         clock = clock,
         savedStateHandle = savedState ?: SavedStateHandle(mapOf("email" to email, "sentAtMillis" to sentAt)),
-        demoLink = mailbox?.let { box -> { address, expired -> if (expired) box.expiredResetLink(address) else box.latestResetLink(address) } },
+        devLink = if (mailbox == null) null else { address, expired -> if (expired) mailbox.expiredResetLink(address) else mailbox.latestResetLink(address) },
     )
 
     private fun newPassword() = NewPasswordViewModel(auth, connectivity, clock, SavedStateHandle(mapOf("token" to "enlace")))
@@ -208,23 +208,26 @@ class RecoveryViewModelsTest {
     @Test
     fun `en desarrollo el buzón de prueba abre el enlace vigente o uno vencido`() = runTest(dispatcher) {
         val vm = sent()
-        assertTrue(vm.state.value.demoLinks)
+        assertTrue(vm.state.value.devLinks)
 
-        vm.onDemoLink(expired = false)
+        vm.onDevLink(expired = false)
+        runCurrent()
         assertEquals("enlace-vigente", vm.state.value.openLink)
         vm.onLinkOpened()
-        vm.onDemoLink(expired = true)
+        vm.onDevLink(expired = true)
+        runCurrent()
         assertEquals("enlace-vencido", vm.state.value.openLink)
     }
 
     @Test
     fun `a un correo sin cuenta no llega nada, y sin buzón de prueba no hay enlaces`() = runTest(dispatcher) {
         val other = sent(email = "nadie@correo.com")
-        other.onDemoLink(expired = false)
-        assertTrue(other.state.value.demoNoMail)
+        other.onDevLink(expired = false)
+        runCurrent()
+        assertTrue(other.state.value.devNoMail)
         assertNull(other.state.value.openLink)
 
-        assertFalse(sent(mailbox = null).state.value.demoLinks)
+        assertFalse(sent(mailbox = null).state.value.devLinks)
     }
 
     // 6.b · Nueva contraseña

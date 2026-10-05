@@ -358,7 +358,7 @@ private fun MapHint(modifier: Modifier = Modifier, inline: Boolean = false) {
     )
 }
 
-/** «Chapinero, Bogotá» sobre el mapa (17.a). La tarjeta de abajo ya lo dice al lector. */
+/** «Centro, Armenia» sobre el mapa (17.a). La tarjeta de abajo ya lo dice al lector. */
 @Composable
 private fun AreaLabel(area: String, modifier: Modifier = Modifier) {
     Text(
@@ -558,8 +558,8 @@ private fun AddressSearchField(pin: PinState, callbacks: PinCallbacks) {
 private fun AddressCardPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) {
         Column(Modifier.background(MaterialTheme.colorScheme.surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            AddressCard(GeoPoint(4.63412, -74.06558), PinAddress.Found(ApproximateAddress("Cl. 45 #19-32", "Chapinero", "Bogotá")))
-            AddressCard(GeoPoint(4.63412, -74.06558), PinAddress.Offline)
+            AddressCard(GeoPoint(4.5402, -75.6721), PinAddress.Found(ApproximateAddress("Cra. 14 #12-30", "Centro", "Armenia")))
+            AddressCard(GeoPoint(4.5402, -75.6721), PinAddress.Offline)
         }
     }
 }

@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
@@ -73,6 +72,7 @@ import co.edu.uniquindio.exploracity.ui.components.POICardSkeleton
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.spokenDescription
+import co.edu.uniquindio.exploracity.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
@@ -374,9 +374,9 @@ private fun ProfileSkeleton() {
 private val previewProfile = PublicProfile(
     author = Author("camilo-r", "Camilo R.", points = 320),
     residency = Residency.RESIDENT,
-    city = "Bogotá",
+    city = "Armenia",
     bio = "Guío caminatas por el centro los sábados. Me obsesionan las tiendas de barrio que llevan más de 40 años abiertas.",
-    places = samplePois.take(3),
+    places = previewPlaces.take(3),
     badges = 9,
 )
 

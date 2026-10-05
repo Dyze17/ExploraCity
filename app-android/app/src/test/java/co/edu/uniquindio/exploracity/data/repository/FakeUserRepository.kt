@@ -1,0 +1,107 @@
+package co.edu.uniquindio.exploracity.data.repository
+
+import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.OwnProfile
+import co.edu.uniquindio.exploracity.domain.model.PhotoChange
+import co.edu.uniquindio.exploracity.domain.model.Poi
+import co.edu.uniquindio.exploracity.domain.model.ProfileLimits
+import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
+import co.edu.uniquindio.exploracity.domain.model.PublicProfile
+import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
+import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.ReportReason
+import kotlinx.coroutines.delay
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+
+/**
+ * Temporal hasta que exista la API: los perfiles de prueba con los lugares que publicó cada persona, tomados del
+ * servidor de lugares ([pois]) para que sus votos y comentarios estén al día. Las publicaciones que el feed no muestra
+ * salen de [publications]: al borrar una, las cifras del perfil bajan.
+ */
+class FakeUserRepository(
+    private val pois: FakePoiRepository,
+    private val publications: FakePublicationRepository = FakePublicationRepository(pois),
+    private val currentUser: Author = sampleCurrentUser,
+    private val latency: Duration = 700.milliseconds,
+    private val actionLatency: Duration = 300.milliseconds,
+    /** «Sube» la foto de perfil del teléfono y devuelve su dirección; con la API la sube el servidor (Cloudinary). */
+    private val photoHost: suspend (String) -> String = { path -> "fake://perfil/${path.substringAfterLast('/')}" },
+    /** Borra la foto «subida» al quitarla o al eliminar la cuenta. */
+    private val photoRemover: suspend () -> Unit = {},
+) : UserRepository {
+
+    /** Reportes recibidos, para las pruebas: la moderación (32) los leerá cuando exista. */
+    val reports = mutableListOf<Pair<String, ReportReason>>()
+
+    // Lo que cambie la persona de la sesión en 28 vive aquí, encima de las semillas de prueba.
+    private val seeds = sampleProfiles.toMutableMap()
+    private val photos = mutableMapOf<String, String>()
+
+    override suspend fun publicProfile(userId: String): PublicProfile? {
+        delay(latency)
+        val seed = seeds[userId] ?: return null
+        val places = placesBy(userId).filter { it.status in publicStatuses }
+        return PublicProfile(seed.author, seed.residency, seed.city, seed.bio, places, seed.badges, photos[userId])
+    }
+
+    override suspend fun reportUser(userId: String, reason: ReportReason) {
+        delay(actionLatency)
+        check(userId in seeds) { "Persona desconocida: $userId" }
+        reports += userId to reason
+    }
+
+    override suspend fun ownProfile(): OwnProfile {
+        delay(latency)
+        return currentProfile()
+    }
+
+    /** Valida como lo hará la API: la pantalla ya no deja enviar nada fuera de las reglas de 28. */
+    override suspend fun updateProfile(update: ProfileUpdate): OwnProfile {
+        delay(actionLatency)
+        require(update.name.length in ProfileLimits.NAME_MIN..ProfileLimits.NAME_MAX) { "Nombre de ${update.name.length} caracteres" }
+        require((update.bio?.length ?: 0) <= ProfileLimits.BIO_MAX) { "«Sobre mí» de más de ${ProfileLimits.BIO_MAX} caracteres" }
+        when (val photo = update.photo) {
+            PhotoChange.Keep -> Unit
+            PhotoChange.Remove -> {
+                photos.remove(currentUser.id)
+                photoRemover()
+            }
+            is PhotoChange.Replace -> photos[currentUser.id] = photoHost(photo.path)
+        }
+        val seed = seeds.getValue(currentUser.id)
+        seeds[currentUser.id] = seed.copy(author = seed.author.copy(name = update.name), residency = update.residency, bio = update.bio)
+        return currentProfile()
+    }
+
+    /** 30 · Temporal: lo que hace la API al borrar la cuenta con el perfil. Vuelve a la semilla y sin foto. */
+    internal suspend fun deleteOwnAccount() {
+        photos.remove(currentUser.id)
+        photoRemover()
+        seeds[currentUser.id] = sampleProfiles.getValue(currentUser.id)
+    }
+
+    /** Sus lugares del feed más los que el feed no muestra (pendientes y rechazados). */
+    private suspend fun currentProfile(): OwnProfile {
+        val seed = seeds.getValue(currentUser.id)
+        val statuses = placesBy(currentUser.id).map { it.status } + publications.hiddenStatuses
+        return OwnProfile(
+            author = seed.author,
+            residency = seed.residency,
+            city = seed.city,
+            memberSince = sampleMemberSince,
+            publications = PublicationCounts.of(statuses),
+            badges = sampleBadges,
+            bio = seed.bio,
+            photo = photos[currentUser.id],
+        )
+    }
+
+    private suspend fun placesBy(userId: String): List<Poi> =
+        pois.feedPage(FeedQuery(), 0, pageSize = Int.MAX_VALUE).items.filter { pois.detailsOf(it).author?.id == userId }
+
+    private companion object {
+        /** Lo único que un perfil público muestra de los lugares de otra persona (README 31). */
+        val publicStatuses = setOf(PublicationStatus.VERIFIED, PublicationStatus.FINALIZED)
+    }
+}

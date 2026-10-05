@@ -96,7 +96,8 @@ private data class SavedOwnComment(val localId: String, val text: String, val cr
 class CommentsViewModel(
     private val poiRepository: PoiRepository,
     private val connectivity: ConnectivityObserver,
-    currentUser: Author,
+    /** La persona de la sesión: su nombre y su nivel llegan con el perfil propio. */
+    private val currentUser: StateFlow<Author>,
     private val savedStateHandle: SavedStateHandle,
     private val clock: Clock = Clock.systemUTC(),
     private val timeout: Duration = LOAD_TIMEOUT,
@@ -108,7 +109,7 @@ class CommentsViewModel(
     /** «Agregar comentario» del detalle: la pantalla abre con el teclado listo. */
     val startWriting: Boolean = savedStateHandle[WRITE_KEY] ?: false
 
-    private val _state = MutableStateFlow(CommentsUiState(currentUser, own = restoredOwn()))
+    private val _state = MutableStateFlow(CommentsUiState(currentUser.value, own = restoredOwn()))
     val state: StateFlow<CommentsUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
@@ -127,6 +128,7 @@ class CommentsViewModel(
             }
         }
         viewModelScope.launch { poiRepository.pendingComments(poiId).collect(::onQueueChanged) }
+        viewModelScope.launch { currentUser.collect { user -> _state.update { it.copy(currentUser = user) } } }
     }
 
     fun onRetry() = load()
@@ -290,7 +292,7 @@ class CommentsViewModel(
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                CommentsViewModel(container.poiRepository, container.connectivity, container.currentUser, createSavedStateHandle())
+                CommentsViewModel(container.poiRepository, container.connectivity, container.sessionUser.author, createSavedStateHandle())
             }
         }
     }

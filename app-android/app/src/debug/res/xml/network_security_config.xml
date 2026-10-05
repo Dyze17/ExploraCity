@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo en desarrollo: la API del equipo va por HTTP, por USB con `adb reverse` (localhost:8080) o con la IP del
+     equipo en la red (API_BASE_URL en local.properties). También las fotos que sirve en /media. -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration" />
+</network-security-config>

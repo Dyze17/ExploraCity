@@ -44,7 +44,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.data.repository.sampleBadges
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
@@ -56,6 +55,7 @@ import co.edu.uniquindio.exploracity.ui.components.badgeProgressText
 import co.edu.uniquindio.exploracity.ui.components.colors
 import co.edu.uniquindio.exploracity.ui.components.iconRes
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.ui.preview.previewBadges
 import co.edu.uniquindio.exploracity.ui.theme.ContainerColors
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
@@ -206,7 +206,7 @@ private fun StateChip(badge: Badge) {
 @Composable
 private fun BadgeSheetLightPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) {
-        Column(Modifier.background(MaterialTheme.colorScheme.surface)) { BadgeSheetContent(sampleBadges.first { !it.unlocked }, {}) }
+        Column(Modifier.background(MaterialTheme.colorScheme.surface)) { BadgeSheetContent(previewBadges.first { !it.unlocked }, {}) }
     }
 }
 
@@ -214,6 +214,6 @@ private fun BadgeSheetLightPreview() {
 @Composable
 private fun BadgeSheetDarkPreview() {
     ExploraCityTheme(ThemeMode.DARK) {
-        Column(Modifier.background(MaterialTheme.colorScheme.surface)) { BadgeSheetContent(sampleBadges.first { it.unlocked }, {}) }
+        Column(Modifier.background(MaterialTheme.colorScheme.surface)) { BadgeSheetContent(previewBadges.first { it.unlocked }, {}) }
     }
 }

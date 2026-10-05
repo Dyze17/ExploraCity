@@ -75,9 +75,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.data.repository.sampleComments
-import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
-import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.Comment
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
@@ -97,6 +94,9 @@ import co.edu.uniquindio.exploracity.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.ui.preview.previewComments
+import co.edu.uniquindio.exploracity.ui.preview.previewPlaces
+import co.edu.uniquindio.exploracity.ui.preview.previewUser
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.viewmodel.CommentsContent
@@ -530,11 +530,11 @@ private fun CommentsSkeleton() {
     }
 }
 
-private val previewCafe = samplePois.first()
+private val previewCafe = previewPlaces.first()
 private val previewNow = Instant.now()
 private val previewState = CommentsUiState(
-    currentUser = sampleCurrentUser,
-    content = CommentsContent.Loaded(previewCafe.title, sampleComments(previewCafe, previewNow).take(2), total = 12, nextCursor = null),
+    currentUser = previewUser,
+    content = CommentsContent.Loaded(previewCafe.title, previewComments(previewCafe, previewNow).take(2), total = 12, nextCursor = null),
     own = listOf(OwnComment("preview", "El patio es perfecto para trabajar temprano.", previewNow, SendStatus.SENDING)),
 )
 
@@ -557,7 +557,7 @@ private fun CommentsDarkPreview() {
 private fun CommentsEmptyPreview() {
     ExploraCityTheme(ThemeMode.LIGHT) {
         CommentsScreen(
-            CommentsUiState(sampleCurrentUser, CommentsContent.Loaded("Galería Santa Fe", emptyList(), total = 0, nextCursor = null)),
+            CommentsUiState(previewUser, CommentsContent.Loaded("Galería Santa Fe", emptyList(), total = 0, nextCursor = null)),
             CommentsCallbacks(),
         )
     }

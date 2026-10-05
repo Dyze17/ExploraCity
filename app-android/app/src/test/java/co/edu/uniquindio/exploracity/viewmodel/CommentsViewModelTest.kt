@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.domain.model.Comment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -49,7 +50,7 @@ class CommentsViewModelTest {
         repository: PoiRepository = FakePoiRepository(clock = clock),
         savedState: SavedStateHandle = savedState(),
         connectivity: FakeConnectivity = FakeConnectivity(),
-    ) = CommentsViewModel(repository, connectivity, sampleCurrentUser, savedState, clock)
+    ) = CommentsViewModel(repository, connectivity, MutableStateFlow(sampleCurrentUser), savedState, clock)
 
     private val CommentsViewModel.loaded: CommentsContent.Loaded
         get() = state.value.content as? CommentsContent.Loaded ?: error("Los comentarios deberían estar cargados: ${state.value.content}")

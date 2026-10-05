@@ -346,7 +346,7 @@ private fun RetryButton(onRetry: () -> Unit) {
 private val previewAuthor = Author("ana-rios", "Ana Ríos", 340)
 private val previewForm = ProfileForm(
     name = "Ana Ríos",
-    bio = "Camino Bogotá buscando cafés con patio y miradores poco conocidos, siempre con mi cámara y una libreta para anotar lo que encuentro en cada esquina del centro",
+    bio = "Camino Armenia buscando cafés con patio y miradores poco conocidos, siempre con mi cámara y una libreta para anotar lo que encuentro en cada esquina del centro",
     residency = Residency.RESIDENT,
 )
 private val previewState = EditProfileUiState(

@@ -45,13 +45,22 @@ class DataStoreSessionStore(private val dataStore: DataStore<Preferences>) : Ses
     }
 }
 
-/** 29A · La sesión en el teléfono. Con el inicio de sesión real, cerrarla también borrará el token (DataStore de sesión). */
+/** 29A · La sesión en el teléfono: el rol, los tokens de la API y lo guardado de la cuenta. */
 interface SessionManager {
     /** Acciones hechas sin conexión que aún no llegan al servidor: se pierden al cerrar sesión. */
     suspend fun pendingSends(): Int
 
-    /** Borra lo de la cuenta y conserva lo del teléfono: los borradores (con sus fotos) y el tema. */
+    /**
+     * Cierra la sesión también en la API (sin red, solo en el teléfono) y borra lo de la cuenta. Conserva lo del
+     * teléfono: los borradores (con sus fotos) y el tema.
+     */
     suspend fun signOut()
+
+    /**
+     * La API ya no acepta la sesión (venció, se cerró desde otro lado o cambió la contraseña): se borra lo de la cuenta,
+     * como al cerrar sesión, sin avisarle a la API.
+     */
+    suspend fun sessionEnded()
 
     /** 30 · La cuenta ya no existe: se borra todo lo suyo, también los borradores y sus fotos. Solo queda el tema. */
     suspend fun deleteAccountData()
@@ -63,14 +72,29 @@ class LocalSessionManager(
     private val drafts: DraftRepository,
     private val sessions: SessionStore,
     private val cancelSending: () -> Unit,
+    /** Cierra la sesión en la API y borra sus tokens; sin red, solo los borra. */
+    private val closeRemote: suspend () -> Unit = {},
+    /** Borra los tokens de la API sin avisarle. */
+    private val forgetRemote: suspend () -> Unit = {},
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : SessionManager {
 
     override suspend fun pendingSends(): Int = database.pendingActionsDao().count()
 
-    override suspend fun signOut() {
+    override suspend fun signOut() = clearAccount(closeRemote)
+
+    override suspend fun sessionEnded() = clearAccount(forgetRemote)
+
+    override suspend fun deleteAccountData() {
+        clearAccount(forgetRemote)
+        drafts.clearAll()
+        photos.deleteAll()
+    }
+
+    private suspend fun clearAccount(endRemote: suspend () -> Unit) {
         // Primero la sesión: si algo de lo que sigue falla, al abrir de nuevo la app se pide entrar (3).
         sessions.close()
+        endRemote()
         cancelSending()
         val queue = database.pendingActionsDao()
         // Las fotos de la cola comparten carpeta con las de los borradores: se borran solo las que esperaban envío.
@@ -80,11 +104,5 @@ class LocalSessionManager(
             .forEach { photos.delete(it) }
         // Lo guardado para ver sin conexión, la cola, los avisos y el perfil son de esta cuenta.
         withContext(io) { database.clearAllTables() }
-    }
-
-    override suspend fun deleteAccountData() {
-        signOut()
-        drafts.clearAll()
-        photos.deleteAll()
     }
 }

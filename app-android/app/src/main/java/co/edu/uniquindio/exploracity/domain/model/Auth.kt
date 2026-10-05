@@ -60,9 +60,3 @@ data class Registration(val role: UserRole, val welcomeEmailSent: Boolean)
 
 /** 6.b · Para quién es el enlace del correo y hasta cuándo vale. */
 data class ResetLink(val email: String, val expiresAt: Instant)
-
-/**
- * Solo en compilaciones de desarrollo: una cuenta de prueba que el inicio de sesión (3) puede rellenar. No lleva
- * contraseña: el servidor falso acepta cualquiera válida para las cuentas de prueba.
- */
-data class DemoAccount(val label: String, val email: String)

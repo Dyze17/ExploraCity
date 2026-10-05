@@ -8,10 +8,12 @@ import co.edu.uniquindio.exploracity.data.repository.FakeUserRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineUserRepository
 import co.edu.uniquindio.exploracity.data.repository.UserRepository
 import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
+import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -46,7 +48,8 @@ class PublicProfileViewModelTest {
     private fun viewModel(
         users: UserRepository = OfflineUserRepository(server, FakeProfileDao(), connectivity),
         savedState: SavedStateHandle = savedState(),
-    ) = PublicProfileViewModel(users, connectivity, sampleCurrentUser, savedState)
+        currentUser: MutableStateFlow<Author> = MutableStateFlow(sampleCurrentUser),
+    ) = PublicProfileViewModel(users, connectivity, currentUser, savedState)
 
     private val PublicProfileViewModel.profile: PublicProfile get() = requireNotNull(state.value.profile) { "El perfil debería estar cargado" }
 
@@ -59,6 +62,19 @@ class PublicProfileViewModelTest {
 
         assertEquals("Camilo R.", vm.profile.author.name)
         assertFalse(vm.state.value.isOwn)
+    }
+
+    @Test
+    fun `reconoce el perfil propio aunque la persona de la sesión llegue después`() = runTest(dispatcher) {
+        val currentUser = MutableStateFlow(Author("", "", 0))
+        val vm = viewModel(savedState = savedState(sampleCurrentUser.id), currentUser = currentUser)
+        advanceUntilIdle()
+        assertFalse(vm.state.value.isOwn)
+
+        currentUser.value = sampleCurrentUser
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.isOwn)
     }
 
     @Test

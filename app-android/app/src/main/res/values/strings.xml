@@ -959,6 +959,8 @@
     <string name="logout_cancel">Cancelar</string>
     <string name="logout_confirm">Cerrar sesión</string>
     <string name="session_signed_out">Cerraste sesión.</string>
+    <!-- La API ya no acepta la sesión (venció, se cerró desde otro lado o cambió la contraseña). No está en el diseño. -->
+    <string name="session_ended">Tu sesión terminó. Vuelve a entrar.</string>
 
     <!-- 4A · Documentos legales (textos de ejemplo: requieren aprobación jurídica) -->
     <string name="legal_title">Documentos legales</string>
@@ -1093,8 +1095,8 @@
     <string name="login_fix_fields">escribe un correo completo y una contraseña de al menos 8 caracteres</string>
     <string name="login_credentials_error">El correo o la contraseña no coinciden. Intenta otra vez.</string>
     <string name="login_failed">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
+    <string name="login_too_many_attempts">Hubo demasiados intentos con este correo. Espera 15 minutos o crea una contraseña nueva.</string>
     <string name="login_close">Cerrar</string>
-    <string name="login_demo_title">Cuentas de prueba (solo en desarrollo)</string>
     <!-- 4 · Registro -->
     <string name="register_title">Crear cuenta</string>
     <string name="register_rule">Mínimo 8 caracteres, con una letra y un número</string>
@@ -1151,10 +1153,10 @@
     <string name="sent_resent">Te enviamos otro enlace.</string>
     <string name="sent_offline">Sin conexión. Necesitas internet para reenviar el enlace.</string>
     <string name="back_to_login">Volver a iniciar sesión</string>
-    <string name="sent_demo_title">Correo de prueba (solo en desarrollo)</string>
-    <string name="sent_demo_open">Abrir el enlace del correo</string>
-    <string name="sent_demo_expired">Abrir un enlace vencido</string>
-    <string name="sent_demo_no_mail">No llegó ningún correo: esa dirección no tiene cuenta.</string>
+    <string name="sent_dev_title">Correo de prueba (solo en desarrollo)</string>
+    <string name="sent_dev_open">Abrir el enlace del correo</string>
+    <string name="sent_dev_expired">Abrir un enlace vencido</string>
+    <string name="sent_dev_no_mail">No llegó ningún correo: esa dirección no tiene cuenta.</string>
 
     <!-- 6.b · Nueva contraseña -->
     <string name="reset_title">Nueva contraseña</string>

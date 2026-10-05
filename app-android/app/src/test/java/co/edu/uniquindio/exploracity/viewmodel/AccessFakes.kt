@@ -3,7 +3,7 @@ package co.edu.uniquindio.exploracity.viewmodel
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.SessionStore
 import co.edu.uniquindio.exploracity.data.repository.AuthRepository
-import co.edu.uniquindio.exploracity.data.repository.DemoMailbox
+import co.edu.uniquindio.exploracity.data.repository.DevMailbox
 import co.edu.uniquindio.exploracity.domain.model.ExpiredLinkException
 import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
@@ -121,10 +121,14 @@ internal class FakeAuth : AuthRepository {
 }
 
 /** El buzón de prueba de 6.a: un enlace que sirve y otro vencido para «ana@correo.com»; a otros correos no llega nada. */
-internal class FakeMailbox : DemoMailbox {
-    override fun latestResetLink(email: String): String? = if (email == "ana@correo.com") "enlace-vigente" else null
+internal class FakeMailbox : DevMailbox {
+    override suspend fun latestResetLink(email: String): String? = if (email == "ana@correo.com") "enlace-vigente" else null
 
-    override fun expiredResetLink(email: String): String? = if (email == "ana@correo.com") "enlace-vencido" else null
+    override suspend fun expiredResetLink(email: String): String? = if (email == "ana@correo.com") "enlace-vencido" else null
+
+    override suspend fun latestEmailChangeLink(): String? = null
+
+    override suspend fun expiredEmailChangeLink(): String? = null
 }
 
 /** La hora de las pruebas: avanza con el planificador de corrutinas (advanceTimeBy), desde [Instant.EPOCH]. */

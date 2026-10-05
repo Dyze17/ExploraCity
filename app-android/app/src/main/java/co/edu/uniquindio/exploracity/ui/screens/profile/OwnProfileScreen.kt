@@ -53,8 +53,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.data.repository.sampleBadges
-import co.edu.uniquindio.exploracity.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.domain.model.LevelProgress
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
@@ -76,6 +74,8 @@ import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.components.spokenDescription
+import co.edu.uniquindio.exploracity.ui.preview.previewBadges
+import co.edu.uniquindio.exploracity.ui.preview.previewUser
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
@@ -470,12 +470,12 @@ private fun OwnProfileSkeleton() {
 }
 
 internal val previewOwnProfile = OwnProfile(
-    author = sampleCurrentUser,
+    author = previewUser,
     residency = Residency.RESIDENT,
-    city = "Bogotá",
+    city = "Armenia",
     memberSince = YearMonth.now().withMonth(3),
     publications = PublicationCounts(pending = 2, verified = 2, rejected = 2, finalized = 1),
-    badges = sampleBadges,
+    badges = previewBadges,
 )
 
 @Preview(name = "26.a · claro", widthDp = 360, heightDp = 800)

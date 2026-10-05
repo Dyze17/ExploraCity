@@ -343,7 +343,7 @@ class FeedViewModel(
                     container.poiRepository,
                     container.moderationRepository,
                     container.connectivity,
-                    container.areaName,
+                    container.city.current.name,
                     isModerator,
                     savedStateHandle = createSavedStateHandle(),
                 )

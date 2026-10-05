@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
@@ -73,6 +72,7 @@ import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.labelRes
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
@@ -530,7 +530,7 @@ private val previewDuplicate = OwnPublication(
         reviewerName = "Laura M.",
         rejectedAt = previewNow.minus(45, ChronoUnit.MINUTES),
         canResubmit = false,
-        duplicateOf = samplePois.first { it.id == "la-puerta-falsa" },
+        duplicateOf = previewPlaces[2],
     ),
 )
 

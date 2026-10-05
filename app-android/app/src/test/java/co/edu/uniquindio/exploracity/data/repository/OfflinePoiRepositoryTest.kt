@@ -72,7 +72,7 @@ class OfflinePoiRepositoryTest {
         scheduler = { scheduled++ },
         connectivity = connectivity,
         scope = appScope,
-        currentUser = sampleCurrentUser,
+        currentUser = { sampleCurrentUser },
         clock = clock,
     )
 

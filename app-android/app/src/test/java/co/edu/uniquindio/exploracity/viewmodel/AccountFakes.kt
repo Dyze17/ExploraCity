@@ -77,6 +77,12 @@ internal class FakeSession : SessionManager {
         signedOut = true
     }
 
+    var sessionEnded = false
+
+    override suspend fun sessionEnded() {
+        sessionEnded = true
+    }
+
     override suspend fun deleteAccountData() {
         accountDataDeleted = true
     }

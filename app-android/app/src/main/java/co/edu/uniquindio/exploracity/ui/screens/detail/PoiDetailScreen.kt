@@ -83,8 +83,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.data.repository.sampleDetails
-import co.edu.uniquindio.exploracity.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
@@ -110,6 +108,8 @@ import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.ui.components.spokenRes
 import co.edu.uniquindio.exploracity.ui.components.symbol
+import co.edu.uniquindio.exploracity.ui.preview.previewDetails
+import co.edu.uniquindio.exploracity.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.ui.screens.map.PlacePin
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.ExploraElevation
@@ -844,7 +844,7 @@ private fun Context.sharePlace(details: PoiDetails, chooserTitle: String) {
     startActivity(Intent.createChooser(send, chooserTitle))
 }
 
-private val previewDetails = sampleDetails(samplePois.first())
+private val previewDetails = previewDetails(previewPlaces.first())
 
 @Preview(name = "13.a · claro", widthDp = 360, heightDp = 1100)
 @Composable
