@@ -299,6 +299,8 @@ class FeedViewModel(
         _state.update { if (refreshing) it.copy(refreshing = true) else it.copy(content = FeedContent.Loading, refreshing = false) }
         val query = currentQuery()
         loadJob = viewModelScope.launch {
+            // Al deslizar, la recarga se ve al menos un momento aunque la API responda al instante.
+            val shown = if (refreshing) launch { delay(REFRESH_MIN) } else null
             val result = catchingNonCancellation { withTimeoutOrNull(firstPageTimeout) { poiRepository.feedPage(query, 0) } }
             val page = result.getOrNull()
             val content = when {
@@ -310,6 +312,7 @@ class FeedViewModel(
                     page.toContent(query)
                 }
             }
+            shown?.join()
             _state.update { it.copy(content = content, refreshing = false) }
         }
     }
@@ -345,6 +348,9 @@ class FeedViewModel(
     companion object {
         /** README: skeleton > 8 s → error recuperable. */
         val FIRST_PAGE_TIMEOUT = 8.seconds
+
+        /** Lo mínimo que se ve la recarga al deslizar: con menos, parece que el gesto no hizo nada. */
+        val REFRESH_MIN = 700.milliseconds
         val SEARCH_DEBOUNCE = 300.milliseconds
 
         /** Pausa antes de recontar: tocar varios chips seguidos pide un solo conteo. */
