@@ -8,8 +8,8 @@ class UserLevelTest {
 
     @Test
     fun `los rangos del README son 0–99, 100–249, 250–499 y 500 o más`() {
-        assertEquals(UserLevel.TOURIST, UserLevel.fromPoints(0))
-        assertEquals(UserLevel.TOURIST, UserLevel.fromPoints(99))
+        assertEquals(UserLevel.NEWCOMER, UserLevel.fromPoints(0))
+        assertEquals(UserLevel.NEWCOMER, UserLevel.fromPoints(99))
         assertEquals(UserLevel.EXPLORER, UserLevel.fromPoints(100))
         assertEquals(UserLevel.EXPLORER, UserLevel.fromPoints(249))
         assertEquals(UserLevel.ADVENTURER, UserLevel.fromPoints(250))
@@ -25,8 +25,8 @@ class UserLevelTest {
 
     @Test
     fun `cada nivel conoce el siguiente y dónde termina su rango (27)`() {
-        assertEquals(UserLevel.EXPLORER, UserLevel.TOURIST.next)
-        assertEquals(99, UserLevel.TOURIST.maxPoints)
+        assertEquals(UserLevel.EXPLORER, UserLevel.NEWCOMER.next)
+        assertEquals(99, UserLevel.NEWCOMER.maxPoints)
         assertEquals(499, UserLevel.ADVENTURER.maxPoints)
         assertNull(UserLevel.LOCAL_AMBASSADOR.next)
         assertNull(UserLevel.LOCAL_AMBASSADOR.maxPoints)

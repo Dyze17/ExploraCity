@@ -32,7 +32,7 @@ data class RegisterUiState(
     val name: String = "",
     val email: String = "",
     val password: String = "",
-    /** «¿Cómo te presentas?»: «De visita» viene elegida, como «Turista» en 4.a. */
+    /** «¿Cómo te presentas?»: «De visita» viene elegida, como en 4.a. */
     val residency: Residency = Residency.VISITOR,
     /** Ley 1581: la autorización nunca viene marcada. */
     val consent: Boolean = false,

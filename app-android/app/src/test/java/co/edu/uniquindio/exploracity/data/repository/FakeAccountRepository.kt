@@ -217,7 +217,7 @@ class FakeAccountRepository(
 
         val UserLevel.label: String
             get() = when (this) {
-                UserLevel.TOURIST -> "Turista"
+                UserLevel.NEWCOMER -> "Recién llegado"
                 UserLevel.EXPLORER -> "Explorador"
                 UserLevel.ADVENTURER -> "Aventurero"
                 UserLevel.LOCAL_AMBASSADOR -> "Embajador Local"

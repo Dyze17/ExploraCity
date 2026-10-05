@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -47,8 +48,11 @@ class FeedViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(repository: PoiRepository = FakePoiRepository(), moderator: Boolean = false) =
-        FeedViewModel(repository, sampleModeration(), connectivity, areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
+    private fun viewModel(
+        repository: PoiRepository = FakePoiRepository(),
+        moderator: Boolean = false,
+        moderation: FakeModerationRepository = sampleModeration(),
+    ) = FeedViewModel(repository, moderation, connectivity, areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
 
     private val FeedViewModel.loaded get() = state.value.content as FeedContent.Loaded
 
@@ -150,6 +154,36 @@ class FeedViewModelTest {
 
         advanceTimeBy(0.2.seconds)
         assertEquals(FeedContent.Error(), vm.state.value.content)
+    }
+
+    @Test
+    fun `deslizar hacia abajo trae lo nuevo sin la silueta de carga`() = runTest(dispatcher) {
+        val pois = FakePoiRepository()
+        val vm = viewModel(pois)
+        advanceUntilIdle()
+        pois.remove("cafe-las-acacias")
+
+        vm.onRefresh()
+        runCurrent()
+
+        assertTrue(vm.state.value.refreshing)
+        assertEquals("Lo que se ve sigue ahí mientras llega lo nuevo", samplePois.size, vm.loaded.total)
+        advanceUntilIdle()
+        assertFalse(vm.state.value.refreshing)
+        assertEquals(samplePois.size - 1, vm.loaded.total)
+    }
+
+    @Test
+    fun `al recargar, la tarjeta del moderador cuenta lo que queda por revisar`() = runTest(dispatcher) {
+        val moderation = sampleModeration()
+        val vm = viewModel(moderator = true, moderation = moderation)
+        advanceUntilIdle()
+        moderation.verify(moderation.queue().items.first().id, note = null)
+
+        vm.onRefresh()
+        advanceUntilIdle()
+
+        assertEquals(6, vm.state.value.moderation?.pending)
     }
 
     @Test

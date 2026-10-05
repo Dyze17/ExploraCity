@@ -110,7 +110,7 @@ object ExportLabels {
     fun of(residency: Residency): String = if (residency == Residency.RESIDENT) "Residente" else "De visita"
 
     fun of(level: UserLevel): String = when (level) {
-        UserLevel.TOURIST -> "Turista"
+        UserLevel.NEWCOMER -> "Recién llegado"
         UserLevel.EXPLORER -> "Explorador"
         UserLevel.ADVENTURER -> "Aventurero"
         UserLevel.LOCAL_AMBASSADOR -> "Embajador Local"

@@ -19,8 +19,8 @@ import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.ui.theme.FontScaleThresholds
 
 /**
- * «¿Cómo te presentas?» (4 y 28): De visita o Residente, como en el perfil (26 y 31). «De visita» y no «Turista», que es
- * el primer nivel. Con fuente grande, una debajo de otra.
+ * «¿Cómo te presentas?» (4 y 28): De visita o Residente, como en el perfil (26 y 31). Con fuente grande, una debajo de
+ * otra.
  */
 @Composable
 fun ResidencyPicker(selected: Residency, onSelect: (Residency) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {

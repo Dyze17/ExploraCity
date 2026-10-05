@@ -86,7 +86,11 @@ data class PublicationDraft(
             !hours.isEmpty || hoursUnknown || price != null || photos.isNotEmpty()
 
     companion object {
-        /** «Corregir y reenviar» (24): parte de todo lo que ya se envió, en el paso que hay que corregir. */
+        /**
+         * «Corregir y reenviar» (24): parte de todo lo que ya se envió, en el paso que hay que corregir. Si quedó como
+         * posible duplicado, la búsqueda de parecidos de ese pin viaja igual: la confirmación (20) lo dice y el servidor
+         * no la repite. Si se mueve el pin, se busca otra vez.
+         */
         fun from(publication: OwnPublication, step: PublishStep): PublicationDraft {
             val changes = PublicationChanges.of(publication)
             return PublicationDraft(
@@ -99,6 +103,11 @@ data class PublicationDraft(
                 hoursUnknown = changes.hoursUnknown,
                 price = changes.price,
                 photos = changes.photos,
+                duplicateCheck = if (publication.possibleDuplicate) {
+                    DuplicateCheck(publication.location, publication.similarIds, publication.duplicateNote.orEmpty())
+                } else {
+                    null
+                },
                 step = step,
             )
         }

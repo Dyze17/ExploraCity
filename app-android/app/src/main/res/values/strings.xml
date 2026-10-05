@@ -78,6 +78,8 @@
     <string name="feed_location_allow">Permitir</string>
     <string name="feed_empty_area_title">Todavía nadie publica en %1$s</string>
     <string name="feed_empty_area_body">Sé la primera persona en mostrar esta zona. Publica un lugar y, cuando se verifique, aparecerá aquí para todos.</string>
+    <!-- Acción de TalkBack equivalente a deslizar hacia abajo en el feed. -->
+    <string name="feed_refresh">Recargar lugares</string>
     <string name="feed_publish_first">Publicar el primero</string>
     <string name="list_and">y</string>
     <string name="list_or">o</string>
@@ -139,7 +141,7 @@
     <string name="price_high_spoken">más de 60.000 pesos</string>
 
     <!-- Niveles (LevelChip) -->
-    <string name="level_tourist">Turista</string>
+    <string name="level_newcomer">Recién llegado</string>
     <string name="level_explorer">Explorador</string>
     <string name="level_adventurer">Aventurero</string>
     <string name="level_local_ambassador">Embajador Local</string>
@@ -1073,7 +1075,7 @@
     <string name="onboarding_discover_body">Turistas y residentes publican sus rincones favoritos: comida, cultura, naturaleza, historia y planes.</string>
     <string name="onboarding_publish_title">Publica en 5 pasos y la comunidad lo valida</string>
     <string name="onboarding_publish_body">Un moderador revisa cada lugar antes de publicarlo. Así el mapa se mantiene confiable.</string>
-    <string name="onboarding_levels_title">Sube de nivel: de Turista a Embajador Local</string>
+    <string name="onboarding_levels_title">Sube de nivel: de Recién llegado a Embajador Local</string>
     <string name="onboarding_levels_body">Gana puntos e insignias cuando tus lugares se verifican y la gente los visita.</string>
 
     <!-- 3 · Inicio de sesión -->

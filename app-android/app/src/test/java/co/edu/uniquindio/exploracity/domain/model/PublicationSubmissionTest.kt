@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalTime
 
 /** 19 → 20 · Lo que se envía sale del borrador completo. */
@@ -50,5 +51,30 @@ class PublicationSubmissionTest {
 
         assertNull(PublicationSubmission.from(moved, null)?.duplicateCheck)
         assertEquals(listOf("otro"), PublicationSubmission.from(moved.copy(duplicateCheck = moved.duplicateCheck?.copy(location = here)), null)?.duplicateCheck?.similarIds)
+    }
+
+    @Test
+    fun `al reenviar una posible duplicada, la búsqueda de su pin viaja y la confirmación lo dice`() {
+        val rejected = OwnPublication(
+            id = "cafe-estacion",
+            title = "Café Estación del Tren",
+            category = Category.GASTRONOMY,
+            status = PublicationStatus.REJECTED,
+            location = here,
+            photos = listOf(PublishedPhoto("f1", "https://medios.test/lugares/f1.jpg")),
+            submittedAt = Instant.EPOCH,
+            description = "Panadería y café junto a la estación, con pan de yuca recién horneado.",
+            possibleDuplicate = true,
+            similarIds = listOf("cafe-de-la-estacion"),
+            duplicateNote = "Es la panadería del lado.",
+        )
+
+        val flagged = PublicationSubmission.from(PublicationDraft.from(rejected, PublishStep.PHOTOS), resubmitId = rejected.id)
+        val plain = PublicationSubmission.from(PublicationDraft.from(rejected.copy(possibleDuplicate = false, similarIds = emptyList()), PublishStep.PHOTOS), rejected.id)
+
+        assertEquals(DuplicateCheck(here, listOf("cafe-de-la-estacion"), "Es la panadería del lado."), flagged?.duplicateCheck)
+        assertEquals(true, flagged?.possibleDuplicate)
+        // Sin la marca, el servidor repite la búsqueda al recibirla.
+        assertNull(plain?.duplicateCheck)
     }
 }
