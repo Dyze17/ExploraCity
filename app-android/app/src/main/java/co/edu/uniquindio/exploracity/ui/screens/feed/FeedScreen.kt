@@ -72,6 +72,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -186,7 +187,8 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
         // 12.a: el aviso va arriba del todo y no se esconde al desplazar; sin nada guardado lo dice el vacío. Con fuente
         // grande, fijo junto a la cabecera dejaba ver solo media tarjeta (S20+ al 200 %): ahí se desplaza con la lista.
         val pinnedBanner = saved?.places != null && LocalDensity.current.fontScale <= FontScaleThresholds.StackRows
-        Column(Modifier.fillMaxSize().nestedScroll(collapsing.connection)) {
+        val pullGate = remember { PullFromTopGate() }
+        Column(Modifier.fillMaxSize()) {
             if (pinnedBanner) SavedPlacesBanner(saved.places, saved.reason, callbacks.onRetry, underStatusBar = true)
             PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = !pinnedBanner)
             // Sin conexión no se busca ni se filtra: lo guardado se muestra tal cual.
@@ -214,7 +216,15 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                     )
                 },
             ) {
-                Box(Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
+                // La cabecera va por dentro de la recarga: al volver arriba se despliega antes de que el gesto llegue a
+                // recargar, y la compuerta solo deja recargar a un gesto que empieza arriba del todo.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .nestedScroll(pullGate)
+                        .nestedScroll(collapsing.connection)
+                        .graphicsLayer { alpha = contentAlpha },
+                ) {
                     when (val content = state.content) {
                         FeedContent.Loading -> FeedSkeleton()
                         is FeedContent.Loaded -> FeedList(content, state, isModerator, callbacks)
@@ -548,6 +558,28 @@ private class CollapsingHeaderState {
             val shift = offset.roundToInt()
             layout(placeable.width, (placeable.height + shift).coerceAtLeast(0)) { placeable.place(0, shift) }
         }
+}
+
+/**
+ * Recargar solo desde arriba del todo (7): con la lista al principio y la cabecera desplegada. El gesto que empieza más
+ * abajo trae de vuelta la lista y la cabecera, y lo que le sobra al llegar arriba no pasa a la recarga; hace falta
+ * soltar y deslizar otra vez. Se decide con el primer movimiento de cada gesto, y el gesto termina al soltar (también
+ * si se cancela, Compose despacha el fling con velocidad cero).
+ */
+private class PullFromTopGate : NestedScrollConnection {
+    private var startedAtTop: Boolean? = null
+
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+        if (source != NestedScrollSource.UserInput) return Offset.Zero
+        // Arriba del todo, el primer movimiento hacia abajo no lo usan ni la lista ni la cabecera.
+        val atTop = startedAtTop ?: (consumed.y == 0f && available.y > 0f).also { startedAtTop = it }
+        return if (!atTop && available.y > 0f) Offset(0f, available.y) else Offset.Zero
+    }
+
+    override suspend fun onPreFling(available: Velocity): Velocity {
+        startedAtTop = null
+        return Velocity.Zero
+    }
 }
 
 @Composable
