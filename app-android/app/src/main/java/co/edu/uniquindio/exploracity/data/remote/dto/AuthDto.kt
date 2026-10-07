@@ -10,7 +10,7 @@ import java.time.Instant
 // DTO de Sesión, Recuperar la contraseña y Cuenta (docs/api).
 
 @Serializable
-data class RegisterRequest(val name: String, val email: String, val password: String, val residency: Residency)
+data class RegisterRequest(val name: String, val email: String, val password: String, val residency: Residency, val clientId: String)
 
 @Serializable
 data class LoginRequest(val email: String, val password: String)

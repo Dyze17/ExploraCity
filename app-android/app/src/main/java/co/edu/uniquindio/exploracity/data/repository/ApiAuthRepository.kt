@@ -49,10 +49,11 @@ class ApiAuthRepository(private val api: AuthApi, private val session: ApiSessio
 
     /**
      * 4 · El rol lo decide la API: los moderadores son los correos de su lista. Sin respuesta lanza
-     * [UnconfirmedRegistrationException]: la API pudo crear la cuenta después de que la app se rindió.
+     * [UnconfirmedRegistrationException]: la API pudo crear la cuenta después de que la app se rindió. Repetirlo con el
+     * mismo [NewAccount.clientId] y la misma contraseña abre la sesión en esa cuenta.
      */
     override suspend fun register(account: NewAccount): Registration = translatingErrors {
-        val request = RegisterRequest(account.name.trim(), account.email.trim(), account.password, account.residency)
+        val request = RegisterRequest(account.name.trim(), account.email.trim(), account.password, account.residency, account.clientId)
         val opened = try {
             api.register(request)
         } catch (e: IOException) {

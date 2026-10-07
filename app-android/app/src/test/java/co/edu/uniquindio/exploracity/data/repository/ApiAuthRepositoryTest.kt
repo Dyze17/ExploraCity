@@ -43,6 +43,7 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.time.Instant
+import java.util.UUID
 
 /** 1, 3, 4, 5, 6 y 6C con la API: la sesión que se guarda y los errores que ya explican las pantallas. */
 class ApiAuthRepositoryTest {
@@ -58,6 +59,8 @@ class ApiAuthRepositoryTest {
         api = FakeApi(handler)
         return ApiAuthRepository(AuthApi(api.sessionClient(stores)), stores.session)
     }
+
+    private val clientId = UUID.randomUUID().toString()
 
     private val ana = SessionAccount("3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14", Account("ana.rios@correo.com"))
 
@@ -95,14 +98,25 @@ class ApiAuthRepositoryTest {
     fun `registrarse abre la sesión y dice si salió la bienvenida`() = runTest {
         val repository = auth { example("register.json", HttpStatusCode.Created) }
 
-        val registration = repository.register(NewAccount(" Ana Ríos ", " ana.rios@correo.com", password, Residency.RESIDENT))
+        val registration = repository.register(NewAccount(" Ana Ríos ", " ana.rios@correo.com", password, Residency.RESIDENT, clientId))
 
         assertEquals(Registration(UserRole.USER, welcomeEmailSent = true), registration)
         assertEquals(ana, stores.accounts.account.first())
         assertEquals(
-            """{"name":"Ana Ríos","email":"ana.rios@correo.com","password":"$password","residency":"RESIDENT"}""",
+            """{"name":"Ana Ríos","email":"ana.rios@correo.com","password":"$password","residency":"RESIDENT","clientId":"$clientId"}""",
             api.requests.single().body,
         )
+    }
+
+    @Test
+    fun `repetir un registro que ya llegó abre la sesión en esa cuenta`() = runTest {
+        // La API responde 200 con la sesión, sin welcomeEmailSent: la bienvenida la envió el primer intento.
+        val repository = auth { example("session.json") }
+
+        val registration = repository.register(NewAccount("Ana Ríos", "ana.rios@correo.com", password, Residency.RESIDENT, clientId))
+
+        assertEquals(Registration(UserRole.USER, welcomeEmailSent = true), registration)
+        assertEquals(AuthTokens("token-de-acceso", "token-de-renovacion"), stores.tokens.tokens())
     }
 
     @Test

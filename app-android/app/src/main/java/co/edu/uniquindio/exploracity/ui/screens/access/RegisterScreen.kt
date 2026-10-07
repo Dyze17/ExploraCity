@@ -335,7 +335,7 @@ private fun SubmitBlock(state: RegisterUiState, onSubmit: () -> Unit) {
 
 /**
  * El fallo queda en pantalla hasta que la persona lo cierra, con lo escrito intacto. Si el servidor no respondió, no
- * dice que la cuenta no se creó: al intentarlo de nuevo, un correo que ya quedó con cuenta ofrece iniciar sesión.
+ * dice que la cuenta no se creó: intentarlo de nuevo es seguro y, si ya quedó, entra con ella.
  */
 @Composable
 private fun FailureEffect(failure: RegisterFailure?, hostState: SnackbarHostState, onDismissed: () -> Unit) {

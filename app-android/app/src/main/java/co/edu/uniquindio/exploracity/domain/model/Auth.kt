@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.Instant
+import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -36,7 +37,7 @@ class EmailTakenException : Exception("El correo ya tiene cuenta")
 
 /**
  * 4 · La API no respondió a tiempo: la cuenta pudo quedar creada después de que la app se rindió. El registro no dice
- * que falló; si al intentarlo de nuevo el correo ya tiene cuenta, ofrece iniciar sesión.
+ * que falló; intentarlo de nuevo es seguro ([NewAccount.clientId]): si ya quedó, entra con ella.
  */
 class UnconfirmedRegistrationException(cause: Throwable) : Exception("No se sabe si la cuenta quedó creada", cause)
 
@@ -58,8 +59,18 @@ class SessionEndedException : Exception("La sesión terminó")
  */
 class ExpiredLinkException(val email: String) : Exception("El enlace venció")
 
-/** 4 · Lo que se escribe al crear la cuenta. [residency] es el «¿Cómo te presentas?». */
-data class NewAccount(val name: String, val email: String, val password: String, val residency: Residency)
+/**
+ * 4 · Lo que se escribe al crear la cuenta. [residency] es el «¿Cómo te presentas?». [clientId] es el mismo en cada
+ * intento del formulario: si un intento creó la cuenta y su respuesta no llegó, el siguiente, con la misma contraseña,
+ * entra con ella en vez de chocar con «Ya hay una cuenta con este correo».
+ */
+data class NewAccount(
+    val name: String,
+    val email: String,
+    val password: String,
+    val residency: Residency,
+    val clientId: String = UUID.randomUUID().toString(),
+)
 
 /** 4 · La cuenta quedó creada. Si el correo de bienvenida falló, [welcomeEmailSent] es false y se avisa. */
 data class Registration(val role: UserRole, val welcomeEmailSent: Boolean)

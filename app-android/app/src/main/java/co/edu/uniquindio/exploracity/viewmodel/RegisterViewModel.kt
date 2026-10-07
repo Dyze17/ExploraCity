@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 enum class RegisterField { NAME, EMAIL, PASSWORD }
 
@@ -84,8 +85,8 @@ data class RegisterUiState(
 /**
  * 4 · Registro con autorización de datos. Al crear la cuenta abre la sesión y marca el onboarding como visto, como el
  * inicio de sesión (3). Si el correo ya tiene cuenta lo dice junto al campo; si falla el correo de bienvenida la cuenta
- * queda igual (lo dice el feed). Si el servidor no respondió, no dice que la cuenta no se creó: puede que sí. La
- * contraseña no se guarda al recrear la pantalla; lo demás sí.
+ * queda igual (lo dice el feed). Si el servidor no respondió, no dice que la cuenta no se creó: puede que sí, y el
+ * reintento entra con ella. La contraseña no se guarda al recrear la pantalla; lo demás sí.
  */
 class RegisterViewModel(
     private val auth: AuthRepository,
@@ -96,6 +97,12 @@ class RegisterViewModel(
     /** Lo que la app necesita antes de entrar: la ciudad y el perfil. */
     private val prepare: suspend () -> Unit = {},
 ) : ViewModel() {
+
+    /**
+     * El mismo en cada intento de este formulario, también si Android cierra la app: si un intento creó la cuenta y su
+     * respuesta no llegó, el siguiente entra con ella.
+     */
+    private val clientId: String = savedStateHandle[CLIENT_ID_KEY] ?: UUID.randomUUID().toString().also { savedStateHandle[CLIENT_ID_KEY] = it }
 
     private val _state = MutableStateFlow(
         RegisterUiState(
@@ -166,7 +173,7 @@ class RegisterViewModel(
         if (!state.consent) return
         _state.update { it.copy(submitting = true, failure = null) }
         viewModelScope.launch {
-            val account = NewAccount(state.name.trim(), state.email.trim(), state.password, state.residency)
+            val account = NewAccount(state.name.trim(), state.email.trim(), state.password, state.residency, clientId)
             val result = catchingNonCancellation { auth.register(account).also { prepare() } }
             val registration = result.getOrNull()
             if (registration != null) {
@@ -198,6 +205,7 @@ class RegisterViewModel(
         private const val EMAIL_KEY = "correo"
         private const val RESIDENCY_KEY = "residencia"
         private const val CONSENT_KEY = "autorizacion"
+        private const val CLIENT_ID_KEY = "id_de_registro"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

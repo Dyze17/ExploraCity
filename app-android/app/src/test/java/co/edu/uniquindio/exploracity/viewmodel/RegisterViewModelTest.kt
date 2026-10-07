@@ -111,7 +111,8 @@ class RegisterViewModelTest {
         assertTrue(vm.state.value.submitting)
         advanceUntilIdle()
 
-        assertEquals(NewAccount("Pedro Gómez", "pedro@correo.com", goodPassword, Residency.RESIDENT), auth.registered.single())
+        val sent = auth.registered.single()
+        assertEquals(NewAccount("Pedro Gómez", "pedro@correo.com", goodPassword, Residency.RESIDENT, sent.clientId), sent)
         assertEquals(UserRole.USER, sessions.current.value)
         assertTrue(preferences.seen.value)
         assertEquals(true, vm.state.value.registered?.welcomeEmailSent)
@@ -226,6 +227,35 @@ class RegisterViewModelTest {
 
         assertNull(vm.state.value.failure)
         assertTrue(vm.state.value.emailTaken)
+    }
+
+    @Test
+    fun `cada intento manda el mismo clientId, también al recrear la pantalla`() = runTest(dispatcher) {
+        val savedState = SavedStateHandle()
+        auth.registerError = UnconfirmedRegistrationException(IOException("timeout"))
+        val vm = filled(savedState)
+        vm.onConsentChange(true)
+
+        vm.onSubmit()
+        advanceUntilIdle()
+        vm.onSubmit()
+        advanceUntilIdle()
+        // Android cerró la app: la contraseña no se guarda y se escribe de nuevo.
+        register(savedState).apply {
+            onPasswordChange(goodPassword)
+            onSubmit()
+        }
+        advanceUntilIdle()
+
+        assertEquals(3, auth.registered.size)
+        assertEquals(1, auth.registered.map { it.clientId }.distinct().size)
+        // Otro formulario es otro registro.
+        filled().apply {
+            onConsentChange(true)
+            onSubmit()
+        }
+        advanceUntilIdle()
+        assertEquals(2, auth.registered.map { it.clientId }.distinct().size)
     }
 
     @Test
