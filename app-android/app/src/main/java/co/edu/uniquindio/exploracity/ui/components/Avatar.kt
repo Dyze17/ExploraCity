@@ -26,9 +26,9 @@ import co.edu.uniquindio.exploracity.ui.theme.CategoryColors
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 
 /**
- * Avatar con la foto de perfil ([photo], 28) o, sin ella, con las iniciales. El color sale de los contenedores de
- * categoría y es siempre el mismo para cada persona (en 14.a, María Paula en rosa, Juan David en verde y Ana en
- * terracota); también queda de fondo mientras la foto carga.
+ * Avatar con la foto de perfil ([photo], 28: la recién elegida en el teléfono o la publicada) o, sin ella, con las
+ * iniciales. El color sale de los contenedores de categoría y es siempre el mismo para cada persona (en 14.a, María
+ * Paula en rosa, Juan David en verde y Ana en terracota); también queda de fondo mientras la foto carga.
  *
  * Es decorativo: el nombre va escrito al lado, así que no se anuncia. Las iniciales no crecen con la fuente
  * para caber en los 40 dp; el nombre sí crece.
@@ -37,7 +37,8 @@ import co.edu.uniquindio.exploracity.ui.theme.exploraColors
 fun InitialsAvatar(author: Author, modifier: Modifier = Modifier, size: Dp = 40.dp, photo: String? = null) {
     val colors = avatarColors(author.id)
     val fontSize = with(LocalDensity.current) { (size * 0.35f).toSp() }
-    val image = photo?.let { rememberLocalPhoto(it, size) }
+    val remote = photo != null && isRemotePhoto(photo)
+    val image = if (photo != null && !remote) rememberLocalPhoto(photo, size) else null
     Box(
         modifier.size(size).clip(CircleShape).background(colors.container).clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
@@ -50,6 +51,8 @@ fun InitialsAvatar(author: Author, modifier: Modifier = Modifier, size: Dp = 40.
                 style = MaterialTheme.typography.labelLarge.copy(fontSize = fontSize, lineHeight = fontSize, fontWeight = FontWeight.W700),
                 color = colors.content,
             )
+            // La foto publicada tapa las iniciales cuando llega; sin conexión ni copia guardada quedan ellas.
+            if (remote) RemotePhoto(photo)
         }
     }
 }

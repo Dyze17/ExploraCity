@@ -69,6 +69,7 @@ import co.edu.uniquindio.exploracity.ui.components.InitialsAvatar
 import co.edu.uniquindio.exploracity.ui.components.LevelChip
 import co.edu.uniquindio.exploracity.ui.components.POICard
 import co.edu.uniquindio.exploracity.ui.components.POICardSkeleton
+import co.edu.uniquindio.exploracity.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.ui.components.spokenDescription
@@ -248,6 +249,7 @@ private fun ProfileBody(profile: PublicProfile, onOpenPoi: (String) -> Unit) {
                 votes = poi.votes,
                 comments = poi.comments,
                 onClick = { onOpenPoi(poi.id) },
+                photo = { RemotePhoto(poi.photoUrl) },
             )
         }
     }

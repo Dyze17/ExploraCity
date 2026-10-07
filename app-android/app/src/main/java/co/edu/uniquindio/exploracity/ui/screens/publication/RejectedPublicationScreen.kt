@@ -67,6 +67,7 @@ import co.edu.uniquindio.exploracity.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
+import co.edu.uniquindio.exploracity.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.labelRes
@@ -363,7 +364,7 @@ private fun PublicationSummary(publication: OwnPublication) {
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        PhotoPlaceholder(80.dp)
+        PlacePhoto(publication.photoUrl, 80.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(publication.title, style = MaterialTheme.typography.titleSmall.copy(fontSize = 14.sp, fontWeight = FontWeight.W700), color = scheme.onSurface)
             CategoryTag(publication.category)
@@ -439,7 +440,7 @@ private fun OriginalCard(publication: OwnPublication, original: Poi, onOpen: () 
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        PhotoPlaceholder(64.dp)
+        PlacePhoto(original.photoUrl, 64.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 original.title,
@@ -459,10 +460,10 @@ private fun OriginalCard(publication: OwnPublication, original: Poi, onOpen: () 
     }
 }
 
-/** Contenedor neutro de la foto, como en el feed mientras no haya imágenes reales. */
+/** La portada sobre el contenedor neutro, como en el feed. */
 @Composable
-private fun PhotoPlaceholder(size: Dp) {
-    Box(Modifier.size(size).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh))
+private fun PlacePhoto(url: String?, size: Dp) {
+    Box(Modifier.size(size).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh)) { RemotePhoto(url) }
 }
 
 /** «12 de septiembre»; de otro año, con el año. */

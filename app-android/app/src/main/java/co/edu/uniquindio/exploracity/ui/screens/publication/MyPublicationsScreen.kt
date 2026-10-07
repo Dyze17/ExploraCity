@@ -87,6 +87,7 @@ import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.ExploraTopAppBar
+import co.edu.uniquindio.exploracity.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.rememberNow
@@ -392,7 +393,9 @@ private fun PublicationCard(publication: OwnPublication, now: Instant, callbacks
         .background(scheme.surfaceContainerLowest)
         .clickable(role = Role.Button) { callbacks.onOpen(publication) }
         .semantics { contentDescription = spoken }
-    val photo = @Composable { photoModifier: Modifier -> Box(photoModifier.clip(MaterialTheme.shapes.medium).background(scheme.surfaceContainerHigh)) }
+    val photo = @Composable { photoModifier: Modifier ->
+        Box(photoModifier.clip(MaterialTheme.shapes.medium).background(scheme.surfaceContainerHigh)) { RemotePhoto(publication.photoUrl) }
+    }
     // El texto lo dice la tarjeta en una frase; el menú queda como botón aparte.
     val texts = @Composable { textModifier: Modifier ->
         Column(textModifier.clearAndSetSemantics {}, verticalArrangement = Arrangement.spacedBy(7.dp)) {
