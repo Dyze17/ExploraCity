@@ -1,0 +1,114 @@
+# Despliegue de la API en Google Cloud Run (ADR-10): pruebas, imagen en Artifact Registry y Cloud Run.
+# La configuración de Google Cloud está en docs/despliegue.md. Sin las variables del repositorio (GCP_PROJECT_ID…)
+# el trabajo no corre, así que este archivo no estorba antes de esa configuración.
+name: Despliegue
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api-ktor/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+# Un despliegue a la vez, y sin cortar uno a medias.
+concurrency:
+  group: despliegue
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # Workload Identity Federation: GitHub firma un token que Google cambia por una sesión de la cuenta de despliegue.
+  id-token: write
+
+jobs:
+  api:
+    if: vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api-ktor
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: exploracity-api
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/exploracity/api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Pruebas
+        run: ./gradlew test
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: github-deployer@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Imagen en Artifact Registry
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build --tag "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Cloud Run
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ vars.CLOUDINARY_CLOUD_NAME }}
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+          WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+        run: |
+          # La dirección fija del servicio: https://SERVICIO-NÚMERO_DEL_PROYECTO.REGIÓN.run.app. El número sale del
+          # proveedor de identidad (projects/NÚMERO/locations/global/…). Ahí abren los enlaces del correo (C1).
+          PROJECT_NUMBER=$(echo "$WIF_PROVIDER" | cut -d/ -f2)
+          SERVICE_URL="https://$SERVICE-$PROJECT_NUMBER.$REGION.run.app"
+          echo "SERVICE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
+
+          # Lo que no es secreto. El repositorio es público y este registro también: nada de esto es privado.
+          cat > "$RUNNER_TEMP/env.yaml" <<EOF
+          APP_ENV: production
+          DATABASE_URL: "jdbc:postgresql:///exploracity?cloudSqlInstance=$PROJECT_ID:$REGION:exploracity-db&socketFactory=com.google.cloud.sql.postgres.SocketFactory"
+          DATABASE_USER: exploracity
+          DATABASE_POOL_SIZE: "5"
+          CLOUDINARY_CLOUD_NAME: "$CLOUDINARY_CLOUD_NAME"
+          APP_LINK_BASE_URL: "$SERVICE_URL/enlace"
+          ANDROID_CERT_SHA256: "$ANDROID_CERT_SHA256"
+          EOF
+
+          # Lo secreto vive en Secret Manager: aquí solo van los nombres, y Cloud Run entrega los valores a la API.
+          SECRETS="DATABASE_PASSWORD=database-password:latest,JWT_SECRET=jwt-secret:latest"
+          SECRETS="$SECRETS,MODERATOR_EMAILS=moderator-emails:latest,MAIL_FROM=mail-from:latest"
+          SECRETS="$SECRETS,SENDGRID_API_KEY=sendgrid-api-key:latest"
+          SECRETS="$SECRETS,CLOUDINARY_API_KEY=cloudinary-api-key:latest,CLOUDINARY_API_SECRET=cloudinary-api-secret:latest"
+          # OpenRouter es opcional: sin su secreto, la sugerencia de categoría sale de palabras clave.
+          if gcloud secrets describe openrouter-api-key --project "$PROJECT_ID" > /dev/null 2>&1; then
+            SECRETS="$SECRETS,OPENROUTER_API_KEY=openrouter-api-key:latest"
+          fi
+
+          # Sin uso se apaga (0 instancias); 3 instancias con 5 conexiones caben en las 25 de db-f1-micro.
+          gcloud run deploy "$SERVICE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --image "$IMAGE" \
+            --service-account "exploracity-api@$PROJECT_ID.iam.gserviceaccount.com" \
+            --allow-unauthenticated \
+            --cpu 1 \
+            --memory 1Gi \
+            --cpu-boost \
+            --min-instances 0 \
+            --max-instances 3 \
+            --timeout 60 \
+            --env-vars-file "$RUNNER_TEMP/env.yaml" \
+            --set-secrets "$SECRETS"
+          # Si antes se volvió a una versión anterior (docs/despliegue.md), la nueva no recibiría tráfico.
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --to-latest
+
+      - name: Comprobación
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors "$SERVICE_URL/health"
+          echo
+          curl --fail --silent --show-error "$SERVICE_URL/v1/city"
+          echo

@@ -119,7 +119,8 @@ La sesión trae los dos tokens, `expiresIn` (segundos del token de acceso), la p
 | `POST /v1/auth/password/link` | Pública | `{ "token" }` | `200` con el correo y el vencimiento del enlace (6.b) | [`reset-link.json`](ejemplos/reset-link.json) |
 | `POST /v1/auth/password/reset` | Pública | `{ "token", "password" }` | `204`. La contraseña cambia, el enlace deja de servir y se cierran todas las sesiones | — |
 
-- El enlace del correo es `exploracity://enlace/restablecer?token=…` (o el comienzo de `APP_LINK_BASE_URL`). Vence a los **30 minutos** y sirve una vez.
+- El enlace del correo es `exploracity://enlace/restablecer?token=…` en desarrollo. En Cloud Run empieza por `APP_LINK_BASE_URL`, en https (`https://…run.app/enlace/restablecer?token=…`). Vence a los **30 minutos** y sirve una vez.
+- `GET /enlace/restablecer` y `GET /enlace/confirmar-correo` (fuera de `/v1`) son la página que se ve si ese enlace se abre en el navegador: un botón «Abrir en ExploraCity» que le pasa el token a la app. Con `ANDROID_CERT_SHA256`, `GET /.well-known/assetlinks.json` declara la app para que Android abra esos enlaces directo (App Links). Ver [`docs/despliegue.md`](../despliegue.md).
 - Entre un envío y otro a la misma cuenta hay **60 segundos**. Antes de eso la API responde `202` sin enviar otro: el anterior sigue sirviendo.
 - Un enlace vencido o usado responde `410 link_expired` con el correo; uno que no existe, sin correo.
 

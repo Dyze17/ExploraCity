@@ -80,7 +80,7 @@ La API atiende:
 - la moderación: la cola, las decisiones y «Resueltas»;
 - la ciudad: su nombre, el centro del mapa y los límites de la búsqueda por dirección. Hoy es Armenia, y se cambia en `api-ktor/src/main/resources/application.conf`.
 
-Falta el despliegue. La API corre todavía en el equipo, y un APK de producción apunta a `localhost`. El siguiente paso es publicarla en Google Cloud Run.
+**Despliegue:** la API se publica en Google Cloud Run, con PostgreSQL en Cloud SQL. [`docs/despliegue.md`](docs/despliegue.md) configura Google Cloud desde cero, y GitHub Actions despliega cada cambio de `api-ktor/` que llega a `main`. Falta la app de producción: un APK firmado que use la dirección de Cloud Run y abra directo los enlaces del correo (App Links). Mientras tanto, un APK de producción apunta a `localhost`.
 
 La API todavía no recibe reportes de lugares, así que la revisión de una pendiente (33) no muestra ninguno.
 
@@ -94,7 +94,8 @@ La API todavía no recibe reportes de lugares, así que la revisión de una pend
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ Implementada |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ Implementada |
 | API (`api-ktor`) | — | ✅ Las 4 partes: base, acceso y cuenta, explorar y social, y publicar y moderar ([contrato](docs/api/README.md)) |
-| Conexión de la app con la API | — | ✅ Conectada. Falta el despliegue en Cloud Run |
+| Conexión de la app con la API | — | ✅ Conectada |
+| Despliegue en Google Cloud | — | 🚧 La API en Cloud Run ([guía](docs/despliegue.md)). Falta la app de producción |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
 
@@ -106,8 +107,8 @@ La arquitectura sigue el documento de arquitectura del software (modelo C4, v1.1
 .
 ├── app-android/          App Android (proyecto Gradle, módulo app/)
 ├── api-ktor/             API REST en Ktor
-├── docs/                 Modelo C4, arquitectura y decisiones arquitectónicas
-├── .github/              CI (GitHub Actions) y plantilla de pull request
+├── docs/                 Modelo C4, arquitectura, decisiones, contrato de la API y despliegue
+├── .github/              CI y despliegue (GitHub Actions) y plantilla de pull request
 └── CONTRIBUTING.md       Flujo de ramas, commits y pull requests
 ```
 
@@ -138,7 +139,7 @@ Paquetes `routes/`, `service/`, `repository/`, `model/`, `integration/`, `config
 
 **Stack:** Ktor 3.6 (Netty) · autenticación JWT · Exposed + HikariCP · PostgreSQL con **PostGIS** y **pg_trgm** para detectar duplicados · Flyway · BCrypt. Las integraciones con Cloudinary (fotos), SendGrid (correo) y OpenRouter (sugerencia de categoría con IA) se hacen con Ktor Client.
 
-La IA y la detección de duplicados se ejecutan en el backend, así que la clave de la IA nunca viaja en la app. El despliegue previsto es una imagen Docker en **Google Cloud Run**.
+La IA y la detección de duplicados se ejecutan en el backend, así que la clave de la IA nunca viaja en la app. Se despliega como imagen Docker en **Google Cloud Run**, con PostgreSQL en **Cloud SQL** ([despliegue](docs/despliegue.md)).
 
 **Seguridad de la sesión:**
 - Las contraseñas se guardan con BCrypt de costo 12.
@@ -164,6 +165,8 @@ La IA y la detección de duplicados se ejecutan en el backend, así que la clave
 - Sin SendGrid, los correos no salen: quedan en un buzón en memoria.
 - Sin Cloudinary, las fotos van a `api-ktor/media/`, que está fuera de git, y la API las sirve en `/media`.
 - Sin OpenRouter, la sugerencia de categoría sale de palabras clave del título y la descripción.
+
+En Cloud Run (`APP_ENV=production`), la API no arranca sin SendGrid ni Cloudinary, ni con `DEV_MAILBOX`. Allí los enlaces del correo son https (`…run.app/enlace/restablecer?token=…`), porque Gmail no deja tocar los `exploracity://`. En el navegador abren una página con el botón «Abrir en ExploraCity». Con la huella de la firma de la app en `ANDROID_CERT_SHA256`, la API publica `/.well-known/assetlinks.json` para que Android los abra directo (App Links).
 
 El esquema lo crean las migraciones de Flyway (`src/main/resources/db/migration`). El contrato con la app, con sus endpoints, códigos de error y ejemplos, está en [`docs/api/`](docs/api/README.md).
 
@@ -260,6 +263,8 @@ GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) se ejecu
 
 - **app-android**: `./gradlew assembleDebug testDebugUnitTest`
 - **api-ktor**: `./gradlew test buildFatJar`
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) despliega la API en Cloud Run con cada push a `main` que cambie `api-ktor/`: pruebas, imagen en Artifact Registry, Cloud Run y una comprobación de `/health`. Entra a Google Cloud con Workload Identity Federation, sin claves guardadas en GitHub, y no corre hasta que el repositorio tenga las variables de [`docs/despliegue.md`](docs/despliegue.md).
 
 `main` está protegida. Todo cambio entra por pull request con el CI en verde.
 
