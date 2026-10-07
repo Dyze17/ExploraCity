@@ -67,6 +67,7 @@ import co.edu.uniquindio.exploracity.ui.components.ResidencyPicker
 import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.viewmodel.RegisterFailure
 import co.edu.uniquindio.exploracity.viewmodel.RegisterField
 import co.edu.uniquindio.exploracity.viewmodel.RegisterUiState
 import co.edu.uniquindio.exploracity.viewmodel.RegisterViewModel
@@ -132,7 +133,7 @@ class RegisterCallbacks(
 @Composable
 fun RegisterScreen(state: RegisterUiState, callbacks: RegisterCallbacks, modifier: Modifier = Modifier) {
     val snackbarHostState = remember { SnackbarHostState() }
-    FailureEffect(state.failed, snackbarHostState, callbacks.onFailureDismissed)
+    FailureEffect(state.failure, snackbarHostState, callbacks.onFailureDismissed)
     val nameFocus = remember { FocusRequester() }
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
@@ -332,14 +333,19 @@ private fun SubmitBlock(state: RegisterUiState, onSubmit: () -> Unit) {
     }
 }
 
-/** El fallo queda en pantalla hasta que la persona lo cierra, con lo escrito intacto. */
+/**
+ * El fallo queda en pantalla hasta que la persona lo cierra, con lo escrito intacto. Si el servidor no respondió, no
+ * dice que la cuenta no se creó: intentarlo de nuevo es seguro y, si ya quedó, entra con ella.
+ */
 @Composable
-private fun FailureEffect(failed: Boolean, hostState: SnackbarHostState, onDismissed: () -> Unit) {
+private fun FailureEffect(failure: RegisterFailure?, hostState: SnackbarHostState, onDismissed: () -> Unit) {
     val currentOnDismissed by rememberUpdatedState(onDismissed)
-    val text = stringResource(R.string.register_failed)
+    val notCreated = stringResource(R.string.register_failed)
+    val unconfirmed = stringResource(R.string.register_unconfirmed)
     val close = stringResource(R.string.login_close)
-    LaunchedEffect(failed) {
-        if (!failed) return@LaunchedEffect
+    LaunchedEffect(failure) {
+        if (failure == null) return@LaunchedEffect
+        val text = if (failure == RegisterFailure.UNCONFIRMED) unconfirmed else notCreated
         hostState.showSnackbar(text, actionLabel = close, duration = SnackbarDuration.Indefinite)
         currentOnDismissed()
     }

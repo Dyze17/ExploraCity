@@ -11,7 +11,14 @@ fun Instant.iso(): String = truncatedTo(ChronoUnit.SECONDS).toString()
 
 /** 4 · El registro: el «¿Cómo te presentas?» es [residency]. */
 @Serializable
-data class RegisterRequest(val name: String, val email: String, val password: String, val residency: Residency)
+data class RegisterRequest(
+    val name: String,
+    val email: String,
+    val password: String,
+    val residency: Residency,
+    /** Lo pone la app (un UUID): repetir el registro con el mismo y la misma contraseña abre la sesión (V7). */
+    val clientId: String? = null,
+)
 
 @Serializable
 data class LoginRequest(val email: String, val password: String)

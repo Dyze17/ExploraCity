@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.EmailTakenException
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -110,7 +111,8 @@ class RegisterViewModelTest {
         assertTrue(vm.state.value.submitting)
         advanceUntilIdle()
 
-        assertEquals(NewAccount("Pedro Gómez", "pedro@correo.com", goodPassword, Residency.RESIDENT), auth.registered.single())
+        val sent = auth.registered.single()
+        assertEquals(NewAccount("Pedro Gómez", "pedro@correo.com", goodPassword, Residency.RESIDENT, sent.clientId), sent)
         assertEquals(UserRole.USER, sessions.current.value)
         assertTrue(preferences.seen.value)
         assertEquals(true, vm.state.value.registered?.welcomeEmailSent)
@@ -185,7 +187,7 @@ class RegisterViewModelTest {
         advanceUntilIdle()
 
         assertTrue(vm.state.value.offline)
-        assertFalse(vm.state.value.failed)
+        assertNull(vm.state.value.failure)
     }
 
     @Test
@@ -197,12 +199,63 @@ class RegisterViewModelTest {
         vm.onSubmit()
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.failed)
+        assertEquals(RegisterFailure.NOT_CREATED, vm.state.value.failure)
         assertEquals(" pedro@correo.com ", vm.state.value.email)
         assertEquals(goodPassword, vm.state.value.password)
         assertNull(sessions.current.value)
         vm.onFailureDismissed()
-        assertFalse(vm.state.value.failed)
+        assertNull(vm.state.value.failure)
+    }
+
+    @Test
+    fun `si el servidor no respondió no dice que la cuenta no se creó, y se puede intentar de nuevo`() = runTest(dispatcher) {
+        auth.registerError = UnconfirmedRegistrationException(IOException("timeout"))
+        val vm = filled()
+        vm.onConsentChange(true)
+
+        vm.onSubmit()
+        advanceUntilIdle()
+
+        assertEquals(RegisterFailure.UNCONFIRMED, vm.state.value.failure)
+        assertNull(sessions.current.value)
+        assertTrue(vm.state.value.canSubmit)
+
+        // La primera petición sí la creó: el reintento ofrece iniciar sesión con ese correo.
+        auth.registerError = EmailTakenException()
+        vm.onSubmit()
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.failure)
+        assertTrue(vm.state.value.emailTaken)
+    }
+
+    @Test
+    fun `cada intento manda el mismo clientId, también al recrear la pantalla`() = runTest(dispatcher) {
+        val savedState = SavedStateHandle()
+        auth.registerError = UnconfirmedRegistrationException(IOException("timeout"))
+        val vm = filled(savedState)
+        vm.onConsentChange(true)
+
+        vm.onSubmit()
+        advanceUntilIdle()
+        vm.onSubmit()
+        advanceUntilIdle()
+        // Android cerró la app: la contraseña no se guarda y se escribe de nuevo.
+        register(savedState).apply {
+            onPasswordChange(goodPassword)
+            onSubmit()
+        }
+        advanceUntilIdle()
+
+        assertEquals(3, auth.registered.size)
+        assertEquals(1, auth.registered.map { it.clientId }.distinct().size)
+        // Otro formulario es otro registro.
+        filled().apply {
+            onConsentChange(true)
+            onSubmit()
+        }
+        advanceUntilIdle()
+        assertEquals(2, auth.registered.map { it.clientId }.distinct().size)
     }
 
     @Test

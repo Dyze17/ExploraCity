@@ -25,6 +25,9 @@ object Users : Table("users") {
     val role = enumerationByName<Role>("role", ENUM_LENGTH).default(Role.USER)
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
+    /** El clientId del registro (V7): repetirlo con la misma contraseña abre la sesión en vez de email_taken. */
+    val clientId = javaUUID("client_id").nullable()
+
     override val primaryKey = PrimaryKey(id)
 }
 

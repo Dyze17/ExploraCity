@@ -7,12 +7,17 @@ import co.edu.uniquindio.exploracity.support.newPassword
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.Duration
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 /** 3 y 4 · Registro, inicio de sesión con el límite de intentos (A1), renovación (D1) y cierre de sesión. */
@@ -73,6 +78,66 @@ class SessionRoutesTest : ApiTest() {
 
         assertEquals(HttpStatusCode.Conflict, again.status)
         assertEquals("""{"code":"email_taken"}""", again.bodyAsText())
+    }
+
+    /** El registro de Ana Ríos con [clientId], como lo manda la app. */
+    private fun registration(password: String, clientId: String?, email: String = "ana.rios@correo.com"): String =
+        """{"name":"Ana Ríos","email":"$email","password":"$password","residency":"RESIDENT"""" +
+            clientId?.let { ""","clientId":"$it"""" }.orEmpty() + "}"
+
+    @Test
+    fun `repetir un registro cuya respuesta se perdió abre otra sesión en la misma cuenta`() = apiTest {
+        val password = newPassword()
+        val clientId = UUID.randomUUID().toString()
+        val first = post("/v1/auth/register", registration(password, clientId))
+
+        // La app se rindió antes de recibir la respuesta y lo intenta de nuevo, igual.
+        val again = post("/v1/auth/register", registration(password, clientId, email = " Ana.Rios@Correo.com "))
+
+        assertEquals(HttpStatusCode.Created, first.status)
+        assertEquals(HttpStatusCode.OK, again.status)
+        val created = first.session()
+        val reopened = again.session()
+        assertEquals(created.userId, reopened.userId)
+        assertNotEquals(created.refreshToken, reopened.refreshToken)
+        // La bienvenida la envió el primero: no se repite ni se informa.
+        assertFalse("welcomeEmailSent" in again.json().jsonObject)
+        assertEquals(1, sentTo("ana.rios@correo.com").size)
+        assertEquals(HttpStatusCode.OK, get("/v1/account", reopened.accessToken).status)
+    }
+
+    @Test
+    fun `sin el mismo clientId y la misma contraseña, el correo sigue teniendo cuenta`() = apiTest {
+        val password = newPassword()
+        val clientId = UUID.randomUUID().toString()
+        assertEquals(HttpStatusCode.Created, post("/v1/auth/register", registration(password, clientId)).status)
+        val laura = register("laura@correo.com")
+
+        val attempts = listOf(
+            registration(password, null),
+            registration(password, UUID.randomUUID().toString()),
+            registration(newPassword(), clientId),
+            // Una cuenta creada sin clientId no se abre con ninguno.
+            registration(laura.password, clientId, email = laura.email),
+        )
+
+        for (attempt in attempts) {
+            val response = post("/v1/auth/register", attempt)
+            assertEquals(HttpStatusCode.Conflict, response.status, attempt)
+            assertEquals("""{"code":"email_taken"}""", response.bodyAsText())
+        }
+        assertEquals(HttpStatusCode.BadRequest, post("/v1/auth/register", registration(password, "no-es-un-uuid")).status)
+    }
+
+    @Test
+    fun `dos envíos a la vez del mismo registro crean una sola cuenta y los dos abren sesión`() = apiTest {
+        val body = registration(newPassword(), UUID.randomUUID().toString())
+
+        val responses = coroutineScope { List(2) { async { post("/v1/auth/register", body) } }.awaitAll() }
+
+        assertEquals(listOf(HttpStatusCode.OK, HttpStatusCode.Created), responses.map { it.status }.sortedBy { it.value })
+        assertEquals(1, responses.map { it.session().userId }.distinct().size)
+        assertEquals(1, sentTo("ana.rios@correo.com").size)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.integration
 
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -25,13 +26,18 @@ interface MailClient {
     suspend fun send(message: MailMessage)
 }
 
-/** SendGrid (API v3). Sin seguimiento de clics: los enlaces llevan un token y no deben pasar por otro servidor. */
+/**
+ * SendGrid (API v3). Sin seguimiento de clics: los enlaces llevan un token y no deben pasar por otro servidor. Se envía
+ * dentro de la petición (la bienvenida al registrarse, el enlace de 5), así que espera poco: si la petición terminara
+ * después de que la app se rinde, la cuenta quedaría creada mientras la app dice que falló.
+ */
 class SendGridMailClient(
     private val http: HttpClient,
     private val apiKey: String,
     private val from: String,
     private val fromName: String,
     private val endpoint: String = ENDPOINT,
+    private val timeoutMillis: Long = TIMEOUT_MILLIS,
 ) : MailClient {
 
     override suspend fun send(message: MailMessage) {
@@ -47,6 +53,7 @@ class SendGridMailClient(
                 bearerAuth(apiKey)
                 contentType(ContentType.Application.Json)
                 setBody(body)
+                timeout { requestTimeoutMillis = timeoutMillis }
             }
         } catch (e: CancellationException) {
             throw e
@@ -58,6 +65,9 @@ class SendGridMailClient(
 
     private companion object {
         const val ENDPOINT = "https://api.sendgrid.com/v3/mail/send"
+
+        /** SendGrid suele aceptar un correo en menos de 1 s. */
+        const val TIMEOUT_MILLIS = 5_000L
     }
 }
 
