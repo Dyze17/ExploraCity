@@ -23,7 +23,10 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 
-/** Una cuenta tal como está guardada. [email] y [pendingEmail] van en minúscula. */
+/**
+ * Una cuenta tal como está guardada. [email] y [pendingEmail] van en minúscula. [clientId] es el del registro que la
+ * creó, si la app lo mandó.
+ */
 data class UserRecord(
     val id: UUID,
     val email: String,
@@ -36,6 +39,7 @@ data class UserRecord(
     val photoPublicId: String?,
     val role: Role,
     val createdAt: Instant,
+    val clientId: UUID? = null,
 )
 
 /** Ya hay una cuenta con ese correo (índice único sobre lower(email)). */
@@ -71,7 +75,15 @@ class UserRepository(private val database: Database) {
         Users.selectAll().where { Users.pendingEmail.lowerCase() eq email.lowercase() }.firstOrNull()?.toUser()
 
     /** Lanza [EmailTakenException] si otra cuenta se llevó el correo justo antes. */
-    fun create(email: String, passwordHash: String, name: String, residency: Residency, role: Role, createdAt: Instant): UserRecord {
+    fun create(
+        email: String,
+        passwordHash: String,
+        name: String,
+        residency: Residency,
+        role: Role,
+        createdAt: Instant,
+        clientId: UUID? = null,
+    ): UserRecord {
         val id = uniqueEmail {
             Users.insert {
                 it[Users.email] = email
@@ -80,6 +92,7 @@ class UserRepository(private val database: Database) {
                 it[Users.residency] = residency
                 it[Users.role] = role
                 it[Users.createdAt] = createdAt.atOffset(ZoneOffset.UTC)
+                it[Users.clientId] = clientId
             }[Users.id]
         }
         return checkNotNull(findById(id))
@@ -152,6 +165,7 @@ class UserRepository(private val database: Database) {
         photoPublicId = this[Users.photoPublicId],
         role = this[Users.role],
         createdAt = this[Users.createdAt].toInstant(),
+        clientId = this[Users.clientId],
     )
 
     private companion object {

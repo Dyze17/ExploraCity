@@ -47,24 +47,33 @@ class AuthService(
 ) {
     private val log = LoggerFactory.getLogger(AuthService::class.java)
 
-    /** 4 · Crea la cuenta y abre la sesión. Si el correo de bienvenida falla, la cuenta queda creada igual. */
-    suspend fun register(request: RegisterRequest): SessionResponse {
+    /**
+     * 4 · Crea la cuenta y abre la sesión; el segundo valor dice si la creó. Si el correo de bienvenida falla, la cuenta
+     * queda creada igual. Repetir un registro cuya respuesta se perdió (el mismo [RegisterRequest.clientId] y la misma
+     * contraseña) abre otra sesión en esa cuenta, sin crearla de nuevo.
+     */
+    suspend fun register(request: RegisterRequest): Pair<SessionResponse, Boolean> {
         val name = request.name.trim()
         val email = AccountRules.normalizeEmail(request.email)
         if (!AccountRules.isValidName(name)) throw ApiException.badRequest("invalid_name")
         if (!AccountRules.isValidEmail(email)) throw ApiException.badRequest("invalid_email")
         if (!AccountRules.isValidNewPassword(request.password)) throw ApiException.badRequest("weak_password")
+        val clientId = request.clientId?.let { runCatching { UUID.fromString(it) }.getOrNull() ?: throw ApiException.badRequest() }
         // Antes de calcular el hash, que tarda; al guardar, el índice único lo vuelve a comprobar.
-        if (database.query { users.findByEmail(email) } != null) throw emailTaken()
+        database.query { users.findByEmail(email) }?.let { existing ->
+            return repeated(existing, clientId, request.password) to false
+        }
         val hash = passwords.hash(request.password)
         val session = try {
             database.query {
-                val user = users.create(email, hash, name, request.residency, security.roleFor(email), clock.instant())
+                val user = users.create(email, hash, name, request.residency, security.roleFor(email), clock.instant(), clientId)
                 attempts.clear(email)
                 issue(user).second
             }
         } catch (e: EmailTakenException) {
-            throw emailTaken()
+            // Otra petición la creó mientras tanto: puede ser el primer intento de este mismo registro.
+            val existing = database.query { users.findByEmail(email) } ?: throw emailTaken()
+            return repeated(existing, clientId, request.password) to false
         }
         val sent = try {
             mail.welcome(email, name)
@@ -73,7 +82,18 @@ class AuthService(
             log.warn("No salió el correo de bienvenida; la cuenta quedó creada.", e)
             false
         }
-        return session.copy(welcomeEmailSent = sent)
+        return session.copy(welcomeEmailSent = sent) to true
+    }
+
+    /**
+     * 4 · El correo ya tiene cuenta. Si la creó un registro con el mismo [clientId] y la contraseña coincide, es el mismo
+     * intento cuya respuesta se perdió: abre otra sesión, sin `welcomeEmailSent` (la bienvenida la envió el primero).
+     * Si no, email_taken. Sin el clientId, que solo conoce el teléfono que lo generó, no sirve para probar contraseñas.
+     */
+    private suspend fun repeated(existing: UserRecord, clientId: UUID?, password: String): SessionResponse {
+        val sameRegistration = clientId != null && existing.clientId == clientId && passwords.verify(password, existing.passwordHash)
+        if (!sameRegistration) throw emailTaken()
+        return database.query { issue(existing).second }
     }
 
     /**

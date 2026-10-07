@@ -21,7 +21,8 @@ import io.ktor.server.routing.route
 fun Route.authRoutes(auth: AuthService) {
     route("/auth") {
         post("/register") {
-            call.respond(HttpStatusCode.Created, auth.register(call.receive<RegisterRequest>()))
+            val (session, created) = auth.register(call.receive<RegisterRequest>())
+            call.respond(if (created) HttpStatusCode.Created else HttpStatusCode.OK, session)
         }
         post("/login") {
             call.respond(auth.login(call.receive<LoginRequest>()))

@@ -100,7 +100,7 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 
 | Método y ruta | Acceso | Cuerpo | Respuesta | Ejemplo |
 |---|---|---|---|---|
-| `POST /v1/auth/register` | Pública | `{ "name", "email", "password", "residency" }` | `201` con la sesión y `welcomeEmailSent`. Si el correo de bienvenida no sale, la cuenta se crea igual y llega `false` | [`register.json`](ejemplos/register.json) |
+| `POST /v1/auth/register` | Pública | `{ "name", "email", "password", "residency", "clientId" }` | `201` con la sesión y `welcomeEmailSent`. Si el correo de bienvenida no sale, la cuenta se crea igual y llega `false`. Repetido con el mismo `clientId` y la misma contraseña, `200` con una sesión nueva en esa cuenta y sin `welcomeEmailSent` | [`register.json`](ejemplos/register.json) |
 | `POST /v1/auth/login` | Pública | `{ "email", "password" }` | `200` con la sesión | [`session.json`](ejemplos/session.json) |
 | `POST /v1/auth/refresh` | Pública | `{ "refreshToken" }` | `200` con una sesión nueva; el token usado deja de servir | [`session.json`](ejemplos/session.json) |
 | `POST /v1/auth/logout` | Pública | `{ "refreshToken" }` | `204`, también si el token ya estaba cerrado | — |
@@ -108,6 +108,8 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 La sesión trae los dos tokens, `expiresIn` (segundos del token de acceso), la persona (`userId`, `role`) y su cuenta (`email` y, con un cambio pedido, `pendingEmail`). La app la guarda con la sesión.
 
 `residency` es `RESIDENT` o `VISITOR` («¿Cómo te presentas?»).
+
+`clientId`, opcional, es un UUID que pone la app y repite en cada intento del mismo formulario. Si la respuesta del registro se perdió (la API terminó después de que la app se rindió), repetirlo abre la sesión en vez de responder `409 email_taken`. Con otro `clientId`, sin él o con otra contraseña, el correo ya tiene cuenta: `409 email_taken`.
 
 ### Recuperar la contraseña (5, 6 y 6C)
 
