@@ -97,6 +97,7 @@ import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.ui.components.LevelChip
 import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
+import co.edu.uniquindio.exploracity.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
@@ -341,7 +342,7 @@ private fun Gallery(details: PoiDetails) {
     Box(Modifier.fillMaxWidth().height(200.dp)) {
         HorizontalPager(pagerState, Modifier.fillMaxSize()) { page ->
             val description = stringResource(R.string.detail_photo_description, photos[page].description, page + 1, photos.size)
-            // Sin API todavía no hay imágenes: el contenedor neutro con la cámara ocupa su lugar.
+            // El contenedor neutro con la cámara queda mientras carga o si no se puede descargar.
             Box(
                 Modifier
                     .fillMaxSize()
@@ -353,6 +354,7 @@ private fun Gallery(details: PoiDetails) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(painterResource(R.drawable.ic_photo_camera), null, tint = MaterialTheme.exploraColors.textPlaceholder, modifier = Modifier.size(40.dp))
+                RemotePhoto(photos[page].url)
             }
         }
         if (photos.size > 1) {

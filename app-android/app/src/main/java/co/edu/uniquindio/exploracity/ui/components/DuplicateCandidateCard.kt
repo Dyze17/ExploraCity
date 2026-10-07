@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -74,7 +75,7 @@ fun DuplicateCandidateCard(number: Int, place: SimilarPlace, onOpen: () -> Unit,
         val photo = @Composable {
             // El número sobresale de la esquina de la foto, como en el lienzo.
             Box(Modifier.padding(top = 6.dp, start = 6.dp)) {
-                Box(Modifier.size(56.dp).background(scheme.surfaceContainerHigh, RoundedCornerShape(12.dp)))
+                Box(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(scheme.surfaceContainerHigh)) { RemotePhoto(place.photoUrl) }
                 Box(Modifier.offset(x = (-6).dp, y = (-6).dp)) { NumberPin(number, size = 22.dp) }
             }
         }

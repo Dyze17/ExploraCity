@@ -32,29 +32,29 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Miniatura de una foto del teléfono (19.b), decodificada al tamaño en que se ve. Mientras carga, o si no se puede leer,
- * queda el fondo. Decorativa: la fila que la contiene dice de qué foto se trata.
+ * Miniatura de una foto: del teléfono (19.b), decodificada al tamaño en que se ve, o ya publicada (23, 32), descargada
+ * del servidor. Mientras carga, o si no se puede leer, queda el fondo. Decorativa: la fila que la contiene dice de qué
+ * foto se trata.
  */
 @Composable
 fun PhotoThumbnail(path: String, modifier: Modifier = Modifier, size: Dp = 72.dp) {
-    val bitmap = rememberLocalPhoto(path, size)
     Box(
         modifier.size(size).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
-        val image = bitmap
-        if (image != null) {
-            Image(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-        } else if (path.isEmpty()) {
-            // Ya publicada (23): la imagen está en el servidor y aún no se descarga.
-            Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(28.dp))
+        when {
+            isRemotePhoto(path) -> RemotePhoto(path)
+            path.isEmpty() -> Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(28.dp))
+            else -> rememberLocalPhoto(path, size)?.let { image ->
+                Image(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            }
         }
     }
 }
 
 /**
  * Una foto del teléfono decodificada al tamaño en que se ve (recortada al cuadrado); null mientras carga o si no se puede
- * leer. Para las rutas que no son del teléfono (las URL del servidor) también es null: aún no hay quien las descargue.
+ * leer. Las URL del servidor no pasan por aquí: las descarga [RemotePhoto].
  */
 @Composable
 internal fun rememberLocalPhoto(path: String, size: Dp): ImageBitmap? {

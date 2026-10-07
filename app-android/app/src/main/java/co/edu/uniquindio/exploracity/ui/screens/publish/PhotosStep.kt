@@ -194,7 +194,7 @@ private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpl
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PhotoThumbnail(photo.path)
+        PhotoThumbnail(photo.path.ifEmpty { photo.remoteUrl.orEmpty() })
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             FlowRow(
                 Modifier.clearAndSetSemantics { contentDescription = spoken },

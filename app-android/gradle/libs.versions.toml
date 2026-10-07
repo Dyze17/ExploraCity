@@ -16,6 +16,7 @@ room = "2.8.5"
 work = "2.12.0"
 mapsCompose = "8.6.0"
 playServicesLocation = "21.4.0"
+coil = "3.6.3"
 junit = "4.13.2"
 androidxJunit = "1.3.0"
 espresso = "3.7.0"
@@ -63,6 +64,10 @@ androidx-work-runtime = { group = "androidx.work", name = "work-runtime", versio
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 # data/location · La ubicación del teléfono (FusedLocationProvider).
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+
+# Fotos publicadas: Coil las descarga con Ktor y las guarda en disco para verlas sin conexión.
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
 
 # Pruebas
 junit = { group = "junit", name = "junit", version.ref = "junit" }

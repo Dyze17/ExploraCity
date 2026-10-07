@@ -93,6 +93,7 @@ import co.edu.uniquindio.exploracity.ui.components.InitialsAvatar
 import co.edu.uniquindio.exploracity.ui.components.LevelChip
 import co.edu.uniquindio.exploracity.ui.components.NoNavigationBarScrim
 import co.edu.uniquindio.exploracity.ui.components.PhotoViewer
+import co.edu.uniquindio.exploracity.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.ui.components.SheetHandle
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
@@ -362,18 +363,18 @@ private fun Gallery(item: ReviewItem, onOpen: (Int) -> Unit) {
     if (photos.isEmpty()) return
     val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     Row(Modifier.fillMaxWidth().height(if (stacked) 180.dp else 140.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PhotoTile(0, photos.size, Modifier.weight(2f).fillMaxSize(), onOpen)
+        PhotoTile(0, photos.size, photos[0].url, Modifier.weight(2f).fillMaxSize(), onOpen)
         if (photos.size > 1) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                photos.indices.drop(1).take(2).forEach { index -> PhotoTile(index, photos.size, Modifier.weight(1f).fillMaxWidth(), onOpen) }
+                photos.indices.drop(1).take(2).forEach { index -> PhotoTile(index, photos.size, photos[index].url, Modifier.weight(1f).fillMaxWidth(), onOpen) }
             }
         }
     }
 }
 
-/** Una foto de la galería: sin API todavía no hay imagen; el lector oye cuál es y que se abre a pantalla completa. */
+/** Una foto de la galería, con la cámara mientras carga; el lector oye cuál es y que se abre a pantalla completa. */
 @Composable
-private fun PhotoTile(index: Int, count: Int, modifier: Modifier, onOpen: (Int) -> Unit) {
+private fun PhotoTile(index: Int, count: Int, url: String, modifier: Modifier, onOpen: (Int) -> Unit) {
     val name = if (index == 0) stringResource(R.string.review_photo_cover, index + 1, count) else stringResource(R.string.review_photo, index + 1, count)
     val action = stringResource(R.string.review_photo_open)
     Box(
@@ -388,6 +389,7 @@ private fun PhotoTile(index: Int, count: Int, modifier: Modifier, onOpen: (Int) 
         contentAlignment = Alignment.Center,
     ) {
         Icon(painterResource(R.drawable.ic_photo_camera), null, tint = MaterialTheme.exploraColors.textPlaceholder, modifier = Modifier.size(32.dp))
+        RemotePhoto(url)
     }
 }
 

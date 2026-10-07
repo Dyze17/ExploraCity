@@ -96,6 +96,7 @@ import co.edu.uniquindio.exploracity.ui.components.FiltersBottomSheet
 import co.edu.uniquindio.exploracity.ui.components.FiltersButton
 import co.edu.uniquindio.exploracity.ui.components.ListMapToggle
 import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
+import co.edu.uniquindio.exploracity.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.ui.components.colors
@@ -764,12 +765,12 @@ private fun PlaceSummary(poi: Poi, onOpen: () -> Unit) {
             }
             if (stacked) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PhotoPlaceholder(Modifier.fillMaxWidth().height(128.dp))
+                    PlacePhoto(poi.photoUrl, Modifier.fillMaxWidth().height(128.dp))
                     info(Modifier.fillMaxWidth())
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PhotoPlaceholder(Modifier.size(80.dp))
+                    PlacePhoto(poi.photoUrl, Modifier.size(80.dp))
                     info(Modifier.weight(1f))
                 }
             }
@@ -801,8 +802,8 @@ private fun PlaceFacts(poi: Poi) {
 }
 
 @Composable
-private fun PhotoPlaceholder(modifier: Modifier) {
-    Box(modifier.clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh))
+private fun PlacePhoto(url: String?, modifier: Modifier) {
+    Box(modifier.clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh)) { RemotePhoto(url) }
 }
 
 /** Silueta de la tarjeta mientras busca (8.b). Sin semántica: el anuncio lo hace la píldora del área. */

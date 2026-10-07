@@ -101,6 +101,7 @@ import co.edu.uniquindio.exploracity.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.ui.components.POICard
 import co.edu.uniquindio.exploracity.ui.components.POICardSkeleton
 import co.edu.uniquindio.exploracity.ui.components.PublishFab
+import co.edu.uniquindio.exploracity.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.ui.components.dashedBorder
 import co.edu.uniquindio.exploracity.ui.components.labelRes
@@ -399,6 +400,7 @@ private fun SavedList(places: SavedPlaces, onOpenPoi: (String) -> Unit, banner: 
                 comments = poi.comments,
                 onClick = { onOpenPoi(poi.id) },
                 saved = poi.id in places.withDetails,
+                photo = { RemotePhoto(poi.photoUrl) },
             )
         }
         item(key = "note") { SavedNote() }
@@ -612,6 +614,7 @@ private fun PoiItem(poi: Poi, onOpenPoi: (String) -> Unit) {
         comments = poi.comments,
         onClick = { onOpenPoi(poi.id) },
         modifier = Modifier.fillMaxWidth(),
+        photo = { RemotePhoto(poi.photoUrl) },
     )
 }
 

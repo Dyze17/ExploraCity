@@ -8,7 +8,6 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -50,8 +50,8 @@ import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 
 /**
  * Fotos a pantalla completa (33: «cada foto es tocable a pantalla completa con zoom»): se pasan con el dedo, se acercan
- * pellizcando o tocando dos veces, y se cierran con la X o con «atrás». Sin API todavía no hay imágenes: cada página
- * muestra el contenedor con la cámara, que también se acerca.
+ * pellizcando o tocando dos veces, y se cierran con la X o con «atrás». Mientras una foto carga, o si no se puede
+ * descargar, su página muestra la cámara, que también se acerca.
  */
 @Composable
 fun PhotoViewer(photos: List<PublishedPhoto>, startIndex: Int, onDismiss: () -> Unit) {
@@ -61,7 +61,7 @@ fun PhotoViewer(photos: List<PublishedPhoto>, startIndex: Int, onDismiss: () -> 
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             HorizontalPager(pagerState, Modifier.fillMaxSize()) { page ->
                 val description = stringResource(R.string.review_photo, page + 1, photos.size)
-                ZoomablePhoto(description)
+                ZoomablePhoto(photos[page].url, description)
             }
             Row(
                 Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing).padding(8.dp),
@@ -90,7 +90,7 @@ fun PhotoViewer(photos: List<PublishedPhoto>, startIndex: Int, onDismiss: () -> 
 
 /** Una página con zoom de 1× a 4×; con zoom, el dedo mueve la foto en lugar de pasar a la siguiente. */
 @Composable
-private fun ZoomablePhoto(description: String) {
+private fun ZoomablePhoto(url: String, description: String) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     Box(
@@ -123,11 +123,12 @@ private fun ZoomablePhoto(description: String) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            Modifier.graphicsLayer(scaleX = scale, scaleY = scale, translationX = offset.x, translationY = offset.y),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
+            Modifier.fillMaxSize().graphicsLayer(scaleX = scale, scaleY = scale, translationX = offset.x, translationY = offset.y),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(painterResource(R.drawable.ic_photo_camera), null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(72.dp))
+            RemotePhoto(url, contentScale = ContentScale.Fit)
         }
     }
 }

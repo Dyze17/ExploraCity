@@ -105,6 +105,9 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.play.services.location)
 
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.ktor3)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
