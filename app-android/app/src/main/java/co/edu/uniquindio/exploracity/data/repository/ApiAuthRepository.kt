@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.data.remote.ApiException
 import co.edu.uniquindio.exploracity.data.remote.ApiSession
 import co.edu.uniquindio.exploracity.data.remote.AuthApi
 import co.edu.uniquindio.exploracity.data.remote.dto.RegisterRequest
+import co.edu.uniquindio.exploracity.data.remote.mayHaveReachedApi
 import co.edu.uniquindio.exploracity.domain.model.EmailDeliveryException
 import co.edu.uniquindio.exploracity.domain.model.EmailTakenException
 import co.edu.uniquindio.exploracity.domain.model.ExpiredLinkException
@@ -13,8 +14,10 @@ import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.ResetLink
 import co.edu.uniquindio.exploracity.domain.model.SessionEndedException
 import co.edu.uniquindio.exploracity.domain.model.TooManyAttemptsException
+import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.CancellationException
+import java.io.IOException
 
 /**
  * Acceso con la API (SAD: componente de Usuarios, ADR-06). Al entrar o registrarse guarda la sesión ([ApiSession]):
@@ -44,9 +47,17 @@ class ApiAuthRepository(private val api: AuthApi, private val session: ApiSessio
         session.start(renewed)
     }
 
-    /** 4 · El rol lo decide la API: los moderadores son los correos de su lista. */
+    /**
+     * 4 · El rol lo decide la API: los moderadores son los correos de su lista. Sin respuesta lanza
+     * [UnconfirmedRegistrationException]: la API pudo crear la cuenta después de que la app se rindió.
+     */
     override suspend fun register(account: NewAccount): Registration = translatingErrors {
-        val opened = api.register(RegisterRequest(account.name.trim(), account.email.trim(), account.password, account.residency))
+        val request = RegisterRequest(account.name.trim(), account.email.trim(), account.password, account.residency)
+        val opened = try {
+            api.register(request)
+        } catch (e: IOException) {
+            throw if (e.mayHaveReachedApi()) UnconfirmedRegistrationException(e) else e
+        }
         session.start(opened)
         Registration(opened.role, welcomeEmailSent = opened.welcomeEmailSent ?: true)
     }

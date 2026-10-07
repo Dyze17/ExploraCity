@@ -6,6 +6,8 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandler
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.HttpTimeoutCapability
+import io.ktor.client.plugins.HttpTimeoutConfig
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -56,6 +58,20 @@ class ApiClientTest {
 
         assertEquals(502, error.status)
         assertEquals("http_502", error.code)
+    }
+
+    @Test
+    fun `espera la respuesta hasta 20 s, también entre paquetes`() = runTest {
+        var timeouts: HttpTimeoutConfig? = null
+
+        api { request ->
+            timeouts = request.getCapabilityOrNull(HttpTimeoutCapability)
+            respond(contractExample("city.json"), HttpStatusCode.OK, json)
+        }.city()
+
+        assertEquals(20_000L, timeouts?.requestTimeoutMillis)
+        // Sin él, OkHttp se rinde a los 10 s sin recibir nada, aunque la petición tenga 20 s.
+        assertEquals(20_000L, timeouts?.socketTimeoutMillis)
     }
 
     private suspend fun failure(block: suspend () -> Unit): ApiException =

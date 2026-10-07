@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.EmailTakenException
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -185,7 +186,7 @@ class RegisterViewModelTest {
         advanceUntilIdle()
 
         assertTrue(vm.state.value.offline)
-        assertFalse(vm.state.value.failed)
+        assertNull(vm.state.value.failure)
     }
 
     @Test
@@ -197,12 +198,34 @@ class RegisterViewModelTest {
         vm.onSubmit()
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.failed)
+        assertEquals(RegisterFailure.NOT_CREATED, vm.state.value.failure)
         assertEquals(" pedro@correo.com ", vm.state.value.email)
         assertEquals(goodPassword, vm.state.value.password)
         assertNull(sessions.current.value)
         vm.onFailureDismissed()
-        assertFalse(vm.state.value.failed)
+        assertNull(vm.state.value.failure)
+    }
+
+    @Test
+    fun `si el servidor no respondió no dice que la cuenta no se creó, y se puede intentar de nuevo`() = runTest(dispatcher) {
+        auth.registerError = UnconfirmedRegistrationException(IOException("timeout"))
+        val vm = filled()
+        vm.onConsentChange(true)
+
+        vm.onSubmit()
+        advanceUntilIdle()
+
+        assertEquals(RegisterFailure.UNCONFIRMED, vm.state.value.failure)
+        assertNull(sessions.current.value)
+        assertTrue(vm.state.value.canSubmit)
+
+        // La primera petición sí la creó: el reintento ofrece iniciar sesión con ese correo.
+        auth.registerError = EmailTakenException()
+        vm.onSubmit()
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.failure)
+        assertTrue(vm.state.value.emailTaken)
     }
 
     @Test

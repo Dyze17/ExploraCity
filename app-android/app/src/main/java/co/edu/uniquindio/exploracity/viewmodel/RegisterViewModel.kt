@@ -20,6 +20,7 @@ import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.ProfileLimits
 import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +28,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class RegisterField { NAME, EMAIL, PASSWORD }
+
+/** Por qué no se entró: la API respondió que no creó la cuenta, o no respondió y puede que sí la haya creado. */
+enum class RegisterFailure { NOT_CREATED, UNCONFIRMED }
 
 data class RegisterUiState(
     val name: String = "",
@@ -44,7 +48,7 @@ data class RegisterUiState(
     val submitting: Boolean = false,
     val offline: Boolean = false,
     /** Otro fallo: el aviso queda hasta que la persona lo cierra, y lo escrito sigue ahí. */
-    val failed: Boolean = false,
+    val failure: RegisterFailure? = null,
     val focusField: RegisterField? = null,
     val focusRequest: Int = 0,
     val registered: Registration? = null,
@@ -80,7 +84,8 @@ data class RegisterUiState(
 /**
  * 4 · Registro con autorización de datos. Al crear la cuenta abre la sesión y marca el onboarding como visto, como el
  * inicio de sesión (3). Si el correo ya tiene cuenta lo dice junto al campo; si falla el correo de bienvenida la cuenta
- * queda igual (lo dice el feed). La contraseña no se guarda al recrear la pantalla; lo demás sí.
+ * queda igual (lo dice el feed). Si el servidor no respondió, no dice que la cuenta no se creó: puede que sí. La
+ * contraseña no se guarda al recrear la pantalla; lo demás sí.
  */
 class RegisterViewModel(
     private val auth: AuthRepository,
@@ -159,7 +164,7 @@ class RegisterViewModel(
         }
         // El texto bajo el botón ya dice que falta la autorización.
         if (!state.consent) return
-        _state.update { it.copy(submitting = true, failed = false) }
+        _state.update { it.copy(submitting = true, failure = null) }
         viewModelScope.launch {
             val account = NewAccount(state.name.trim(), state.email.trim(), state.password, state.residency)
             val result = catchingNonCancellation { auth.register(account).also { prepare() } }
@@ -180,12 +185,13 @@ class RegisterViewModel(
                         focusRequest = it.focusRequest + 1,
                     )
                 }
-                else -> _state.update { it.copy(submitting = false, failed = true) }
+                is UnconfirmedRegistrationException -> _state.update { it.copy(submitting = false, failure = RegisterFailure.UNCONFIRMED) }
+                else -> _state.update { it.copy(submitting = false, failure = RegisterFailure.NOT_CREATED) }
             }
         }
     }
 
-    fun onFailureDismissed() = _state.update { it.copy(failed = false) }
+    fun onFailureDismissed() = _state.update { it.copy(failure = null) }
 
     companion object {
         private const val NAME_KEY = "nombre"

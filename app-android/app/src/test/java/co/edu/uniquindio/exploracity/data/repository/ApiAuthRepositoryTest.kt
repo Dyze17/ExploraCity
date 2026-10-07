@@ -24,8 +24,11 @@ import co.edu.uniquindio.exploracity.domain.model.ResetLink
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.SessionEndedException
 import co.edu.uniquindio.exploracity.domain.model.TooManyAttemptsException
+import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import io.ktor.client.engine.mock.MockRequestHandleScope
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.HttpResponseData
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.first
@@ -36,6 +39,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.time.Instant
 
 /** 1, 3, 4, 5, 6 y 6C con la API: la sesión que se guarda y los errores que ya explican las pantallas. */
@@ -107,6 +113,28 @@ class ApiAuthRepositoryTest {
         val registration = repository.register(NewAccount("Ana Ríos", "ana.rios@correo.com", password, Residency.RESIDENT))
 
         assertEquals(Registration(UserRole.USER, welcomeEmailSent = false), registration)
+    }
+
+    @Test
+    fun `si la API no respondió, no se sabe si la cuenta quedó creada`() = runTest {
+        val account = NewAccount("Ana Ríos", "ana.rios@correo.com", password, Residency.RESIDENT)
+        val noAnswer = listOf(
+            HttpRequestTimeoutException("http://localhost:8080/v1/auth/register", 20_000),
+            SocketTimeoutException("timeout"),
+            IOException("unexpected end of stream"),
+        )
+        val neverArrived = listOf(ConnectException("Failed to connect"), ConnectTimeoutException("connect timeout"), UnknownHostException("api"))
+
+        for (cause in noAnswer) {
+            val error = failure { auth { throw cause }.register(account) }
+            assertTrue("$cause", error is UnconfirmedRegistrationException)
+        }
+        // Un pedido que ni siquiera conectó nunca llegó: la cuenta no se creó.
+        for (cause in neverArrived) {
+            val error = failure { auth { throw cause }.register(account) }
+            assertTrue("$cause", error !is UnconfirmedRegistrationException && error is IOException)
+        }
+        assertNull(stores.tokens.tokens())
     }
 
     @Test

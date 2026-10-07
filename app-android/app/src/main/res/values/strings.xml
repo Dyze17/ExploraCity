@@ -1115,6 +1115,8 @@
     <string name="register_offline">Sin conexión. Necesitas internet para crear tu cuenta.</string>
     <string name="register_offline_reason">necesitas internet para crear tu cuenta</string>
     <string name="register_failed">Algo falló de nuestro lado y tu cuenta no se creó. Intenta de nuevo en un momento.</string>
+    <!-- No está en el diseño: la API no respondió a tiempo y la cuenta pudo quedar creada después. -->
+    <string name="register_unconfirmed">No sabemos si tu cuenta se creó: el servidor tardó en responder. Intenta de nuevo en un momento; si ya quedó, podrás iniciar sesión con este correo.</string>
     <string name="register_ready">Tu cuenta quedó lista</string>
     <string name="register_welcome_failed">No pudimos enviar el correo de bienvenida; tu cuenta ya está activa</string>
 

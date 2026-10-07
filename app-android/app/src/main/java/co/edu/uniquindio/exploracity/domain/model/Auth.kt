@@ -34,6 +34,12 @@ class InvalidCredentialsException : Exception("Credenciales incorrectas")
 /** 4 · Ya hay una cuenta con ese correo: el registro lo dice junto al campo y ofrece iniciar sesión. */
 class EmailTakenException : Exception("El correo ya tiene cuenta")
 
+/**
+ * 4 · La API no respondió a tiempo: la cuenta pudo quedar creada después de que la app se rindió. El registro no dice
+ * que falló; si al intentarlo de nuevo el correo ya tiene cuenta, ofrece iniciar sesión.
+ */
+class UnconfirmedRegistrationException(cause: Throwable) : Exception("No se sabe si la cuenta quedó creada", cause)
+
 /** 5 y 6.a · El servicio de correo no pudo enviar el enlace. */
 class EmailDeliveryException : Exception("No se pudo enviar el correo")
 

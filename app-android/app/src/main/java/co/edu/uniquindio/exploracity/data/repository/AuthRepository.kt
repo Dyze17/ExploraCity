@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.ResetLink
+import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 
 /** Acceso (SAD: componente de Usuarios, JWT emitido por el backend). */
@@ -21,7 +22,8 @@ interface AuthRepository {
 
     /**
      * 4 · Crea la cuenta, siempre con rol de usuario: los moderadores vienen precargados (SAD). Lanza
-     * [EmailTakenException] si el correo ya tiene cuenta. Si falla el correo de bienvenida, la cuenta se crea igual.
+     * [EmailTakenException] si el correo ya tiene cuenta, y [UnconfirmedRegistrationException] si el servidor no respondió
+     * y no se sabe si la creó. Si falla el correo de bienvenida, la cuenta se crea igual.
      */
     suspend fun register(account: NewAccount): Registration
 

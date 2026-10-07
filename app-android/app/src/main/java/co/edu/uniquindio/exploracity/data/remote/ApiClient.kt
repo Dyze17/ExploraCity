@@ -17,6 +17,9 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.IOException
+import java.net.ConnectException
+import java.net.UnknownHostException
 
 /**
  * La API respondió con un error (docs/api): [status] HTTP y [code] estable, que cada repositorio traduce a su
@@ -48,6 +51,8 @@ fun apiHttpClient(
     install(HttpTimeout) {
         connectTimeoutMillis = CONNECT_TIMEOUT_MS
         requestTimeoutMillis = REQUEST_TIMEOUT_MS
+        // Sin esto rige el de OkHttp (10 s sin recibir nada) y la app se rendía antes de los 20 s.
+        socketTimeoutMillis = REQUEST_TIMEOUT_MS
     }
     defaultRequest { url(baseUrl) }
     HttpResponseValidator {
@@ -68,6 +73,12 @@ fun apiHttpClient(
 internal fun HttpRequestBuilder.withoutSession() {
     attributes.put(AuthCircuitBreaker, Unit)
 }
+
+/**
+ * El pedido pudo llegar a la API aunque no hubo respuesta: se agotó el tiempo o la conexión se cortó esperándola. Si
+ * cambiaba algo (crear la cuenta), no se sabe si se cumplió. Uno que ni siquiera conectó nunca llegó.
+ */
+internal fun IOException.mayHaveReachedApi(): Boolean = this !is ConnectException && this !is UnknownHostException
 
 /** Un cuerpo JSON. */
 internal inline fun <reified T> HttpRequestBuilder.jsonBody(body: T) {
