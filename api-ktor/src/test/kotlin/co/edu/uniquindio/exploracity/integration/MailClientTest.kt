@@ -8,10 +8,12 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandler
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -30,11 +32,12 @@ class MailClientTest {
     private val apiKey = randomSecret()
     private val message = MailMessage("ana@correo.com", "Asunto", "Texto plano", "<p>HTML</p>")
 
-    private fun sendGrid(handler: MockRequestHandler): SendGridMailClient {
+    private fun sendGrid(timeoutMillis: Long = 5_000, handler: MockRequestHandler): SendGridMailClient {
         val http = HttpClient(MockEngine(handler)) {
             install(ContentNegotiation) { json(Json { explicitNulls = false }) }
+            install(HttpTimeout)
         }
-        return SendGridMailClient(http, apiKey, "hola@exploracity.co", "ExploraCity")
+        return SendGridMailClient(http, apiKey, "hola@exploracity.co", "ExploraCity", timeoutMillis = timeoutMillis)
     }
 
     @Test
@@ -66,6 +69,16 @@ class MailClientTest {
     fun `si SendGrid responde con error o no responde, el correo no salió`() = runBlocking<Unit> {
         assertFailsWith<MailDeliveryException> { sendGrid { respond("", HttpStatusCode.Unauthorized) }.send(message) }
         assertFailsWith<MailDeliveryException> { sendGrid { throw IOException("sin red") }.send(message) }
+    }
+
+    @Test
+    fun `si SendGrid tarda, el correo no salió y la petición no lo sigue esperando`() = runBlocking<Unit> {
+        assertFailsWith<MailDeliveryException> {
+            sendGrid(timeoutMillis = 50) {
+                delay(1_000)
+                respond("", HttpStatusCode.Accepted)
+            }.send(message)
+        }
     }
 
     @Test

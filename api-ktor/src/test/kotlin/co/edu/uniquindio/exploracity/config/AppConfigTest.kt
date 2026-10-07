@@ -33,6 +33,26 @@ class AppConfigTest {
     }
 
     @Test
+    fun `la base de datos responde con un error antes de que la app se rinda`() {
+        val default = load("exploracity.jwt.secret" to randomSecret()).database
+        val configured = load(
+            "exploracity.jwt.secret" to randomSecret(),
+            "exploracity.database.connectionTimeoutSeconds" to "3",
+            "exploracity.database.statementTimeoutSeconds" to "8",
+        ).database
+
+        assertEquals(Duration.ofSeconds(5), default.connectionTimeout)
+        assertEquals(Duration.ofSeconds(5), default.statementTimeout)
+        assertEquals(Duration.ofSeconds(3), configured.connectionTimeout)
+        assertEquals(Duration.ofSeconds(8), configured.statementTimeout)
+        // 0 sería esperar sin límite.
+        val error = assertFailsWith<IllegalStateException> {
+            load("exploracity.jwt.secret" to randomSecret(), "exploracity.database.statementTimeoutSeconds" to "0")
+        }
+        assertTrue("DATABASE_STATEMENT_TIMEOUT_SECONDS" in error.message.orEmpty())
+    }
+
+    @Test
     fun `sin una clave del JWT larga la API no arranca`() {
         val error = assertFailsWith<IllegalStateException> { load("exploracity.jwt.secret" to "corta") }
         assertTrue("JWT_SECRET" in error.message.orEmpty())

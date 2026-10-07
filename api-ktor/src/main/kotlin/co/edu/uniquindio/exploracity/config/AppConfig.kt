@@ -32,6 +32,8 @@ data class AppConfig(
                     user = database.property("user").getString(),
                     password = database.property("password").getString(),
                     maxPoolSize = database.property("maxPoolSize").getString().toInt(),
+                    connectionTimeout = Duration.ofSeconds(database.property("connectionTimeoutSeconds").getString().toLong()),
+                    statementTimeout = Duration.ofSeconds(database.property("statementTimeoutSeconds").getString().toLong()),
                 ),
                 jwt = JwtSettings(
                     secret = jwt.property("secret").getString(),
@@ -84,7 +86,30 @@ data class AppConfig(
     }
 }
 
-data class DatabaseSettings(val url: String, val user: String, val password: String, val maxPoolSize: Int = 10)
+/**
+ * La base de datos (ADR-04). [connectionTimeout] es lo más que una petición espera una conexión del pool y
+ * [statementTimeout] lo más que dura cada consulta: así, con la base caída o lenta, la API responde con un error antes
+ * de que la app se rinda, en vez de terminar el trabajo cuando ya nadie espera la respuesta.
+ */
+data class DatabaseSettings(
+    val url: String,
+    val user: String,
+    val password: String,
+    val maxPoolSize: Int = 10,
+    val connectionTimeout: Duration = DEFAULT_TIMEOUT,
+    val statementTimeout: Duration = DEFAULT_TIMEOUT,
+) {
+    init {
+        // Hikari y PostgreSQL toman 0 como «sin límite»: justo lo que se quiere evitar.
+        check(connectionTimeout >= MIN_TIMEOUT) { "DATABASE_CONNECTION_TIMEOUT_SECONDS debe ser de al menos 1 segundo." }
+        check(statementTimeout >= MIN_TIMEOUT) { "DATABASE_STATEMENT_TIMEOUT_SECONDS debe ser de al menos 1 segundo." }
+    }
+
+    companion object {
+        val DEFAULT_TIMEOUT: Duration = Duration.ofSeconds(5)
+        private val MIN_TIMEOUT: Duration = Duration.ofSeconds(1)
+    }
+}
 
 data class JwtSettings(
     val secret: String,

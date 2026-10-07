@@ -19,9 +19,12 @@ object TestDatabase {
 
     private val container: PostgreSQLContainer by lazy { PostgreSQLContainer(image).also { it.start() } }
 
-    val database: Database by lazy {
-        DatabaseFactory.connect(DatabaseSettings(container.jdbcUrl, container.username, container.password, maxPoolSize = 4))
+    /** La conexión al contenedor, con la configuración por omisión del pool. */
+    val settings: DatabaseSettings by lazy {
+        DatabaseSettings(container.jdbcUrl, container.username, container.password, maxPoolSize = 4)
     }
+
+    val database: Database by lazy { DatabaseFactory.connect(settings) }
 
     /** En el CI siempre hay Docker y nada se omite; aquí, sin Docker, las pruebas con base de datos se saltan. */
     fun assumeAvailable() {
