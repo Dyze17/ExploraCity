@@ -34,6 +34,7 @@ class AccessViewModelsTest {
     private val preferences = MemoryAccessPreferences()
     private val sessions = MemorySessions()
     private val auth = FakeAuth()
+    private val google = FakeGoogleAuth()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -66,7 +67,7 @@ class AccessViewModelsTest {
         },
     )
 
-    private fun login(savedState: SavedStateHandle = SavedStateHandle()) = LoginViewModel(auth, sessions, preferences, connectivity, savedState) {
+    private fun login(savedState: SavedStateHandle = SavedStateHandle()) = LoginViewModel(auth, sessions, preferences, connectivity, savedState, google) {
         prepared++
         prepareError?.let { throw it }
     }

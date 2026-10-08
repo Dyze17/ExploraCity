@@ -2,13 +2,17 @@ package co.edu.uniquindio.exploracity.viewmodel
 
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.SessionStore
+import co.edu.uniquindio.exploracity.data.remote.randomSecret
 import co.edu.uniquindio.exploracity.data.repository.AuthRepository
 import co.edu.uniquindio.exploracity.data.repository.DevMailbox
+import co.edu.uniquindio.exploracity.data.repository.GoogleAuthRepository
 import co.edu.uniquindio.exploracity.domain.model.ExpiredLinkException
+import co.edu.uniquindio.exploracity.domain.model.GoogleSignInOutcome
 import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.ResetLink
+import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -117,6 +121,45 @@ internal class FakeAuth : AuthRepository {
         resets += token to password
         delay(1.seconds)
         resetError?.let { throw it }
+    }
+}
+
+/**
+ * ADR-15 · Entrar con Google. [outcome] es lo que la API responde al token; vincular pide [linkPassword], creada al
+ * ejecutar. Cada operación tarda 1 s, anota lo que recibió y puede fallar.
+ */
+internal class FakeGoogleAuth : GoogleAuthRepository {
+    var outcome: GoogleSignInOutcome = GoogleSignInOutcome.SignedIn(UserRole.USER)
+    val signIns = mutableListOf<String>()
+    var signInError: Exception? = null
+
+    val registrations = mutableListOf<Triple<String, String, Residency>>()
+    var registerError: Exception? = null
+
+    val linkPassword: String = randomSecret()
+    val links = mutableListOf<Pair<String, String>>()
+    var linkError: Exception? = null
+
+    override suspend fun signInWithGoogle(idToken: String): GoogleSignInOutcome {
+        signIns += idToken
+        delay(1.seconds)
+        signInError?.let { throw it }
+        return outcome
+    }
+
+    override suspend fun registerWithGoogle(idToken: String, name: String, residency: Residency): Registration {
+        registrations += Triple(idToken, name, residency)
+        delay(1.seconds)
+        registerError?.let { throw it }
+        return Registration(UserRole.USER, welcomeEmailSent = true)
+    }
+
+    override suspend fun linkGoogle(idToken: String, password: String): UserRole {
+        links += idToken to password
+        delay(1.seconds)
+        linkError?.let { throw it }
+        if (password != linkPassword) throw InvalidCredentialsException()
+        return UserRole.USER
     }
 }
 

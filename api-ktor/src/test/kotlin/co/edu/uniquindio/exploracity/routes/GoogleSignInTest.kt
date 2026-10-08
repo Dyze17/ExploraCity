@@ -54,7 +54,10 @@ class GoogleSignInTest : ApiTest() {
         val created = signIn(token, residente)
 
         assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
-        assertMatchesContract("register.json", created.json(), setOf("accessToken", "refreshToken", "userId", "email"))
+        // Lo que cambia frente al ejemplo (una cuenta con contraseña) es el correo y cómo entra.
+        assertMatchesContract("register.json", created.json(), setOf("accessToken", "refreshToken", "userId", "email", "hasPassword", "googleLinked"))
+        assertEquals("false", created.json().jsonObject["hasPassword"]!!.jsonPrimitive.content)
+        assertEquals("true", created.json().jsonObject["googleLinked"]!!.jsonPrimitive.content)
         val ana = created.session()
         assertEquals("ana.rios@gmail.com", ana.email)
         assertEquals(1, sentTo("ana.rios@gmail.com").size)

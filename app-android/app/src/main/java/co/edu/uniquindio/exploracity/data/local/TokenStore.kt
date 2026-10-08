@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.data.local
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import co.edu.uniquindio.exploracity.domain.model.Account
@@ -70,7 +71,8 @@ class DataStoreAccountStore(private val dataStore: DataStore<Preferences>) : Acc
         .map { prefs ->
             val userId = prefs[USER_KEY]
             val email = prefs[EMAIL_KEY]
-            if (userId == null || email == null) null else SessionAccount(userId, Account(email, prefs[PENDING_KEY]))
+            // Sin la marca (una sesión de antes de ADR-15), la cuenta tiene contraseña.
+            if (userId == null || email == null) null else SessionAccount(userId, Account(email, prefs[PENDING_KEY], prefs[HAS_PASSWORD_KEY] ?: true))
         }
         .distinctUntilChanged()
 
@@ -80,6 +82,7 @@ class DataStoreAccountStore(private val dataStore: DataStore<Preferences>) : Acc
             it[EMAIL_KEY] = account.account.email
             val pending = account.account.pendingEmail
             if (pending == null) it.remove(PENDING_KEY) else it[PENDING_KEY] = pending
+            it[HAS_PASSWORD_KEY] = account.account.hasPassword
         }
     }
 
@@ -88,6 +91,7 @@ class DataStoreAccountStore(private val dataStore: DataStore<Preferences>) : Acc
             it.remove(USER_KEY)
             it.remove(EMAIL_KEY)
             it.remove(PENDING_KEY)
+            it.remove(HAS_PASSWORD_KEY)
         }
     }
 
@@ -95,5 +99,6 @@ class DataStoreAccountStore(private val dataStore: DataStore<Preferences>) : Acc
         val USER_KEY = stringPreferencesKey("persona")
         val EMAIL_KEY = stringPreferencesKey("correo")
         val PENDING_KEY = stringPreferencesKey("correo_pendiente")
+        val HAS_PASSWORD_KEY = booleanPreferencesKey("tiene_contrasena")
     }
 }

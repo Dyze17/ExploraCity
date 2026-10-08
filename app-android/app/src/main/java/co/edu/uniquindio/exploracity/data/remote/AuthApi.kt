@@ -1,6 +1,8 @@
 package co.edu.uniquindio.exploracity.data.remote
 
 import co.edu.uniquindio.exploracity.data.remote.dto.EmailRequest
+import co.edu.uniquindio.exploracity.data.remote.dto.GoogleLinkRequest
+import co.edu.uniquindio.exploracity.data.remote.dto.GoogleSignInRequest
 import co.edu.uniquindio.exploracity.data.remote.dto.LoginRequest
 import co.edu.uniquindio.exploracity.data.remote.dto.RefreshRequest
 import co.edu.uniquindio.exploracity.data.remote.dto.RegisterRequest
@@ -25,6 +27,21 @@ class AuthApi(private val client: HttpClient) {
     suspend fun login(email: String, password: String): SessionDto = client.post("v1/auth/login") {
         withoutSession()
         jsonBody(LoginRequest(email, password))
+    }.body()
+
+    /**
+     * ADR-15 · Entrar con Google. Una cuenta nueva responde 404 registration_required (con el correo y el nombre de Google)
+     * y un correo con contraseña, 409 link_required: llegan como [ApiException].
+     */
+    suspend fun google(request: GoogleSignInRequest): SessionDto = client.post("v1/auth/google") {
+        withoutSession()
+        jsonBody(request)
+    }.body()
+
+    /** B1 · Vincula Google a la cuenta con contraseña de ese correo. */
+    suspend fun googleLink(idToken: String, password: String): SessionDto = client.post("v1/auth/google/link") {
+        withoutSession()
+        jsonBody(GoogleLinkRequest(idToken, password))
     }.body()
 
     /** El token usado deja de servir: llega otro par. */

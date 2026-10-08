@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -11,16 +12,21 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
+import co.edu.uniquindio.exploracity.data.google.GoogleCredentialResult
+import co.edu.uniquindio.exploracity.data.google.GoogleCredentials
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.SessionStore
 import co.edu.uniquindio.exploracity.data.repository.AuthRepository
+import co.edu.uniquindio.exploracity.data.repository.GoogleAuthRepository
 import co.edu.uniquindio.exploracity.domain.model.AuthRules
 import co.edu.uniquindio.exploracity.domain.model.EmailTakenException
+import co.edu.uniquindio.exploracity.domain.model.GoogleTokenRejectedException
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.ProfileLimits
 import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
+import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +35,9 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 enum class RegisterField { NAME, EMAIL, PASSWORD }
+
+/** C1 · El registro con la cuenta de Google: el correo es el de Google y no hay contraseña. */
+data class GoogleMode(val email: String)
 
 /** Por qué no se entró: la API respondió que no creó la cuenta, o no respondió y puede que sí la haya creado. */
 enum class RegisterFailure { NOT_CREATED, UNCONFIRMED }
@@ -53,6 +62,10 @@ data class RegisterUiState(
     val focusField: RegisterField? = null,
     val focusRequest: Int = 0,
     val registered: Registration? = null,
+    /** ADR-15 · Modo Google (C1): sin correo ni contraseña que escribir. */
+    val google: GoogleMode? = null,
+    /** «Continuar con Google» encontró la cuenta ya vinculada: se entra sin «Tu cuenta quedó lista». */
+    val signedIn: Boolean = false,
 ) {
     private val nameLength: Int get() = name.trim().length
 
@@ -76,7 +89,8 @@ data class RegisterUiState(
 
     val showPasswordError: Boolean get() = passwordTouched && !passwordValid
 
-    val fieldsValid: Boolean get() = nameValid && emailValid && passwordValid && !emailTaken
+    /** En modo Google solo falta el nombre: el correo es el de Google y no hay contraseña. */
+    val fieldsValid: Boolean get() = if (google != null) nameValid else nameValid && emailValid && passwordValid && !emailTaken
 
     /** README 4: sin la autorización el botón está deshabilitado; sin conexión, también. */
     val canSubmit: Boolean get() = fieldsValid && consent && !offline && !submitting
@@ -94,6 +108,8 @@ class RegisterViewModel(
     private val preferences: AppPreferences,
     private val connectivity: ConnectivityObserver,
     private val savedStateHandle: SavedStateHandle,
+    private val googleAuth: GoogleAuthRepository,
+    private val googleCredentials: GoogleCredentials? = null,
     /** Lo que la app necesita antes de entrar: la ciudad y el perfil. */
     private val prepare: suspend () -> Unit = {},
 ) : ViewModel() {
@@ -116,10 +132,61 @@ class RegisterViewModel(
     )
     val state: StateFlow<RegisterUiState> = _state.asStateFlow()
 
+    /**
+     * C1 · El ID token de la cuenta de Google nueva: llega en la ruta desde el inicio de sesión (3) o lo pone «Continuar
+     * con Google» de esta pantalla. Vale una hora; si venció, la API lo rechaza y se vuelve a elegir la cuenta.
+     */
+    private val googleToken: String? get() = savedStateHandle[GOOGLE_TOKEN_KEY]
+
+    val google = GoogleAccess(
+        google = googleAuth,
+        scope = viewModelScope,
+        prepare = prepare,
+        onSignedIn = ::enter,
+        onRegistrationRequired = ::enterGoogleMode,
+        onOffline = { _state.update { it.copy(offline = true) } },
+    )
+
     init {
+        val token = googleToken
+        val email = savedStateHandle.get<String>(GOOGLE_EMAIL_KEY)
+        if (token != null && email != null) enterGoogleMode(token, email, savedStateHandle[GOOGLE_NAME_KEY])
         viewModelScope.launch {
             connectivity.isOnline.collect { online -> _state.update { it.copy(offline = !online) } }
         }
+    }
+
+    suspend fun requestGoogleCredential(activity: Context): GoogleCredentialResult =
+        googleCredentials?.request(activity) ?: GoogleCredentialResult.Failed
+
+    /** El nombre de Google queda escrito si la persona aún no puso uno; lo puede cambiar. */
+    private fun enterGoogleMode(token: String, email: String, name: String?) {
+        savedStateHandle[GOOGLE_TOKEN_KEY] = token
+        savedStateHandle[GOOGLE_EMAIL_KEY] = email
+        savedStateHandle[GOOGLE_NAME_KEY] = name
+        _state.update { state ->
+            val prefilled = state.name.ifBlank { name.orEmpty() }
+            savedStateHandle[NAME_KEY] = prefilled
+            state.copy(google = GoogleMode(email), name = prefilled, takenEmail = null, focusField = null)
+        }
+    }
+
+    /** «Usar otro correo y una contraseña»: vuelve al registro de siempre, con el nombre que ya está escrito. */
+    fun onUseEmailInstead() = edit {
+        clearGoogleMode()
+        it.copy(google = null)
+    }
+
+    private fun clearGoogleMode() {
+        savedStateHandle.remove<String>(GOOGLE_TOKEN_KEY)
+        savedStateHandle.remove<String>(GOOGLE_EMAIL_KEY)
+        savedStateHandle.remove<String>(GOOGLE_NAME_KEY)
+    }
+
+    private suspend fun enter(role: UserRole) {
+        sessions.open(role)
+        preferences.setOnboardingSeen()
+        _state.update { it.copy(submitting = false, signedIn = true) }
     }
 
     private inline fun edit(block: (RegisterUiState) -> RegisterUiState) {
@@ -172,6 +239,11 @@ class RegisterViewModel(
         // El texto bajo el botón ya dice que falta la autorización.
         if (!state.consent) return
         _state.update { it.copy(submitting = true, failure = null) }
+        val token = googleToken
+        if (state.google != null && token != null) {
+            submitWithGoogle(token, state)
+            return
+        }
         viewModelScope.launch {
             val account = NewAccount(state.name.trim(), state.email.trim(), state.password, state.residency, clientId)
             val result = catchingNonCancellation { auth.register(account).also { prepare() } }
@@ -198,6 +270,38 @@ class RegisterViewModel(
         }
     }
 
+    /** C1 · Crea la cuenta sin contraseña con la cuenta de Google elegida. */
+    private fun submitWithGoogle(token: String, state: RegisterUiState) {
+        val email = checkNotNull(state.google).email
+        viewModelScope.launch {
+            val result = catchingNonCancellation { googleAuth.registerWithGoogle(token, state.name.trim(), state.residency).also { prepare() } }
+            val registration = result.getOrNull()
+            if (registration != null) {
+                sessions.open(registration.role)
+                preferences.setOnboardingSeen()
+                _state.update { it.copy(submitting = false, registered = registration) }
+                return@launch
+            }
+            when (result.exceptionOrNull()) {
+                is OfflineException -> _state.update { it.copy(submitting = false, offline = true) }
+                // Mientras tanto ese correo tomó una cuenta: el registro de siempre lo dice junto al correo.
+                is EmailTakenException -> {
+                    clearGoogleMode()
+                    savedStateHandle[EMAIL_KEY] = email
+                    _state.update { it.copy(submitting = false, google = null, email = email, takenEmail = email.lowercase()) }
+                }
+                // El token venció (dura una hora): se vuelve a elegir la cuenta, con lo escrito intacto.
+                is GoogleTokenRejectedException -> {
+                    clearGoogleMode()
+                    _state.update { it.copy(submitting = false, google = null) }
+                    google.showError(GoogleError.REJECTED)
+                }
+                is UnconfirmedRegistrationException -> _state.update { it.copy(submitting = false, failure = RegisterFailure.UNCONFIRMED) }
+                else -> _state.update { it.copy(submitting = false, failure = RegisterFailure.NOT_CREATED) }
+            }
+        }
+    }
+
     fun onFailureDismissed() = _state.update { it.copy(failure = null) }
 
     companion object {
@@ -206,6 +310,11 @@ class RegisterViewModel(
         private const val RESIDENCY_KEY = "residencia"
         private const val CONSENT_KEY = "autorizacion"
         private const val CLIENT_ID_KEY = "id_de_registro"
+
+        // Los nombres de los argumentos de la ruta Register (navigation/Routes.kt): ahí llegan desde 3.
+        private const val GOOGLE_TOKEN_KEY = "googleToken"
+        private const val GOOGLE_EMAIL_KEY = "googleEmail"
+        private const val GOOGLE_NAME_KEY = "googleName"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -216,6 +325,8 @@ class RegisterViewModel(
                     preferences = container.preferences,
                     connectivity = container.connectivity,
                     savedStateHandle = createSavedStateHandle(),
+                    googleAuth = container.googleAuthRepository,
+                    googleCredentials = container.googleCredentials,
                     prepare = container::prepareSession,
                 )
             }

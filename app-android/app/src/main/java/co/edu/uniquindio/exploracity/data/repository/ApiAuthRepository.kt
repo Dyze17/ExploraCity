@@ -3,15 +3,21 @@ package co.edu.uniquindio.exploracity.data.repository
 import co.edu.uniquindio.exploracity.data.remote.ApiException
 import co.edu.uniquindio.exploracity.data.remote.ApiSession
 import co.edu.uniquindio.exploracity.data.remote.AuthApi
+import co.edu.uniquindio.exploracity.data.remote.dto.GoogleRegistrationDto
+import co.edu.uniquindio.exploracity.data.remote.dto.GoogleSignInRequest
 import co.edu.uniquindio.exploracity.data.remote.dto.RegisterRequest
 import co.edu.uniquindio.exploracity.data.remote.mayHaveReachedApi
 import co.edu.uniquindio.exploracity.domain.model.EmailDeliveryException
 import co.edu.uniquindio.exploracity.domain.model.EmailTakenException
 import co.edu.uniquindio.exploracity.domain.model.ExpiredLinkException
+import co.edu.uniquindio.exploracity.domain.model.GoogleSignInOutcome
+import co.edu.uniquindio.exploracity.domain.model.GoogleSignInUnavailableException
+import co.edu.uniquindio.exploracity.domain.model.GoogleTokenRejectedException
 import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.ResetLink
+import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.SessionEndedException
 import co.edu.uniquindio.exploracity.domain.model.TooManyAttemptsException
 import co.edu.uniquindio.exploracity.domain.model.UnconfirmedRegistrationException
@@ -23,7 +29,7 @@ import java.io.IOException
  * Acceso con la API (SAD: componente de Usuarios, ADR-06). Al entrar o registrarse guarda la sesión ([ApiSession]):
  * los tokens y la cuenta. Traduce los códigos de error a las excepciones que las pantallas ya explican.
  */
-class ApiAuthRepository(private val api: AuthApi, private val session: ApiSession) : AuthRepository {
+class ApiAuthRepository(private val api: AuthApi, private val session: ApiSession) : AuthRepository, GoogleAuthRepository {
 
     override suspend fun signIn(email: String, password: String): UserRole = translatingErrors {
         val opened = api.login(email.trim(), password)
@@ -63,6 +69,44 @@ class ApiAuthRepository(private val api: AuthApi, private val session: ApiSessio
         Registration(opened.role, welcomeEmailSent = opened.welcomeEmailSent ?: true)
     }
 
+    /**
+     * ADR-15 · registration_required y link_required no son fallos: dicen qué sigue (el registro en modo Google o
+     * vincular con la contraseña).
+     */
+    override suspend fun signInWithGoogle(idToken: String): GoogleSignInOutcome = translatingErrors {
+        val opened = try {
+            api.google(GoogleSignInRequest(idToken))
+        } catch (e: ApiException) {
+            when (e.code) {
+                REGISTRATION_REQUIRED -> return@translatingErrors GoogleSignInOutcome.RegistrationRequired(e.email.orEmpty(), e.name)
+                LINK_REQUIRED -> return@translatingErrors GoogleSignInOutcome.LinkRequired(e.email.orEmpty())
+                else -> throw e
+            }
+        }
+        session.start(opened)
+        GoogleSignInOutcome.SignedIn(opened.role)
+    }
+
+    /** C1 · Repetirlo con el mismo token es seguro: si la cuenta ya quedó creada, la API abre la sesión en ella. */
+    override suspend fun registerWithGoogle(idToken: String, name: String, residency: Residency): Registration = translatingErrors {
+        val opened = try {
+            api.google(GoogleSignInRequest(idToken, GoogleRegistrationDto(name.trim(), residency)))
+        } catch (e: IOException) {
+            throw if (e.mayHaveReachedApi()) UnconfirmedRegistrationException(e) else e
+        } catch (e: ApiException) {
+            // Mientras tanto el correo tomó una cuenta con contraseña.
+            throw if (e.code == LINK_REQUIRED) EmailTakenException() else e
+        }
+        session.start(opened)
+        Registration(opened.role, welcomeEmailSent = opened.welcomeEmailSent ?: true)
+    }
+
+    override suspend fun linkGoogle(idToken: String, password: String): UserRole = translatingErrors {
+        val opened = api.googleLink(idToken, password)
+        session.start(opened)
+        opened.role
+    }
+
     override suspend fun requestPasswordReset(email: String) = translatingErrors { api.forgotPassword(email.trim()) }
 
     override suspend fun openResetLink(token: String): ResetLink = translatingErrors { api.openResetLink(token).toDomain() }
@@ -87,6 +131,8 @@ class ApiAuthRepository(private val api: AuthApi, private val session: ApiSessio
 
     private companion object {
         const val INVALID_REFRESH_TOKEN = "invalid_refresh_token"
+        const val REGISTRATION_REQUIRED = "registration_required"
+        const val LINK_REQUIRED = "link_required"
     }
 }
 
@@ -101,6 +147,10 @@ internal suspend fun <T> translatingErrors(block: suspend () -> T): T = try {
         // Un enlace desconocido no dice de quién es: 6C abre 5 sin correo escrito.
         "link_expired" -> ExpiredLinkException(e.email.orEmpty())
         "too_many_attempts" -> TooManyAttemptsException()
+        "invalid_google_token" -> GoogleTokenRejectedException()
+        "google_sign_in_unavailable" -> GoogleSignInUnavailableException()
+        // Otra cuenta de Google ya tiene ese correo o esa cuenta de Google ya está en otra cuenta.
+        "google_account_in_use" -> EmailTakenException()
         else -> e
     }
 }

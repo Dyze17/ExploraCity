@@ -50,6 +50,24 @@ class EmailDeliveryException : Exception("No se pudo enviar el correo")
  */
 class TooManyAttemptsException : Exception("Demasiados intentos")
 
+/** ADR-15 · Lo que responde la API al entrar con la cuenta de Google que eligió la persona. */
+sealed interface GoogleSignInOutcome {
+    /** La cuenta de Google ya estaba vinculada: la sesión quedó abierta. */
+    data class SignedIn(val role: UserRole) : GoogleSignInOutcome
+
+    /** Cuenta nueva: falta el registro en modo Google (C1), que empieza con el correo y el nombre de Google. */
+    data class RegistrationRequired(val email: String, val name: String?) : GoogleSignInOutcome
+
+    /** El correo ya tiene una cuenta con contraseña: se vincula con esa contraseña, una vez (B1). */
+    data class LinkRequired(val email: String) : GoogleSignInOutcome
+}
+
+/** ADR-15 · Google no confirmó la cuenta (el token venció, dura una hora): hay que volver a elegirla. */
+class GoogleTokenRejectedException : Exception("Google no confirmó la cuenta")
+
+/** ADR-15 · La API no tiene configurado entrar con Google. */
+class GoogleSignInUnavailableException : Exception("Entrar con Google no está disponible")
+
 /** 1 · La sesión ya no vale: se cerró desde otro teléfono, cambió la contraseña o pasaron 30 días sin renovarla. */
 class SessionEndedException : Exception("La sesión terminó")
 

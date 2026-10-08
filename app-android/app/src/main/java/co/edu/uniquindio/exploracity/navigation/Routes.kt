@@ -17,7 +17,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object Login // 3
 
-@Serializable data object Register // 4
+/**
+ * 4. Con [googleToken] abre en modo Google (C1): la cuenta de Google que eligió el inicio de sesión (3) aún no existe.
+ * [googleEmail] y [googleName] son los de esa cuenta; el nombre queda escrito y se puede cambiar.
+ */
+@Serializable data class Register(val googleToken: String? = null, val googleEmail: String? = null, val googleName: String? = null) // 4
 
 @Serializable data class LegalDocuments(val tab: LegalTab = LegalTab.POLICY) // 4A
 

@@ -112,7 +112,7 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `POST /v1/auth/refresh` | Pública | `{ "refreshToken" }` | `200` con una sesión nueva; el token usado deja de servir | [`session.json`](ejemplos/session.json) |
 | `POST /v1/auth/logout` | Pública | `{ "refreshToken" }` | `204`, también si el token ya estaba cerrado | — |
 
-La sesión trae los dos tokens, `expiresIn` (segundos del token de acceso), la persona (`userId`, `role`) y su cuenta (`email` y, con un cambio pedido, `pendingEmail`). La app la guarda con la sesión.
+La sesión trae los dos tokens, `expiresIn` (segundos del token de acceso), la persona (`userId`, `role`) y su cuenta: `email`, `pendingEmail` con un cambio pedido, y cómo entra (`hasPassword` y `googleLinked`, ADR-15). La app la guarda con la sesión.
 
 `residency` es `RESIDENT` o `VISITOR` («¿Cómo te presentas?»).
 

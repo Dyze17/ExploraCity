@@ -947,6 +947,7 @@
     <string name="settings_download_saved">Guardamos tus datos en «%1$s».</string>
     <string name="settings_save_failed">No pudimos guardar el archivo. Intenta descargarlo de nuevo.</string>
     <string name="settings_email">Correo electrónico</string>
+    <string name="settings_email_google">Es el de tu cuenta de Google. Para cambiarlo, primero crea una contraseña con «¿Olvidaste tu contraseña?».</string>
     <string name="settings_logout">Cerrar sesión</string>
     <string name="settings_delete_account">Eliminar mi cuenta</string>
     <string name="settings_design_catalog">Muestrario del sistema de diseño</string>
@@ -1101,6 +1102,29 @@
     <string name="login_failed">Algo falló de nuestro lado. Intenta de nuevo en un momento.</string>
     <string name="login_too_many_attempts">Hubo demasiados intentos con este correo. Espera 15 minutos o crea una contraseña nueva.</string>
     <string name="login_close">Cerrar</string>
+
+    <!-- ADR-15 · Entrar con Google (3 y 4) -->
+    <string name="google_continue">Continuar con Google</string>
+    <string name="google_signing_in">Entrando con Google…</string>
+    <string name="google_or">o</string>
+    <string name="google_no_account">Este teléfono no tiene una cuenta de Google. Agrégala en los ajustes del teléfono o entra con tu correo.</string>
+    <string name="google_failed">No se pudo entrar con Google. Intenta otra vez o entra con tu correo.</string>
+    <string name="google_rejected">Google no confirmó tu cuenta. Vuelve a tocar «Continuar con Google».</string>
+    <string name="google_unavailable">Entrar con Google no está disponible por ahora. Entra con tu correo.</string>
+    <string name="google_email_taken">Ese correo ya tiene otra cuenta de Google en ExploraCity. Entra con tu correo y tu contraseña.</string>
+    <string name="google_link_title">Ya tienes una cuenta</string>
+    <string name="google_link_body">%1$s ya tiene una cuenta en ExploraCity. Escribe su contraseña para entrar también con Google.</string>
+    <string name="google_link_identity">Contraseña de ExploraCity</string>
+    <string name="google_link_submit">Vincular y entrar</string>
+    <string name="google_link_submitting">Vinculando…</string>
+    <string name="google_link_cancel">Cancelar</string>
+    <string name="google_link_wrong">La contraseña no coincide.</string>
+    <string name="google_link_failed">No se pudo vincular. Intenta otra vez.</string>
+    <string name="register_google_title">Con tu cuenta de Google</string>
+    <string name="register_google_email">Tu cuenta usará %1$s. Entrarás con Google, sin contraseña.</string>
+    <string name="register_google_use_email">Usar otro correo y una contraseña</string>
+    <string name="register_google_fix_fields">Completa tu nombre para continuar.</string>
+    <string name="register_google_fix_fields_reason">completa tu nombre</string>
     <!-- 4 · Registro -->
     <string name="register_title">Crear cuenta</string>
     <string name="register_rule">Mínimo 8 caracteres, con una letra y un número</string>

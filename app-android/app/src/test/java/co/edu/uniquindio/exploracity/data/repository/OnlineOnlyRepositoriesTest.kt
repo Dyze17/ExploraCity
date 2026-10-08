@@ -2,10 +2,14 @@ package co.edu.uniquindio.exploracity.data.repository
 
 import co.edu.uniquindio.exploracity.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
+import co.edu.uniquindio.exploracity.data.remote.randomSecret
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.GoogleSignInOutcome
 import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -38,6 +42,37 @@ class OnlineOnlyRepositoriesTest {
         assertTrue(failure { auth.requestPasswordReset("ana@correo.com") } is OfflineException)
         assertTrue(failure { auth.openResetLink("enlace") } is OfflineException)
         assertTrue(failure { auth.resetPassword("enlace", goodPassword) } is OfflineException)
+    }
+
+    @Test
+    fun `sin red no se entra, no se registra ni se vincula con Google`() = runTest {
+        var calls = 0
+        val remote = object : GoogleAuthRepository {
+            override suspend fun signInWithGoogle(idToken: String): GoogleSignInOutcome {
+                calls++
+                return GoogleSignInOutcome.SignedIn(UserRole.USER)
+            }
+
+            override suspend fun registerWithGoogle(idToken: String, name: String, residency: Residency): Registration {
+                calls++
+                return Registration(UserRole.USER, welcomeEmailSent = true)
+            }
+
+            override suspend fun linkGoogle(idToken: String, password: String): UserRole {
+                calls++
+                return UserRole.USER
+            }
+        }
+        val google = OnlineOnlyGoogleAuthRepository(remote, offline)
+        val idToken = randomSecret()
+
+        assertTrue(failure { google.signInWithGoogle(idToken) } is OfflineException)
+        assertTrue(failure { google.registerWithGoogle(idToken, "Pedro", Residency.VISITOR) } is OfflineException)
+        assertTrue(failure { google.linkGoogle(idToken, goodPassword) } is OfflineException)
+        assertEquals(0, calls)
+
+        assertEquals(GoogleSignInOutcome.SignedIn(UserRole.USER), OnlineOnlyGoogleAuthRepository(remote, FakeConnectivity()).signInWithGoogle(idToken))
+        assertEquals(1, calls)
     }
 
     @Test
