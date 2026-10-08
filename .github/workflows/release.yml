@@ -61,7 +61,15 @@ jobs:
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
           APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
-          SIGNED=$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          CERTS=$("$APKSIGNER" verify --print-certs "$APK")
+          # Las huellas no son secretas: quedan en el registro para revisar.
+          echo "$CERTS" | grep "SHA-256" || true
+          # Según la versión de apksigner, la línea empieza por «Signer #1» o por «Signer (minSdkVersion=…)».
+          SIGNED=$(echo "$CERTS" | sed -n 's/^Signer.* certificate SHA-256 digest: //p' | sort -u)
+          if [ "$(echo "$SIGNED" | grep -c .)" != 1 ]; then
+            echo "::error::No se pudo leer una sola huella SHA-256 de la firma del APK."
+            exit 1
+          fi
           # La huella tiene que ser una de las que publica la API en assetlinks.json; si no, los App Links no se verifican.
           if ! echo "$ANDROID_CERT_SHA256" | tr -d ': ' | tr 'A-F' 'a-f' | tr ',' '\n' | grep -qx "$SIGNED"; then
             echo "::error::El APK está firmado con $SIGNED, que no está en la variable ANDROID_CERT_SHA256."
