@@ -7,6 +7,7 @@ import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.mergeWith
 import java.time.Duration
 import java.time.ZoneId
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -135,6 +136,79 @@ class AppConfigTest {
         }
         assertTrue("CLOUDINARY_API_SECRET" in cloudinary.message.orEmpty())
     }
+
+    /** Lo que Cloud Run le da a la API (docs/despliegue.md), con las claves generadas en cada ejecución. */
+    private fun production(vararg overrides: Pair<String, String>): AppConfig = load(
+        "exploracity.environment" to "production",
+        "exploracity.jwt.secret" to randomSecret(),
+        "exploracity.mail.sendGridApiKey" to randomSecret(),
+        "exploracity.mail.from" to "hola@exploracity.co",
+        "exploracity.mail.linkBaseUrl" to "https://exploracity-api-123456789.us-east1.run.app/enlace",
+        "exploracity.media.cloudinary.cloudName" to "exploracity",
+        "exploracity.media.cloudinary.apiKey" to "llave-publica",
+        "exploracity.media.cloudinary.apiSecret" to randomSecret(),
+        *overrides,
+    )
+
+    @Test
+    fun `en producción arranca con el correo, las fotos y los enlaces https`() {
+        val config = production()
+
+        assertTrue(config.production)
+        assertTrue(config.mail.usesSendGrid)
+        assertEquals("https://exploracity-api-123456789.us-east1.run.app/enlace", config.mail.linkBaseUrl)
+    }
+
+    @Test
+    fun `en producción no arranca con lo que solo sirve en el equipo`() {
+        fun failure(vararg overrides: Pair<String, String>): String =
+            assertFailsWith<IllegalStateException> { production(*overrides) }.message.orEmpty()
+
+        assertTrue("SENDGRID_API_KEY" in failure("exploracity.mail.sendGridApiKey" to ""))
+        assertTrue("DEV_MAILBOX" in failure("exploracity.mail.devMailbox" to "true"))
+        assertTrue(
+            "CLOUDINARY_API_SECRET" in failure(
+                "exploracity.media.cloudinary.cloudName" to "",
+                "exploracity.media.cloudinary.apiKey" to "",
+                "exploracity.media.cloudinary.apiSecret" to "",
+            ),
+        )
+        // Vacía, la dirección de los enlaces es exploracity://enlace.
+        assertTrue("APP_LINK_BASE_URL" in failure("exploracity.mail.linkBaseUrl" to ""))
+        assertTrue("APP_LINK_BASE_URL" in failure("exploracity.mail.linkBaseUrl" to "http://exploracity-api.run.app/enlace"))
+    }
+
+    @Test
+    fun `APP_ENV vacío o development es desarrollo, y otro valor no arranca`() {
+        assertFalse(load("exploracity.jwt.secret" to randomSecret()).production)
+        assertFalse(load("exploracity.jwt.secret" to randomSecret(), "exploracity.environment" to " Development ").production)
+        val error = assertFailsWith<IllegalStateException> {
+            load("exploracity.jwt.secret" to randomSecret(), "exploracity.environment" to "prod")
+        }
+        assertTrue("APP_ENV" in error.message.orEmpty())
+    }
+
+    @Test
+    fun `las huellas de la firma se leen en mayúscula y una mal copiada no arranca`() {
+        val first = randomFingerprint()
+        val second = randomFingerprint()
+
+        val without = load("exploracity.jwt.secret" to randomSecret()).android
+        val with = load(
+            "exploracity.jwt.secret" to randomSecret(),
+            "exploracity.android.certFingerprints" to " ${first.lowercase()}, $second ,",
+        ).android
+
+        assertEquals(AndroidAppSettings("co.edu.uniquindio.exploracity", emptyList()), without)
+        assertEquals(listOf(first, second), with.certFingerprints)
+        val error = assertFailsWith<IllegalStateException> {
+            load("exploracity.jwt.secret" to randomSecret(), "exploracity.android.certFingerprints" to first.dropLast(3))
+        }
+        assertTrue("ANDROID_CERT_SHA256" in error.message.orEmpty())
+    }
+
+    /** Una huella SHA-256 inventada en cada ejecución: «AB:01:…», 32 pares. */
+    private fun randomFingerprint(): String = (1..32).joinToString(":") { "%02X".format(Random.nextInt(256)) }
 
     @Test
     fun `la lista de moderadores ignora mayúsculas, espacios y vacíos`() {

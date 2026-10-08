@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.plugins
 
 import co.edu.uniquindio.exploracity.config.AppConfig
+import co.edu.uniquindio.exploracity.routes.appLinkRoutes
 import co.edu.uniquindio.exploracity.routes.cityRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.response.respond
@@ -20,6 +21,8 @@ fun Application.configureRouting(config: AppConfig, areas: Route.() -> Unit = {}
         get("/health") {
             call.respond(HealthResponse("ok"))
         }
+        // C1 · Los enlaces https del correo, fuera de /v1: su dirección es la que llega al correo.
+        appLinkRoutes(config.android)
         // ADR-02: la versión va en la ruta; un cambio que rompa la app irá a /v2.
         route("/v1") {
             cityRoutes(config.city)

@@ -15,7 +15,23 @@ data class AppConfig(
     val mail: MailSettings = MailSettings(),
     val media: MediaSettings = MediaSettings(),
     val ai: AiSettings = AiSettings(),
+    val android: AndroidAppSettings = AndroidAppSettings(),
+    /** En Cloud Run (APP_ENV=production): lo que en desarrollo tiene una versión local aquí es obligatorio. */
+    val production: Boolean = false,
 ) {
+    init {
+        if (production) {
+            check(mail.usesSendGrid) { "En producción hace falta SENDGRID_API_KEY: sin ella los enlaces del correo no le llegan a nadie." }
+            check(!mail.devMailbox) { "DEV_MAILBOX no va en producción: dejaría leer los enlaces de cualquier cuenta." }
+            check(media.cloudinary != null) {
+                "En producción hacen falta CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET: Cloud Run borra su disco al apagarse."
+            }
+            check(mail.linkBaseUrl.startsWith("https://")) {
+                "En producción APP_LINK_BASE_URL tiene que empezar por https://: Gmail no deja abrir los enlaces exploracity://."
+            }
+        }
+    }
+
     companion object {
         fun load(config: ApplicationConfig): AppConfig {
             val root = config.config("exploracity")
@@ -26,6 +42,7 @@ data class AppConfig(
             val media = root.config("media")
             val cloudinary = media.config("cloudinary")
             val ai = root.config("ai")
+            val android = root.config("android")
             return AppConfig(
                 database = DatabaseSettings(
                     url = database.property("url").getString(),
@@ -70,6 +87,15 @@ data class AppConfig(
                     openRouterApiKey = ai.text("openRouterApiKey"),
                     model = ai.text("model").ifEmpty { AiSettings.DEFAULT_MODEL },
                 ),
+                android = AndroidAppSettings(
+                    packageName = android.text("packageName").ifEmpty { AndroidAppSettings.DEFAULT_PACKAGE },
+                    certFingerprints = AndroidAppSettings.parseFingerprints(android.text("certFingerprints")),
+                ),
+                production = when (val environment = root.text("environment").lowercase()) {
+                    "", "development" -> false
+                    "production" -> true
+                    else -> error("APP_ENV no reconoce «$environment»: va vacío, development o production.")
+                },
             )
         }
 
@@ -189,6 +215,30 @@ data class AiSettings(val openRouterApiKey: String = "", val model: String = DEF
     companion object {
         /** ADR-11: DeepSeek por OpenRouter. */
         const val DEFAULT_MODEL = "deepseek/deepseek-chat"
+    }
+}
+
+/**
+ * C1 · App Links: la app [packageName], firmada con alguna de [certFingerprints] (SHA-256), abre los enlaces https del
+ * correo sin pasar por el navegador. Sin huellas no se publica /.well-known/assetlinks.json, y esos enlaces abren la
+ * página con el botón «Abrir en ExploraCity» (routes/AppLinkRoutes.kt).
+ */
+data class AndroidAppSettings(
+    val packageName: String = DEFAULT_PACKAGE,
+    val certFingerprints: List<String> = emptyList(),
+) {
+    companion object {
+        const val DEFAULT_PACKAGE = "co.edu.uniquindio.exploracity"
+
+        private val FINGERPRINT = Regex("([0-9A-F]{2}:){31}[0-9A-F]{2}")
+
+        /** «14:d4:…, AA:BB:…» → las huellas en mayúscula, como las pide assetlinks.json. Una mal copiada no arranca. */
+        fun parseFingerprints(text: String): List<String> =
+            text.split(',').map { it.trim().uppercase() }.filter { it.isNotEmpty() }.onEach { fingerprint ->
+                check(FINGERPRINT.matches(fingerprint)) {
+                    "ANDROID_CERT_SHA256 tiene una huella que no es SHA-256 (32 pares hexadecimales separados por «:»)."
+                }
+            }
     }
 }
 

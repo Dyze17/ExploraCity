@@ -5,8 +5,10 @@ import co.edu.uniquindio.exploracity.integration.MailMessage
 import co.edu.uniquindio.exploracity.model.LinkPurpose
 
 /**
- * Los correos de la cuenta, en español, con texto plano y HTML simple. Los enlaces abren la app con su token
- * («exploracity://enlace/restablecer?token=…»). Lanzan MailDeliveryException si el correo no sale.
+ * Los correos de la cuenta, en español, con texto plano y HTML simple. Los enlaces abren la app con su token: en
+ * desarrollo «exploracity://enlace/restablecer?token=…», y en producción la misma ruta en https, en la dirección de la
+ * API (App Links, con la página de routes/AppLinkRoutes.kt si no abren la app). Lanzan MailDeliveryException si el
+ * correo no sale.
  */
 class AccountMail(private val client: MailClient, private val linkBaseUrl: String) {
 
@@ -58,13 +60,7 @@ class AccountMail(private val client: MailClient, private val linkBaseUrl: Strin
     fun tokenIn(message: MailMessage, purpose: LinkPurpose): String? =
         Regex(Regex.escape(prefix(purpose)) + "([A-Za-z0-9_-]+)").find(message.text)?.groupValues?.get(1)
 
-    private fun prefix(purpose: LinkPurpose): String {
-        val path = when (purpose) {
-            LinkPurpose.PASSWORD_RESET -> "restablecer"
-            LinkPurpose.EMAIL_CHANGE -> "confirmar-correo"
-        }
-        return "$linkBaseUrl/$path?token="
-    }
+    private fun prefix(purpose: LinkPurpose): String = "$linkBaseUrl/${purpose.path}?token="
 
     private suspend fun send(
         to: String,

@@ -5,6 +5,7 @@ exposed = "1.5.0"
 hikari = "7.1.0"
 postgresql = "42.7.13"
 flyway = "13.7.0"
+cloudSqlSocketFactory = "1.30.0"
 bcrypt = "0.10.2"
 logback = "1.6.3"
 testcontainers = "2.0.5"
@@ -32,6 +33,8 @@ hikari = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikari" }
 postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
 flyway-core = { group = "org.flywaydb", name = "flyway-core", version.ref = "flyway" }
 flyway-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }
+# Cloud SQL desde Cloud Run (ADR-04, ADR-10): conexión cifrada con la cuenta de servicio, sin abrir la base a una IP
+cloud-sql-postgres-socket-factory = { group = "com.google.cloud.sql", name = "postgres-socket-factory", version.ref = "cloudSqlSocketFactory" }
 
 # service/SecurityService (ADR-06)
 bcrypt = { group = "at.favre.lib", name = "bcrypt", version.ref = "bcrypt" }

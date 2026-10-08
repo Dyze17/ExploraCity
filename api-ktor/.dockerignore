@@ -1,7 +1,8 @@
-.gradle/
-.kotlin/
-build/
-.idea/
-*.iml
+# Lo que nunca entra a la imagen: los secretos del equipo, las fotos locales, lo compilado (se compila adentro) y el IDE.
 .env
 media
+build/
+.gradle/
+.kotlin/
+.idea/
+*.iml

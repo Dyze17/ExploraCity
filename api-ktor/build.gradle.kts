@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.postgresql)
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
+    // Solo actúa con socketFactory en DATABASE_URL (Cloud Run); en el equipo la conexión es la de siempre.
+    runtimeOnly(libs.cloud.sql.postgres.socket.factory)
 
     implementation(libs.bcrypt)
     implementation(libs.logback.classic)

@@ -17,8 +17,11 @@ enum class PublicationStatus { PENDING, VERIFIED, REJECTED, FINALIZED }
 /** 18 · Rango de precio. */
 enum class PriceRange { FREE, LOW, MEDIUM, HIGH }
 
-/** Para qué sirve un enlace enviado por correo. */
-enum class LinkPurpose { PASSWORD_RESET, EMAIL_CHANGE }
+/** Para qué sirve un enlace enviado por correo, y su ruta: `…/enlace/restablecer?token=…`. */
+enum class LinkPurpose(val path: String) {
+    PASSWORD_RESET("restablecer"),
+    EMAIL_CHANGE("confirmar-correo"),
+}
 
 /** Lo que hizo el moderador (34, 35 y 36). */
 enum class DecisionAction { VERIFIED, REJECTED, FINALIZED, REOPENED }
