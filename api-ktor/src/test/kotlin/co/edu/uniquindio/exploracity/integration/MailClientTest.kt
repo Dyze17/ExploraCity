@@ -2,6 +2,9 @@ package co.edu.uniquindio.exploracity.integration
 
 import co.edu.uniquindio.exploracity.model.LinkPurpose
 import co.edu.uniquindio.exploracity.service.AccountMail
+import co.edu.uniquindio.exploracity.service.MailContent
+import co.edu.uniquindio.exploracity.service.MailLayout
+import co.edu.uniquindio.exploracity.service.MailLink
 import co.edu.uniquindio.exploracity.support.randomSecret
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -111,5 +114,63 @@ class MailClientTest {
         val change = mailbox.inbox("nueva@correo.com").single()
         assertEquals("exploracity://enlace/confirmar-correo?token=otro", mail.link(LinkPurpose.EMAIL_CHANGE, "otro"))
         assertEquals("otro", mail.tokenIn(change, LinkPurpose.EMAIL_CHANGE))
+    }
+
+    @Test
+    fun `el HTML lleva el enlace como botón, el enlace a la vista y por qué llegó el correo`() = runBlocking {
+        val mailbox = DevMailbox()
+        val mail = AccountMail(mailbox, "https://exploracity-api.run.app/enlace")
+        val token = randomSecret()
+
+        mail.passwordReset("ana@correo.com", "Ana", token)
+        mail.emailChange("nueva@correo.com", "Ana", token)
+
+        val reset = mailbox.inbox("ana@correo.com").single()
+        val url = "https://exploracity-api.run.app/enlace/restablecer?token=$token"
+        assertTrue(">Crear contraseña nueva</a>" in reset.html)
+        // El botón y el enlace a la vista, para cuando el botón no se muestre.
+        assertEquals(3, Regex(Regex.escape(url)).findAll(reset.html).count())
+        assertTrue("se pidió una contraseña nueva para tu cuenta" in reset.html && "se pidió una contraseña nueva para tu cuenta" in reset.text)
+        assertTrue("El enlace vence en 30 minutos y sirve una sola vez." in reset.html)
+        assertTrue(">Confirmar correo nuevo</a>" in mailbox.inbox("nueva@correo.com").single().html)
+    }
+
+    @Test
+    fun `la bienvenida no lleva botón, y ningún correo lleva imágenes ni estilos que Gmail quite`() = runBlocking {
+        val mailbox = DevMailbox()
+        val mail = AccountMail(mailbox, "exploracity://enlace")
+
+        mail.welcome("ana@correo.com", "Ana")
+        mail.passwordReset("ana@correo.com", "Ana", randomSecret())
+
+        val inbox = mailbox.inbox("ana@correo.com")
+        val welcome = inbox.single { it.subject.startsWith("Tu cuenta") }
+        val reset = inbox.single { it.subject.startsWith("Crea una contraseña") }
+        assertTrue("Tu cuenta de ExploraCity quedó lista." in welcome.html)
+        assertTrue("<a " !in welcome.html)
+        for (message in listOf(welcome, reset)) {
+            assertTrue(message.html.startsWith("<!doctype html>") && message.html.endsWith("</html>"))
+            assertTrue("<img" !in message.html && "<style" !in message.html && "<script" !in message.html)
+            assertTrue("Universidad del Quindío" in message.html && "Universidad del Quindío" in message.text)
+        }
+    }
+
+    @Test
+    fun `el texto del correo se escapa también en el asunto, el resumen y el enlace`() {
+        val html = MailLayout.html(
+            MailContent(
+                subject = "A & B",
+                preview = "<b>",
+                greeting = "Hola",
+                paragraphs = emptyList(),
+                link = MailLink("https://x.co/?a=1&b=\"2\"", "Abrir <ya>"),
+                reason = "Porque sí",
+            ),
+        )
+
+        assertTrue("<title>A &amp; B</title>" in html)
+        assertTrue("&lt;b&gt;" in html && "<b>" !in html)
+        assertTrue("href=\"https://x.co/?a=1&amp;b=&quot;2&quot;\"" in html)
+        assertTrue(">Abrir &lt;ya&gt;</a>" in html)
     }
 }
