@@ -124,6 +124,8 @@ gcloud iam service-accounts create exploracity-api --display-name="ExploraCity: 
 gcloud iam service-accounts create github-deployer --display-name="ExploraCity: despliegue desde GitHub"
 API_SA="exploracity-api@$PROJECT_ID.iam.gserviceaccount.com"
 DEPLOY_SA="github-deployer@$PROJECT_ID.iam.gserviceaccount.com"
+# Una cuenta recién creada tarda unos segundos en existir para los permisos («Service account … does not exist»).
+sleep 20
 
 # La API: conectarse a Cloud SQL y leer sus secretos.
 for role in roles/cloudsql.client roles/secretmanager.secretAccessor; do
@@ -139,6 +141,14 @@ gcloud artifacts repositories add-iam-policy-binding exploracity --location="$RE
   --member="serviceAccount:$DEPLOY_SA" --role=roles/artifactregistry.writer
 gcloud iam service-accounts add-iam-policy-binding "$API_SA" \
   --member="serviceAccount:$DEPLOY_SA" --role=roles/iam.serviceAccountUser
+```
+
+Para comprobar los permisos del proyecto: la API debe tener `cloudsql.client` y `secretmanager.secretAccessor`, y GitHub Actions, `run.admin` y `secretmanager.viewer`. Si falta alguno, repite su línea.
+
+```bash
+gcloud projects get-iam-policy "$PROJECT_ID" --flatten="bindings[].members" \
+  --filter="bindings.members~exploracity-api OR bindings.members~github-deployer" \
+  --format="table(bindings.role,bindings.members)"
 ```
 
 ### GitHub sin claves (Workload Identity Federation)
