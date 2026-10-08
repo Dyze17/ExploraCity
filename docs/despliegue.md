@@ -1,8 +1,8 @@
 # Despliegue en Google Cloud
 
-La API corre en **Cloud Run** con PostgreSQL en **Cloud SQL** (ADR-04 y ADR-10). GitHub Actions la despliega con cada merge a `main` que cambie `api-ktor/` ([`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)): corre las pruebas, sube la imagen a Artifact Registry, la publica en Cloud Run y comprueba que responda.
+La API corre en **Cloud Run** con PostgreSQL en **Cloud SQL** (ADR-04 y ADR-10). GitHub Actions la despliega con cada merge a `main` que cambie `api-ktor/` ([`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)): corre las pruebas, sube la imagen a Artifact Registry, la publica en Cloud Run y comprueba que responda. La app de producción se firma en GitHub Actions y se publica en GitHub Releases ([«Publicar una versión de la app»](#publicar-una-versión-de-la-app)).
 
-Esta guía configura Google Cloud desde cero. Las cuentas y las claves son de quien la sigue: ningún valor secreto pasa por el repositorio ni por GitHub.
+Esta guía configura Google Cloud desde cero. Las cuentas y las claves son de quien la sigue, y ninguna queda en el código: las de la API viven en Secret Manager, y las de la firma de la app, en los secretos del repositorio en GitHub.
 
 ## Qué queda en Google Cloud
 
@@ -34,7 +34,7 @@ Esta guía configura Google Cloud desde cero. Las cuentas y las claves son de qu
 4. Clave de Maps:
    1. En «APIs y servicios › Biblioteca», habilita **Maps SDK for Android**. Si te muestra una clave nueva, usa esa.
    2. Si no, crea una en «APIs y servicios › Credenciales › Crear credenciales › Clave de API».
-   3. Restringe la clave: en «Apps para Android», el paquete `co.edu.uniquindio.exploracity` con la huella SHA-1 de depuración de tu equipo (`keytool -list -v -keystore ~/.android/debug.keystore -storepass android`), y en «Restricciones de API», solo «Maps SDK for Android». La huella de producción se agrega cuando exista la firma.
+   3. Restringe la clave: en «Apps para Android», el paquete `co.edu.uniquindio.exploracity.debug` (la versión de depuración) con la huella SHA-1 de depuración de tu equipo (`keytool -list -v -keystore ~/.android/debug.keystore -storepass android`), y en «Restricciones de API», solo «Maps SDK for Android». La versión de producción se agrega con su firma ([«Publicar una versión de la app»](#publicar-una-versión-de-la-app)).
    4. Ponla en `app-android/local.properties`, en la línea `MAPS_API_KEY=`.
 
 ## 2. Servicios (Cloud Shell)
@@ -180,7 +180,7 @@ En GitHub, «Settings › Secrets and variables › Actions › Variables»:
 | `GCP_REGION` | `us-east1` |
 | `GCP_WIF_PROVIDER` | Lo que imprimió el último bloque |
 | `CLOUDINARY_CLOUD_NAME` | El nombre de la nube en Cloudinary |
-| `ANDROID_CERT_SHA256` | Cuando exista la firma de producción: su huella SHA-256 (para los App Links) |
+| `ANDROID_CERT_SHA256` | La huella SHA-256 de la firma de producción, para los App Links ([«Publicar una versión de la app»](#publicar-una-versión-de-la-app)) |
 
 Ninguna es secreta: el repositorio es público y el registro del despliegue las muestra. Por eso los correos y las claves van en Secret Manager. Desde una terminal con `gh`, también sirve `gh variable set GCP_PROJECT_ID --body "…"`.
 
@@ -215,5 +215,61 @@ Con `APP_ENV=production`, que pone el despliegue, la API no arranca si falta Sen
 
 `APP_LINK_BASE_URL` es la dirección de la API seguida de `/enlace`. Los enlaces de recuperación y de cambio de correo llegan como `https://…run.app/enlace/restablecer?token=…`, porque Gmail no deja tocar los enlaces `exploracity://`.
 
-- En el navegador, abren una página con el botón «Abrir en ExploraCity», que le pasa el token a la app.
-- Cuando la app de producción declare estos enlaces (App Links) y `ANDROID_CERT_SHA256` tenga la huella de su firma, Android los abrirá directo en la app. La API publica esa huella en `/.well-known/assetlinks.json`.
+- La app de producción declara estos enlaces con `autoVerify` (`app/src/release/AndroidManifest.xml`). Al instalarla, Android lee `/.well-known/assetlinks.json` de la API; si trae la huella de su firma (`ANDROID_CERT_SHA256`), los abre directo en la app.
+- En el navegador (en un computador, o sin la verificación), abren una página con el botón «Abrir en ExploraCity», que le pasa el token a la app de producción.
+
+## Publicar una versión de la app
+
+La app de producción se firma en GitHub Actions ([`.github/workflows/release.yml`](../.github/workflows/release.yml)): con cada etiqueta `vX.Y.Z`, compila el APK, comprueba que la firma sea la de `ANDROID_CERT_SHA256` y lo publica en [GitHub Releases](https://github.com/Dyze17/ExploraCity/releases). La versión `1.2.3` queda con versionCode `10203`, así que cada una se instala encima de la anterior.
+
+La versión de depuración es otra app, `co.edu.uniquindio.exploracity.debug` («ExploraCity (dev)»): las dos conviven en el mismo teléfono.
+
+### La firma (una sola vez)
+
+En PowerShell, en tu equipo. La contraseña la generas y la guardas **antes** de crear el keystore, por ejemplo en un gestor de contraseñas:
+
+```powershell
+$b = New-Object byte[] 24; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b) | Set-Clipboard; Remove-Variable b
+```
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\Documents\ExploraCity"
+& "C:\Program Files\Java\jdk-25.0.2\bin\keytool.exe" -genkeypair -v -keystore "$env:USERPROFILE\Documents\ExploraCity\exploracity-release.jks" -alias exploracity -keyalg RSA -keysize 4096 -validity 10000 -storetype PKCS12
+```
+
+El alias tiene que ser `exploracity`, y con PKCS12 la clave usa la misma contraseña que el almacén. Guarda el `.jks` y la contraseña en dos lugares seguros, nunca en el repositorio: sin ellos, las versiones nuevas no se pueden instalar encima de las anteriores.
+
+Las huellas, que no son secretas:
+
+```powershell
+& "C:\Program Files\Java\jdk-25.0.2\bin\keytool.exe" -list -v -keystore "$env:USERPROFILE\Documents\ExploraCity\exploracity-release.jks" -alias exploracity
+```
+
+### GitHub y Google Cloud
+
+| Dónde | Qué |
+|---|---|
+| Secreto `RELEASE_KEYSTORE_BASE64` | El keystore en texto: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\Documents\ExploraCity\exploracity-release.jks")) \| Set-Clipboard` |
+| Secreto `RELEASE_KEYSTORE_PASSWORD` | Su contraseña |
+| Secreto `MAPS_API_KEY` | La clave de Maps |
+| Variable `ANDROID_CERT_SHA256` | La huella SHA-256. Después, «Actions › Despliegue › Run workflow», para que la API la publique en `assetlinks.json` |
+| Clave de Maps, «Apps para Android» | `co.edu.uniquindio.exploracity` con la huella **SHA-1** de producción, además de `co.edu.uniquindio.exploracity.debug` con la de depuración |
+
+Si falta un secreto, el flujo se detiene antes de compilar: nunca sale un APK sin firma o con el mapa gris.
+
+### Sacar una versión
+
+1. **De prueba:** «Actions › Versión de la app › Run workflow» sobre `main`. Deja el APK como artefacto de la ejecución (7 días), sin publicarlo.
+2. **Publicada:** una etiqueta sobre `main`. La versión aparece en GitHub Releases con sus notas.
+   ```bash
+   git tag v1.0.0 origin/main
+   git push origin v1.0.0
+   ```
+
+En el teléfono, abre el APK desde la página de la versión; Android pide permitir instalar apps desde el navegador. Para comprobar los App Links con el teléfono por USB:
+
+```bash
+adb shell pm get-app-links co.edu.uniquindio.exploracity
+```
+
+El dominio de la API debe aparecer como `verified`. Si sale otro estado, revisa que `assetlinks.json` tenga la huella y pide verificarlo de nuevo con `adb shell pm verify-app-links --re-verify co.edu.uniquindio.exploracity`.

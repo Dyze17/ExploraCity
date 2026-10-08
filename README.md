@@ -80,7 +80,7 @@ La API atiende:
 - la moderación: la cola, las decisiones y «Resueltas»;
 - la ciudad: su nombre, el centro del mapa y los límites de la búsqueda por dirección. Hoy es Armenia, y se cambia en `api-ktor/src/main/resources/application.conf`.
 
-**Despliegue:** la API se publica en Google Cloud Run, con PostgreSQL en Cloud SQL. [`docs/despliegue.md`](docs/despliegue.md) configura Google Cloud desde cero, y GitHub Actions despliega cada cambio de `api-ktor/` que llega a `main`. Falta la app de producción: un APK firmado que use la dirección de Cloud Run y abra directo los enlaces del correo (App Links). Mientras tanto, un APK de producción apunta a `localhost`.
+**Despliegue:** la API se publica en Google Cloud Run, con PostgreSQL en Cloud SQL. [`docs/despliegue.md`](docs/despliegue.md) configura Google Cloud desde cero, y GitHub Actions despliega cada cambio de `api-ktor/` que llega a `main`. La app de producción usa la API de Cloud Run, se firma en GitHub Actions y se publica en [GitHub Releases](https://github.com/Dyze17/ExploraCity/releases) con cada etiqueta `vX.Y.Z`. Abre directo los enlaces https del correo (App Links).
 
 La API todavía no recibe reportes de lugares, así que la revisión de una pendiente (33) no muestra ninguno.
 
@@ -95,7 +95,7 @@ La API todavía no recibe reportes de lugares, así que la revisión de una pend
 | Moderación y «Resueltas» | 32–37, 33A | ✅ Implementada |
 | API (`api-ktor`) | — | ✅ Las 4 partes: base, acceso y cuenta, explorar y social, y publicar y moderar ([contrato](docs/api/README.md)) |
 | Conexión de la app con la API | — | ✅ Conectada |
-| Despliegue en Google Cloud | — | 🚧 La API en Cloud Run ([guía](docs/despliegue.md)). Falta la app de producción |
+| Despliegue | — | ✅ La API en Cloud Run y la app de producción en GitHub Releases ([guía](docs/despliegue.md)) |
 
 Las direcciones del mapa ya usan el Geocoder real de Android, detrás de `AddressResolver`, para que el backend pueda reemplazarlo después.
 
@@ -172,22 +172,26 @@ El esquema lo crean las migraciones de Flyway (`src/main/resources/db/migration`
 
 **Pruebas:** JUnit con `testApplication` de Ktor y PostGIS real con Testcontainers.
 
+## Instalar la app
+
+Descarga el APK de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest) desde el teléfono y ábrelo; Android pide permitir instalar apps desde el navegador. Usa la API en Cloud Run, así que no hace falta nada más. Requiere Android 9 o posterior.
+
 ## Cómo ejecutar
 
 ### Requisitos
 - **JDK 25**
 - **Android Studio 2026.1.3** o posterior (el proyecto usa AGP 9.4) y el **Android SDK 37**
-- Una clave de **Google Maps** para ver el mapa. Sin ella, la pantalla del mapa muestra un aviso de desarrollo.
+- Una clave de **Google Maps** para ver el mapa, que acepte el paquete `co.edu.uniquindio.exploracity.debug` con la huella de depuración de tu equipo ([guía](docs/despliegue.md)). Sin ella, la pantalla del mapa muestra un aviso de desarrollo.
 
 ### App Android
 
-La app necesita la API en marcha: primero sigue los pasos de [API](#api).
+La versión de depuración es **«ExploraCity (dev)»** (`co.edu.uniquindio.exploracity.debug`): convive en el teléfono con la de producción, y cada una guarda sus propios datos. Necesita la API en marcha: primero sigue los pasos de [API](#api).
 
 Agrega la clave de Maps a `app-android/local.properties`. Ese archivo está fuera de git:
 
 ```properties
 MAPS_API_KEY=tu_clave
-# Opcional: la dirección de la API. Por omisión, http://localhost:8080/
+# Opcional: la dirección de la API para la versión de depuración. Por omisión, http://localhost:8080/
 API_BASE_URL=http://localhost:8080/
 ```
 
@@ -199,7 +203,9 @@ adb reverse tcp:8080 tcp:8080
 
 El reenvío se pierde al desconectar el teléfono o al activar el modo avión, y hay que repetirlo. Si prefieres la red local, pon la IP del equipo (`http://192.168.x.x:8080/`) en `API_BASE_URL` y en `PUBLIC_BASE_URL` de la API.
 
-Las compilaciones de depuración pueden usar HTTP, para la API del equipo. La de producción solo acepta HTTPS.
+Con `API_BASE_URL=https://exploracity-api-31949725643.us-east1.run.app/`, la versión de depuración usa la API de producción, con correos, fotos e IA reales. Ahí no existe el buzón de desarrollo.
+
+Las compilaciones de depuración pueden usar HTTP, para la API del equipo. La de producción solo acepta HTTPS y siempre usa la API de Cloud Run.
 
 Compila, prueba y revisa:
 
@@ -208,6 +214,8 @@ cd app-android
 ./gradlew assembleDebug
 ./gradlew testDebugUnitTest lintDebug
 ```
+
+`./gradlew assembleRelease` compila la de producción sin firma; la firma solo existe en GitHub Actions ([«Publicar una versión de la app»](docs/despliegue.md#publicar-una-versión-de-la-app)).
 
 En Windows usa `gradlew.bat`. También puedes abrir `app-android/` en Android Studio y ejecutar la configuración `app`.
 
@@ -220,11 +228,13 @@ Estas opciones solo aparecen en las compilaciones de depuración:
 
 No hay cuentas de prueba: se crean en el registro de la app, contra la API. Una cuenta con uno de los correos de `MODERATOR_EMAILS` tiene la pestaña «Moderación». Si la lista cambia, el rol se pone al día al reiniciar la API, y la app lo ve al volver a entrar.
 
-Los enlaces de los correos abren la app: `exploracity://enlace/restablecer?token=…` y `exploracity://enlace/confirmar-correo?token=…`. Sin el botón de prueba, también se pueden abrir con `adb`:
+Desde la API del equipo, los enlaces de los correos abren la app: `exploracity://enlace/restablecer?token=…` y `exploracity://enlace/confirmar-correo?token=…`. Sin el botón de prueba, también se pueden abrir con `adb`; el paquete del final evita que Android pregunte si la de producción también está instalada:
 
 ```bash
-adb shell am start -a android.intent.action.VIEW -d "exploracity://enlace/restablecer?token=..."
+adb shell am start -a android.intent.action.VIEW -d "exploracity://enlace/restablecer?token=..." co.edu.uniquindio.exploracity.debug
 ```
+
+En producción, los correos traen `https://…run.app/enlace/…`, que la app de producción abre directo (App Links).
 
 ### API
 
@@ -261,8 +271,10 @@ docker run -p 8080:8080 exploracity-api
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) se ejecuta en cada pull request y en cada push a `main`:
 
-- **app-android**: `./gradlew assembleDebug testDebugUnitTest`
+- **app-android**: `./gradlew assembleDebug assembleRelease testDebugUnitTest`, con la de producción sin firma
 - **api-ktor**: `./gradlew test buildFatJar`
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) firma la app de producción y la publica en GitHub Releases con cada etiqueta `vX.Y.Z`; a mano, deja un APK de prueba sin publicarlo. Antes de publicar comprueba que la firma sea la de `ANDROID_CERT_SHA256`, para que los App Links se verifiquen.
 
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) despliega la API en Cloud Run con cada push a `main` que cambie `api-ktor/`: pruebas, imagen en Artifact Registry, Cloud Run y una comprobación de `/health`. Entra a Google Cloud con Workload Identity Federation, sin claves guardadas en GitHub, y no corre hasta que el repositorio tenga las variables de [`docs/despliegue.md`](docs/despliegue.md).
 

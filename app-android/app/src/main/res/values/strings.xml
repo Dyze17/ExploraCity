@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
     <string name="app_name">ExploraCity</string>
+    <!-- El nombre en el lanzador. La versión de depuración lo cambia (src/debug/res) para distinguirse de esta. -->
+    <string name="launcher_name" translatable="false">ExploraCity</string>
 
     <!-- Categorías -->
     <string name="category_gastronomy">Gastronomía</string>

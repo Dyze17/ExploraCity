@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- B1 · La versión de depuración convive con la de producción en el mismo teléfono: así se distinguen en el lanzador. -->
+<resources>
+    <string name="launcher_name" translatable="false">ExploraCity (dev)</string>
+</resources>

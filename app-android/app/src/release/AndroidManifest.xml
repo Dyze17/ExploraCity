@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- C1 · Solo la versión de producción: los enlaces https del correo de la API en Cloud Run. Con autoVerify, Android
+     comprueba al instalar que /.well-known/assetlinks.json de ese dominio declara esta app con la huella de su firma
+     (ANDROID_CERT_SHA256 en la API), y entonces los abre aquí directo, sin pasar por el navegador. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Se une con la de src/main, que ya es exported (el lanzador); lint lo pide también aquí. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="${appLinkHost}" />
+                <data android:path="/enlace/restablecer" />
+                <data android:path="/enlace/confirmar-correo" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
