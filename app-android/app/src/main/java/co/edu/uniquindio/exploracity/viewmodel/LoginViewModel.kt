@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -11,12 +12,16 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.OfflineException
+import co.edu.uniquindio.exploracity.data.google.GoogleCredentialResult
+import co.edu.uniquindio.exploracity.data.google.GoogleCredentials
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.SessionStore
 import co.edu.uniquindio.exploracity.data.repository.AuthRepository
+import co.edu.uniquindio.exploracity.data.repository.GoogleAuthRepository
 import co.edu.uniquindio.exploracity.domain.model.AuthRules
 import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
 import co.edu.uniquindio.exploracity.domain.model.TooManyAttemptsException
+import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +48,8 @@ data class LoginUiState(
     val focusField: LoginField? = null,
     val focusRequest: Int = 0,
     val signedIn: Boolean = false,
+    /** ADR-15 · La cuenta de Google es nueva: la pantalla abre el registro en modo Google (C1) y lo marca como visto. */
+    val googleRegistration: GoogleRegistrationStart? = null,
 ) {
     val emailValid: Boolean get() = AuthRules.isValidEmail(email)
 
@@ -57,9 +64,9 @@ data class LoginUiState(
 }
 
 /**
- * 3 · Correo y contraseña con su validación, el aviso sin conexión y el del fallo. Al entrar deja lista la app
- * ([prepare]: la ciudad y el perfil), abre la sesión en el teléfono y marca el onboarding como visto: al volver a abrir
- * la app se entra directo (1).
+ * 3 · Correo y contraseña con su validación, el aviso sin conexión y el del fallo, y «Continuar con Google» (ADR-15,
+ * [google]). Al entrar deja lista la app ([prepare]: la ciudad y el perfil), abre la sesión en el teléfono y marca el
+ * onboarding como visto: al volver a abrir la app se entra directo (1).
  */
 class LoginViewModel(
     private val auth: AuthRepository,
@@ -67,17 +74,34 @@ class LoginViewModel(
     private val preferences: AppPreferences,
     private val connectivity: ConnectivityObserver,
     private val savedStateHandle: SavedStateHandle,
+    googleAuth: GoogleAuthRepository,
+    private val googleCredentials: GoogleCredentials? = null,
     private val prepare: suspend () -> Unit = {},
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginUiState(email = savedStateHandle[EMAIL_KEY] ?: "", offline = !connectivity.isOnline.value))
     val state: StateFlow<LoginUiState> = _state.asStateFlow()
 
+    val google = GoogleAccess(
+        google = googleAuth,
+        scope = viewModelScope,
+        prepare = prepare,
+        onSignedIn = ::enter,
+        onRegistrationRequired = { token, email, name -> _state.update { it.copy(googleRegistration = GoogleRegistrationStart(token, email, name)) } },
+        onOffline = { _state.update { it.copy(offline = true) } },
+    )
+
     init {
         viewModelScope.launch {
             connectivity.isOnline.collect { online -> _state.update { it.copy(offline = !online) } }
         }
     }
+
+    /** La hoja de Google para elegir la cuenta, sobre la Activity de la pantalla. */
+    suspend fun requestGoogleCredential(activity: Context): GoogleCredentialResult =
+        googleCredentials?.request(activity) ?: GoogleCredentialResult.Failed
+
+    fun onGoogleRegistrationShown() = _state.update { it.copy(googleRegistration = null) }
 
     fun onEmailChange(email: String) {
         if (_state.value.submitting) return
@@ -114,9 +138,7 @@ class LoginViewModel(
             val result = catchingNonCancellation { auth.signIn(state.email.trim(), state.password).also { prepare() } }
             val role = result.getOrNull()
             if (role != null) {
-                sessions.open(role)
-                preferences.setOnboardingSeen()
-                _state.update { it.copy(submitting = false, signedIn = true) }
+                enter(role)
                 return@launch
             }
             when (result.exceptionOrNull()) {
@@ -130,6 +152,12 @@ class LoginViewModel(
 
     fun onErrorDismissed() = _state.update { it.copy(error = null) }
 
+    private suspend fun enter(role: UserRole) {
+        sessions.open(role)
+        preferences.setOnboardingSeen()
+        _state.update { it.copy(submitting = false, signedIn = true) }
+    }
+
     companion object {
         private const val EMAIL_KEY = "correo"
 
@@ -142,6 +170,8 @@ class LoginViewModel(
                     preferences = container.preferences,
                     connectivity = container.connectivity,
                     savedStateHandle = createSavedStateHandle(),
+                    googleAuth = container.googleAuthRepository,
+                    googleCredentials = container.googleCredentials,
                     prepare = container::prepareSession,
                 )
             }

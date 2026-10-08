@@ -25,11 +25,11 @@ import java.net.UnknownHostException
  * La API respondió con un error (docs/api): [status] HTTP y [code] estable, que cada repositorio traduce a su
  * excepción del dominio. [email] solo lo trae un enlace vencido (6C). Sin red no llega aquí: eso es una IOException.
  */
-class ApiException(val status: Int, val code: String, val email: String? = null) : Exception("La API respondió $status ($code)")
+class ApiException(val status: Int, val code: String, val email: String? = null, val name: String? = null) : Exception("La API respondió $status ($code)")
 
 /** Cuerpo de error de la API. */
 @Serializable
-internal data class ErrorBody(val code: String, val email: String? = null)
+internal data class ErrorBody(val code: String, val email: String? = null, val name: String? = null)
 
 /** JSON de la API: lo que la app no conoce se ignora, así un campo nuevo no la rompe. */
 internal val ApiJson = Json {
@@ -60,7 +60,7 @@ fun apiHttpClient(
             val response = (cause as? ResponseException)?.response ?: return@handleResponseExceptionWithRequest
             // Un proxy o la nube pueden responder sin el cuerpo de la API: queda el código HTTP.
             val body = runCatching { response.body<ErrorBody>() }.getOrNull()
-            throw ApiException(response.status.value, body?.code ?: "http_${response.status.value}", body?.email)
+            throw ApiException(response.status.value, body?.code ?: "http_${response.status.value}", body?.email, body?.name)
         }
     }
     configure()

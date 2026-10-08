@@ -234,7 +234,7 @@ fun SettingsScreen(
                 }
                 Section(stringResource(R.string.settings_section_account)) {
                     SettingsCard {
-                        EmailRow(state.email, state.pendingEmail, callbacks.onChangeEmail)
+                        EmailRow(state.email, state.pendingEmail, state.hasPassword, callbacks.onChangeEmail)
                         RowDivider()
                         LinkRow(R.drawable.ic_logout, stringResource(R.string.settings_logout), callbacks.onLogout, chevron = false)
                     }
@@ -395,14 +395,17 @@ private fun LinkRow(
     }
 }
 
-/** «Correo electrónico»: el de la cuenta y, si hay un cambio sin confirmar, «Falta confirmar …» con su icono (B1). */
+/**
+ * «Correo electrónico»: el de la cuenta y, si hay un cambio sin confirmar, «Falta confirmar …» con su icono (B1). Una
+ * cuenta sin contraseña entra solo con Google: su correo es el de Google y no abre «Cambiar correo» (ADR-15, D1).
+ */
 @Composable
-private fun EmailRow(email: String, pendingEmail: String?, onClick: () -> Unit) {
+private fun EmailRow(email: String, pendingEmail: String?, hasPassword: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(role = Role.Button, onClick = onClick)
+            .then(if (hasPassword) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier.semantics(mergeDescendants = true) {})
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -411,6 +414,9 @@ private fun EmailRow(email: String, pendingEmail: String?, onClick: () -> Unit) 
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(stringResource(R.string.settings_email), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             Text(email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary)
+            if (!hasPassword) {
+                Text(stringResource(R.string.settings_email_google), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary)
+            }
             if (pendingEmail != null) {
                 val warning = MaterialTheme.exploraColors.warningAccent
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -423,7 +429,9 @@ private fun EmailRow(email: String, pendingEmail: String?, onClick: () -> Unit) 
                 }
             }
         }
-        Icon(painterResource(R.drawable.ic_chevron_right), null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(20.dp.scaledWithFont()))
+        if (hasPassword) {
+            Icon(painterResource(R.drawable.ic_chevron_right), null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(20.dp.scaledWithFont()))
+        }
     }
 }
 

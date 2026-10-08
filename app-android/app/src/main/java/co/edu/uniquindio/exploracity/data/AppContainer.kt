@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import co.edu.uniquindio.exploracity.BuildConfig
 import co.edu.uniquindio.exploracity.data.connectivity.AndroidConnectivityObserver
 import co.edu.uniquindio.exploracity.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.data.google.GoogleCredentials
 import co.edu.uniquindio.exploracity.data.local.AndroidDocumentWriter
 import co.edu.uniquindio.exploracity.data.local.AppPreferences
 import co.edu.uniquindio.exploracity.data.local.DataStoreAccountStore
@@ -57,6 +58,7 @@ import co.edu.uniquindio.exploracity.data.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.CityRepository
 import co.edu.uniquindio.exploracity.data.repository.DevMailbox
 import co.edu.uniquindio.exploracity.data.repository.DuplicateFinder
+import co.edu.uniquindio.exploracity.data.repository.GoogleAuthRepository
 import co.edu.uniquindio.exploracity.data.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.data.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.data.repository.OfflineModerationRepository
@@ -67,6 +69,7 @@ import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyAccountRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyAuthRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyCategorySuggester
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyDuplicateFinder
+import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyGoogleAuthRepository
 import co.edu.uniquindio.exploracity.data.repository.OnlineOnlyPublicationRepository
 import co.edu.uniquindio.exploracity.data.repository.PoiRepository
 import co.edu.uniquindio.exploracity.data.repository.PublicationRepository
@@ -195,6 +198,10 @@ class AppContainer(context: Context) {
 
     /** 3–6 · El acceso con la API (JWT y BCrypt en el backend, ADR-06). */
     val authRepository: AuthRepository = OnlineOnlyAuthRepository(authServer, connectivity)
+
+    /** ADR-15 · Entrar con Google: la API, y Credential Manager para elegir la cuenta (necesita la Activity). */
+    val googleAuthRepository: GoogleAuthRepository = OnlineOnlyGoogleAuthRepository(authServer, connectivity)
+    val googleCredentials = GoogleCredentials(BuildConfig.GOOGLE_WEB_CLIENT_ID)
 
     /** 29 · El correo de la sesión, «Descargar mis datos», «Cambiar correo» y eliminar la cuenta. */
     val accountRepository: AccountRepository = OnlineOnlyAccountRepository(ApiAccountRepository(AccountApi(client), apiSession, appScope), connectivity)

@@ -34,6 +34,7 @@ class RegisterViewModelTest {
     private val preferences = MemoryAccessPreferences()
     private val sessions = MemorySessions()
     private val auth = FakeAuth()
+    private val google = FakeGoogleAuth()
 
     // Sin contraseñas escritas en el código (GitGuardian): una cualquiera que cumpla la regla.
     private val goodPassword = "a".repeat(7) + "1"
@@ -45,7 +46,7 @@ class RegisterViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun register(savedState: SavedStateHandle = SavedStateHandle()) =
-        RegisterViewModel(auth, sessions, preferences, connectivity, savedState)
+        RegisterViewModel(auth, sessions, preferences, connectivity, savedState, google)
 
     /** Nombre, correo y contraseña válidos; la autorización sin marcar. */
     private fun filled(savedState: SavedStateHandle = SavedStateHandle()) = register(savedState).apply {

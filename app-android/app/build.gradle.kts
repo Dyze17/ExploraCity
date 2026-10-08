@@ -22,6 +22,9 @@ val contractExamples = rootProject.layout.projectDirectory.dir("../docs/api/ejem
 // enlaces https del correo (App Links).
 val productionApiHost = "exploracity-api-31949725643.us-east1.run.app"
 
+// ADR-15 · El cliente OAuth «Web» de Google Cloud (docs/despliegue.md, «Entrar con Google»).
+val googleWebClientId = "31949725643-0rkhifjd7lc1289oi0ucprj4i4anlmh4.apps.googleusercontent.com"
+
 // A1 · La versión sale de la etiqueta vX.Y.Z, que release.yml pasa en RELEASE_VERSION: versionCode = X·10000 + Y·100 + Z,
 // así cada versión puede instalarse encima de la anterior. Sin ella (en el equipo o en el CI), 0.1.0.
 val releaseVersion: Pair<String, Int>? = providers.environmentVariable("RELEASE_VERSION").orNull?.let { version ->
@@ -51,6 +54,9 @@ android {
         // C1 · Los enlaces https del correo: src/release/AndroidManifest.xml los declara y EmailLink los reconoce.
         manifestPlaceholders["appLinkHost"] = productionApiHost
         buildConfigField("String", "APP_LINK_HOST", "\"$productionApiHost\"")
+        // ADR-15 · El cliente OAuth «Web» del proyecto de Google Cloud: la audiencia del ID token que acepta la API. No
+        // es secreto (va en cada token). La API del equipo lo necesita igual, en GOOGLE_WEB_CLIENT_ID de su .env.
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     signingConfigs {
@@ -147,6 +153,9 @@ dependencies {
 
     implementation(libs.maps.compose)
     implementation(libs.play.services.location)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.ktor3)

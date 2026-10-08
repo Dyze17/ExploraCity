@@ -226,7 +226,7 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit
                 // Atrás desde el registro vuelve al inicio de sesión, no al onboarding ya visto.
                 onCreateAccount = {
                     nav.navigate(Login) { popUpTo<Onboarding> { inclusive = true } }
-                    nav.navigate(Register)
+                    nav.navigate(Register())
                 },
                 onHaveAccount = { nav.navigate(Login) { popUpTo<Onboarding> { inclusive = true } } },
             )
@@ -237,7 +237,9 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit
             LoginRoute(
                 onSignedIn = onEnterApp,
                 onForgotPassword = { email -> nav.navigate(RecoverPassword(email)) },
-                onCreateAccount = { nav.navigate(Register) },
+                onCreateAccount = { nav.navigate(Register()) },
+                // C1 · La cuenta de Google es nueva: el registro (4) abre en modo Google.
+                onGoogleRegistration = { start -> nav.navigate(Register(start.idToken, start.email, start.name)) },
                 notice = when (SessionNotice.entries.firstOrNull { it.name == notice }) {
                     SessionNotice.SIGNED_OUT -> stringResource(R.string.session_signed_out)
                     SessionNotice.ACCOUNT_DELETED -> stringResource(R.string.session_account_deleted)
@@ -258,8 +260,11 @@ private fun NavGraphBuilder.authGraph(nav: NavController, onEnterApp: () -> Unit
                     val notice = if (registration.welcomeEmailSent) WelcomeNotice.ACCOUNT_READY else WelcomeNotice.WELCOME_EMAIL_FAILED
                     nav.currentBackStackEntry?.savedStateHandle?.set(WELCOME_NOTICE_KEY, notice.name)
                 },
+                // «Continuar con Google» encontró la cuenta: se entra sin el aviso de cuenta nueva.
+                onSignedIn = onEnterApp,
                 onOpenLegal = { tab -> nav.navigate(LegalDocuments(tab)) },
                 onSignInInstead = { email -> nav.backToLogin(email = email) },
+                onForgotPassword = { email -> nav.navigate(RecoverPassword(email)) },
             )
         }
         composable<LegalDocuments> { entry ->

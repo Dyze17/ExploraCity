@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.data.local
 
+import androidx.datastore.preferences.core.stringPreferencesKey
 import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.flow.first
@@ -37,6 +38,22 @@ class TokenStoreTest {
 
         accounts.clear()
         assertNull(accounts.account.first())
+    }
+
+    @Test
+    fun `recuerda si la cuenta entra solo con Google, y una sesión de antes lo da por sabido`() = runTest {
+        accounts.save(SessionAccount("pedro", Account("pedro@gmail.com", hasPassword = false)))
+        assertEquals(SessionAccount("pedro", Account("pedro@gmail.com", hasPassword = false)), accounts.account.first())
+
+        accounts.clear()
+        // Una sesión guardada antes de ADR-15 no tiene la marca: esas cuentas tienen contraseña.
+        dataStore.updateData { prefs ->
+            prefs.toMutablePreferences().apply {
+                this[stringPreferencesKey("persona")] = "ana"
+                this[stringPreferencesKey("correo")] = "ana@correo.com"
+            }
+        }
+        assertEquals(true, accounts.account.first()?.account?.hasPassword)
     }
 
     @Test

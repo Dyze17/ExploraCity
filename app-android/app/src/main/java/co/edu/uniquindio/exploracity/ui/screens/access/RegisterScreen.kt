@@ -67,6 +67,8 @@ import co.edu.uniquindio.exploracity.ui.components.ResidencyPicker
 import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.viewmodel.GoogleMode
+import co.edu.uniquindio.exploracity.viewmodel.GoogleUiState
 import co.edu.uniquindio.exploracity.viewmodel.RegisterFailure
 import co.edu.uniquindio.exploracity.viewmodel.RegisterField
 import co.edu.uniquindio.exploracity.viewmodel.RegisterUiState
@@ -74,20 +76,29 @@ import co.edu.uniquindio.exploracity.viewmodel.RegisterViewModel
 
 /**
  * 4 · Registro, conectado a su ViewModel. Al crear la cuenta sigue a [onRegistered] (el feed dice si quedó lista o si
- * no llegó el correo de bienvenida). [onSignInInstead] abre el inicio de sesión con el correo que ya tenía cuenta.
+ * no llegó el correo de bienvenida). [onSignInInstead] abre el inicio de sesión con el correo que ya tenía cuenta. Si
+ * «Continuar con Google» encuentra la cuenta ya creada, sigue a [onSignedIn]; [onForgotPassword] viene del diálogo para
+ * vincular (B1).
  */
 @Composable
 fun RegisterRoute(
     onBack: () -> Unit,
     onRegistered: (Registration) -> Unit,
+    onSignedIn: () -> Unit,
     onOpenLegal: (LegalTab) -> Unit,
     onSignInInstead: (email: String) -> Unit,
+    onForgotPassword: (email: String) -> Unit,
     viewModel: RegisterViewModel = viewModel(factory = RegisterViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val google by viewModel.google.state.collectAsStateWithLifecycle()
     val currentOnRegistered by rememberUpdatedState(onRegistered)
     LaunchedEffect(state.registered) {
         state.registered?.let { currentOnRegistered(it) }
+    }
+    val currentOnSignedIn by rememberUpdatedState(onSignedIn)
+    LaunchedEffect(state.signedIn) {
+        if (state.signedIn) currentOnSignedIn()
     }
     RegisterScreen(
         state = state,
@@ -105,7 +116,21 @@ fun RegisterRoute(
             onSignInInstead = { onSignInInstead(state.email.trim()) },
             onSubmit = viewModel::onSubmit,
             onFailureDismissed = viewModel::onFailureDismissed,
+            onUseEmailInstead = viewModel::onUseEmailInstead,
+            google = GoogleCallbacks(
+                request = viewModel::requestGoogleCredential,
+                onResult = viewModel.google::onCredential,
+                onLinkPasswordChange = viewModel.google::onLinkPasswordChange,
+                onLinkSubmit = viewModel.google::onLinkSubmit,
+                onLinkDismissed = viewModel.google::onLinkDismissed,
+                onErrorDismissed = viewModel.google::onErrorDismissed,
+                onForgotPassword = { email ->
+                    viewModel.google.onLinkDismissed()
+                    onForgotPassword(email)
+                },
+            ),
         ),
+        google = google,
     )
 }
 
@@ -123,17 +148,30 @@ class RegisterCallbacks(
     val onSignInInstead: () -> Unit = {},
     val onSubmit: () -> Unit = {},
     val onFailureDismissed: () -> Unit = {},
+    val onUseEmailInstead: () -> Unit = {},
+    val google: GoogleCallbacks = GoogleCallbacks(),
 )
 
 /**
  * 4.a/4.b · Nombre, correo, contraseña con su regla a la vista, «¿Cómo te presentas?» y la autorización de datos (Ley
  * 1581), nunca marcada de antemano. «Crear cuenta» se habilita con todo en orden y la autorización marcada; mientras
- * no, el texto de abajo dice qué falta. Los enlaces abren 4A sin perder lo escrito.
+ * no, el texto de abajo dice qué falta. Los enlaces abren 4A sin perder lo escrito. Arriba, «Continuar con Google»
+ * (ADR-15); en modo Google (C1) no hay correo ni contraseña que escribir.
  */
 @Composable
-fun RegisterScreen(state: RegisterUiState, callbacks: RegisterCallbacks, modifier: Modifier = Modifier) {
+fun RegisterScreen(state: RegisterUiState, callbacks: RegisterCallbacks, modifier: Modifier = Modifier, google: GoogleUiState = GoogleUiState()) {
     val snackbarHostState = remember { SnackbarHostState() }
     FailureEffect(state.failure, snackbarHostState, callbacks.onFailureDismissed)
+    GoogleErrorEffect(google.error, snackbarHostState, callbacks.google.onErrorDismissed)
+    google.link?.let { prompt ->
+        GoogleLinkDialog(
+            prompt = prompt,
+            onIdentityChange = callbacks.google.onLinkPasswordChange,
+            onSubmit = callbacks.google.onLinkSubmit,
+            onDismiss = callbacks.google.onLinkDismissed,
+            onForgotPassword = callbacks.google.onForgotPassword,
+        )
+    }
     val nameFocus = remember { FocusRequester() }
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
@@ -160,9 +198,22 @@ fun RegisterScreen(state: RegisterUiState, callbacks: RegisterCallbacks, modifie
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                NameField(state, callbacks, nameFocus, emailFocus)
-                EmailField(state, callbacks, emailFocus, passwordFocus)
-                PasswordField(state, callbacks, passwordFocus)
+                val googleMode = state.google
+                if (googleMode == null) {
+                    GoogleSignInButton(
+                        busy = google.busy,
+                        enabled = !state.submitting && !state.offline,
+                        request = callbacks.google.request,
+                        onResult = callbacks.google.onResult,
+                    )
+                    OrDivider()
+                    NameField(state, callbacks, nameFocus, emailFocus)
+                    EmailField(state, callbacks, emailFocus, passwordFocus)
+                    PasswordField(state, callbacks, passwordFocus)
+                } else {
+                    GoogleModeCard(googleMode.email, enabled = !state.submitting, onUseEmailInstead = callbacks.onUseEmailInstead)
+                    NameField(state, callbacks, nameFocus, next = null)
+                }
                 ResidencyPicker(state.residency, callbacks.onResidencyChange, enabled = !state.submitting)
                 ConsentCard(state.consent, enabled = !state.submitting, callbacks)
                 SubmitBlock(state, callbacks.onSubmit)
@@ -172,10 +223,12 @@ fun RegisterScreen(state: RegisterUiState, callbacks: RegisterCallbacks, modifie
     }
 }
 
+/** Sin [next] (modo Google, el único campo): «Listo» lo deja y quedan a la vista la autorización y el botón. */
 @Composable
-private fun NameField(state: RegisterUiState, callbacks: RegisterCallbacks, focus: FocusRequester, next: FocusRequester) {
+private fun NameField(state: RegisterUiState, callbacks: RegisterCallbacks, focus: FocusRequester, next: FocusRequester?) {
     val textState = rememberTextFieldState(state.name)
     SyncText(textState, state.name, callbacks.onNameChange)
+    val focusManager = LocalFocusManager.current
     ExploraTextField(
         state = textState,
         label = stringResource(R.string.profile_field_name),
@@ -185,8 +238,8 @@ private fun NameField(state: RegisterUiState, callbacks: RegisterCallbacks, focu
             else -> pluralStringResource(R.plurals.profile_name_short, state.nameMissing, state.nameMissing)
         },
         enabled = !state.submitting,
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
-        onKeyboardAction = { next.requestFocus() },
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = if (next == null) ImeAction.Done else ImeAction.Next),
+        onKeyboardAction = { if (next == null) focusManager.clearFocus() else next.requestFocus() },
         modifier = Modifier.fillMaxWidth().focusRequester(focus).onBlur(callbacks.onNameBlur),
     )
 }
@@ -307,6 +360,8 @@ private fun SubmitBlock(state: RegisterUiState, onSubmit: () -> Unit) {
     val (visible, reason) = when {
         state.submitting -> null to null
         state.offline -> null to stringResource(R.string.register_offline_reason)
+        !state.fieldsValid && state.google != null ->
+            stringResource(R.string.register_google_fix_fields) to stringResource(R.string.register_google_fix_fields_reason)
         !state.fieldsValid -> stringResource(R.string.register_fix_fields) to stringResource(R.string.register_fix_fields_reason)
         !state.consent -> stringResource(R.string.register_consent_missing) to stringResource(R.string.register_consent_missing_reason)
         else -> null to null
@@ -364,6 +419,14 @@ private fun RegisterPreview() {
 @Composable
 private fun RegisterReadyPreview() {
     ExploraCityTheme(ThemeMode.DARK) { RegisterScreen(previewState.copy(residency = Residency.RESIDENT, consent = true), RegisterCallbacks()) }
+}
+
+@Preview(name = "4 · modo Google · claro", widthDp = 360, heightDp = 900)
+@Composable
+private fun RegisterGooglePreview() {
+    ExploraCityTheme(ThemeMode.LIGHT) {
+        RegisterScreen(RegisterUiState(name = "Ana Ríos", google = GoogleMode("ana.rios@gmail.com")), RegisterCallbacks())
+    }
 }
 
 @Preview(name = "4 · correo con cuenta y sin conexión", widthDp = 360, heightDp = 900)

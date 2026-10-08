@@ -16,6 +16,8 @@ room = "2.8.5"
 work = "2.12.0"
 mapsCompose = "8.6.0"
 playServicesLocation = "21.4.0"
+credentials = "1.6.0"
+googleId = "1.2.1"
 coil = "3.6.3"
 junit = "4.13.2"
 androidxJunit = "1.3.0"
@@ -64,6 +66,10 @@ androidx-work-runtime = { group = "androidx.work", name = "work-runtime", versio
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 # data/location · La ubicación del teléfono (FusedLocationProvider).
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+# ADR-15 · Entrar con Google: Credential Manager y su opción «Sign in with Google»
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
 
 # Fotos publicadas: Coil las descarga con Ktor y las guarda en disco para verlas sin conexión.
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }

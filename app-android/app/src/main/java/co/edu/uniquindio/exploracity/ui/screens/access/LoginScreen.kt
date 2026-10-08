@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.ui.screens.access
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.data.google.GoogleCredentialResult
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.ui.components.ExploraButtonStyle
@@ -62,6 +64,8 @@ import co.edu.uniquindio.exploracity.ui.components.onBlur
 import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.viewmodel.GoogleRegistrationStart
+import co.edu.uniquindio.exploracity.viewmodel.GoogleUiState
 import co.edu.uniquindio.exploracity.viewmodel.LoginError
 import co.edu.uniquindio.exploracity.viewmodel.LoginField
 import co.edu.uniquindio.exploracity.viewmodel.LoginUiState
@@ -70,13 +74,15 @@ import co.edu.uniquindio.exploracity.viewmodel.LoginViewModel
 /**
  * 3 · Inicio de sesión, conectado a su ViewModel. Al entrar sigue a [onSignedIn]. [notice] es el aviso con que se
  * llega («Cerraste sesión.», «Ya puedes entrar con tu contraseña nueva»). [suggestedEmail] llega del registro (4)
- * cuando el correo ya tenía cuenta. «¿Olvidaste tu contraseña?» pasa a 5 el correo escrito.
+ * cuando el correo ya tenía cuenta. «¿Olvidaste tu contraseña?» pasa a 5 el correo escrito. Con una cuenta de Google
+ * nueva sigue a [onGoogleRegistration] (C1).
  */
 @Composable
 fun LoginRoute(
     onSignedIn: () -> Unit,
     onForgotPassword: (email: String) -> Unit,
     onCreateAccount: () -> Unit,
+    onGoogleRegistration: (GoogleRegistrationStart) -> Unit,
     notice: String? = null,
     onNoticeShown: () -> Unit = {},
     suggestedEmail: String? = null,
@@ -84,9 +90,16 @@ fun LoginRoute(
     viewModel: LoginViewModel = viewModel(factory = LoginViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val google by viewModel.google.state.collectAsStateWithLifecycle()
     val currentOnSignedIn by rememberUpdatedState(onSignedIn)
     LaunchedEffect(state.signedIn) {
         if (state.signedIn) currentOnSignedIn()
+    }
+    val currentOnGoogleRegistration by rememberUpdatedState(onGoogleRegistration)
+    LaunchedEffect(state.googleRegistration) {
+        val start = state.googleRegistration ?: return@LaunchedEffect
+        viewModel.onGoogleRegistrationShown()
+        currentOnGoogleRegistration(start)
     }
     val currentOnSuggestedEmailUsed by rememberUpdatedState(onSuggestedEmailUsed)
     LaunchedEffect(suggestedEmail) {
@@ -106,8 +119,21 @@ fun LoginRoute(
             onForgotPassword = { onForgotPassword(state.email.trim()) },
             onCreateAccount = onCreateAccount,
             onNoticeShown = onNoticeShown,
+            google = GoogleCallbacks(
+                request = viewModel::requestGoogleCredential,
+                onResult = viewModel.google::onCredential,
+                onLinkPasswordChange = viewModel.google::onLinkPasswordChange,
+                onLinkSubmit = viewModel.google::onLinkSubmit,
+                onLinkDismissed = viewModel.google::onLinkDismissed,
+                onErrorDismissed = viewModel.google::onErrorDismissed,
+                onForgotPassword = { email ->
+                    viewModel.google.onLinkDismissed()
+                    onForgotPassword(email)
+                },
+            ),
         ),
         notice = notice,
+        google = google,
     )
 }
 
@@ -121,18 +147,47 @@ class LoginCallbacks(
     val onForgotPassword: () -> Unit = {},
     val onCreateAccount: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
+    val google: GoogleCallbacks = GoogleCallbacks(),
+)
+
+/** ADR-15 · «Continuar con Google» y la contraseña para vincular (B1), iguales en 3 y en 4. */
+class GoogleCallbacks(
+    val request: suspend (Context) -> GoogleCredentialResult = { GoogleCredentialResult.Cancelled },
+    val onResult: (GoogleCredentialResult) -> Unit = {},
+    val onLinkPasswordChange: (String) -> Unit = {},
+    val onLinkSubmit: () -> Unit = {},
+    val onLinkDismissed: () -> Unit = {},
+    val onErrorDismissed: () -> Unit = {},
+    val onForgotPassword: (email: String) -> Unit = {},
 )
 
 /**
  * 3.a–3.c · Correo y contraseña con el ojo de 48 dp. «Iniciar sesión» se habilita al pasar las dos validaciones y,
  * deshabilitado, dice por qué. Mientras entra, los campos se bloquean y el botón dice «Entrando…». Sin conexión, el
- * aviso va arriba; si no coinciden, el aviso queda hasta que la persona lo cierra.
+ * aviso va arriba; si no coinciden, el aviso queda hasta que la persona lo cierra. Debajo, «Continuar con Google»
+ * (ADR-15).
  */
 @Composable
-fun LoginScreen(state: LoginUiState, callbacks: LoginCallbacks, modifier: Modifier = Modifier, notice: String? = null) {
+fun LoginScreen(
+    state: LoginUiState,
+    callbacks: LoginCallbacks,
+    modifier: Modifier = Modifier,
+    notice: String? = null,
+    google: GoogleUiState = GoogleUiState(),
+) {
     val snackbarHostState = remember { SnackbarHostState() }
     ErrorEffect(state.error, snackbarHostState, callbacks.onErrorDismissed)
+    GoogleErrorEffect(google.error, snackbarHostState, callbacks.google.onErrorDismissed)
     NoticeEffect(notice, snackbarHostState, callbacks.onNoticeShown)
+    google.link?.let { prompt ->
+        GoogleLinkDialog(
+            prompt = prompt,
+            onIdentityChange = callbacks.google.onLinkPasswordChange,
+            onSubmit = callbacks.google.onLinkSubmit,
+            onDismiss = callbacks.google.onLinkDismissed,
+            onForgotPassword = callbacks.google.onForgotPassword,
+        )
+    }
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
     LaunchedEffect(state.focusRequest) {
@@ -172,6 +227,13 @@ fun LoginScreen(state: LoginUiState, callbacks: LoginCallbacks, modifier: Modifi
                     ExploraButton(stringResource(R.string.login_forgot_password), onClick = callbacks.onForgotPassword, style = ExploraButtonStyle.TEXT)
                 }
                 SubmitButton(state, callbacks.onSubmit)
+                OrDivider()
+                GoogleSignInButton(
+                    busy = google.busy,
+                    enabled = !state.submitting && !state.offline,
+                    request = callbacks.google.request,
+                    onResult = callbacks.google.onResult,
+                )
                 Spacer(Modifier.height(8.dp))
                 FirstTime(callbacks.onCreateAccount)
             }

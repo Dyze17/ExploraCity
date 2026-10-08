@@ -56,6 +56,8 @@ data class SettingsUiState(
     val email: String = "",
     /** «Cambiar correo» · El correo nuevo que espera confirmación (B1: la fila lo dice). */
     val pendingEmail: String? = null,
+    /** ADR-15, D1 · Sin contraseña (entra solo con Google), la fila del correo no abre «Cambiar correo». */
+    val hasPassword: Boolean = true,
     val download: DataDownload = DataDownload.Idle,
     val notice: SettingsNotice? = null,
     val logout: LogoutDialog? = null,
@@ -73,7 +75,7 @@ class SettingsViewModel(
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
-        accounts.account.value.let { SettingsUiState(email = it.email, pendingEmail = it.pendingEmail) },
+        accounts.account.value.let { SettingsUiState(email = it.email, pendingEmail = it.pendingEmail, hasPassword = it.hasPassword) },
     )
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
@@ -82,7 +84,9 @@ class SettingsViewModel(
             preferences.themeMode.collect { mode -> _state.update { it.copy(themeMode = mode) } }
         }
         viewModelScope.launch {
-            accounts.account.collect { account -> _state.update { it.copy(email = account.email, pendingEmail = account.pendingEmail) } }
+            accounts.account.collect { account ->
+                _state.update { it.copy(email = account.email, pendingEmail = account.pendingEmail, hasPassword = account.hasPassword) }
+            }
         }
         // Tras la rotación o si Android cerró la app, 29A sigue abierto (con la cuenta de envíos al día).
         if (savedStateHandle.get<Boolean>(LOGOUT_OPEN_KEY) == true) onLogoutClick()

@@ -56,6 +56,19 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `una cuenta que solo entra con Google no ofrece cambiar el correo`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.hasPassword)
+
+        accounts.current.value = Account("ana.rios@gmail.com", hasPassword = false)
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.hasPassword)
+        assertEquals("ana.rios@gmail.com", vm.state.value.email)
+    }
+
+    @Test
     fun `un cambio de correo sin confirmar se ve en la fila, y al confirmarlo el correo nuevo`() = runTest(dispatcher) {
         val vm = viewModel()
         advanceUntilIdle()
