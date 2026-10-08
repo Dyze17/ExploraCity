@@ -1,4 +1,6 @@
 {
   "email": "ana.rios@correo.com",
-  "pendingEmail": "ana.nueva@correo.com"
+  "pendingEmail": "ana.nueva@correo.com",
+  "hasPassword": true,
+  "googleLinked": false
 }

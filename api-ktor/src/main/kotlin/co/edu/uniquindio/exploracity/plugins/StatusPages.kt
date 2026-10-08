@@ -21,7 +21,7 @@ import java.time.Duration
  * un enlace vencido (6C), para pedir otro con el correo ya escrito.
  */
 @Serializable
-data class ErrorResponse(val code: String, val email: String? = null)
+data class ErrorResponse(val code: String, val email: String? = null, val name: String? = null)
 
 /**
  * Un error que la app sabe explicar: [status] HTTP y [code] estable (docs/api). Con [retryAfter], la respuesta dice en
@@ -32,6 +32,8 @@ open class ApiException(
     val code: String,
     val email: String? = null,
     val retryAfter: Duration? = null,
+    /** registration_required (ADR-15): el nombre de la cuenta de Google, para empezar el registro con él. */
+    val name: String? = null,
 ) : RuntimeException(code) {
     companion object {
         fun badRequest(code: String = "bad_request") = ApiException(HttpStatusCode.BadRequest, code)
@@ -54,7 +56,7 @@ fun Application.configureStatusPages() {
                 val seconds = (wait.toMillis() + 999) / 1000
                 call.response.header(HttpHeaders.RetryAfter, seconds.coerceAtLeast(1).toString())
             }
-            call.respond(cause.status, ErrorResponse(cause.code, cause.email))
+            call.respond(cause.status, ErrorResponse(cause.code, cause.email, cause.name))
         }
         // JSON mal formado o que no corresponde al cuerpo esperado.
         exception<BadRequestException> { call, _ ->

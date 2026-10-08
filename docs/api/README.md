@@ -22,7 +22,8 @@ En `ejemplos/` hay respuestas reales. Las pruebas de `api-ktor` comprueban que l
 - El token de renovación dura **30 días** y sirve una sola vez: cada renovación entrega un par nuevo. Si llega uno que ya se cambió, alguien copió la sesión y se cierran todas las de la cuenta.
 - Cerrar sesión, crear una contraseña nueva o eliminar la cuenta revocan los tokens de renovación. En la base de datos solo queda su hash.
 - Las rutas de Moderación responden `403` a quien no tiene el rol de moderador.
-- Ese rol lo dan solo los correos de `MODERATOR_EMAILS`. La API lo revisa al arrancar, y también quita el rol a quien ya no está en la lista. Una cuenta nueva toma su rol de esa lista.
+- Ese rol lo dan solo los correos de `MODERATOR_EMAILS`. La API lo revisa al arrancar, y también quita el rol a quien ya no está en la lista. Una cuenta nueva toma su rol de esa lista, también si se crea con Google.
+- Además de correo y contraseña, se puede entrar con Google (ADR-15, [más abajo](#entrar-con-google-adr-15)). La sesión que se abre es la misma.
 
 ### Límite de intentos (A1)
 
@@ -38,7 +39,7 @@ Todo error llega con el mismo cuerpo, sin trazas. La app traduce el código a su
 { "code": "unauthorized" }
 ```
 
-Un enlace vencido trae además el correo al que se envió, para pedir otro con el correo ya escrito (6C): [`link-expired.json`](ejemplos/link-expired.json).
+Un enlace vencido trae además el correo al que se envió, para pedir otro con el correo ya escrito (6C): [`link-expired.json`](ejemplos/link-expired.json). Al entrar con Google, `link_required` trae el correo y `registration_required` trae el correo y el nombre de la cuenta de Google.
 
 | Código | HTTP | Cuándo |
 |---|---|---|
@@ -60,6 +61,7 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `unauthorized` | 401 | Falta el token de acceso, venció, no es válido o la cuenta ya no existe |
 | `invalid_credentials` | 401 | El correo o la contraseña no coinciden al iniciar sesión. No dice cuál de los dos |
 | `invalid_credentials` | 403 | La contraseña actual no coincide al cambiar el correo; la sesión sigue valiendo |
+| `invalid_google_token` | 401 | El ID token de Google no sirve: firma, emisor, audiencia, vencimiento o correo sin verificar |
 | `invalid_refresh_token` | 401 | El token de renovación no existe, venció, se revocó o ya se usó |
 | `forbidden` | 403 | La ruta es de Moderación y la persona no tiene el rol |
 | `own_publication` | 403 | Un moderador intenta decidir sobre su propia publicación (F1) |
@@ -68,8 +70,12 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `place_not_found` | 404 | El lugar no existe o no es público (pendiente o rechazado) |
 | `notification_not_found` | 404 | El aviso no existe o es de otra persona |
 | `publication_not_found` | 404 | La publicación no existe, es de otra persona o ya no está para moderar |
+| `registration_required` | 404 | Entrar con Google: la cuenta de Google es nueva. Trae `email` y `name` para el registro en modo Google (C1) |
 | `method_not_allowed` | 405 | La ruta no acepta ese método |
-| `email_taken` | 409 | Ya hay una cuenta con ese correo |
+| `email_taken` | 409 | Ya hay una cuenta con ese correo. Con Google: el correo ya tiene otra cuenta de Google vinculada |
+| `link_required` | 409 | Entrar con Google: el correo ya tiene una cuenta con contraseña. Se vincula con esa contraseña (B1). Trae `email` |
+| `google_account_in_use` | 409 | La cuenta de Google ya está vinculada a otra cuenta |
+| `password_required` | 409 | Se pide cambiar el correo de una cuenta sin contraseña (solo con Google, D1) |
 | `no_pending_email` | 409 | Se pide reenviar el enlace sin un cambio de correo pendiente |
 | `cannot_resubmit` | 409 | Se reenvía una publicación que no está rechazada o que el moderador no permitió corregir |
 | `not_editable` | 409 | Se edita una publicación rechazada o finalizada (solo se editan pendientes y verificadas) |
@@ -86,6 +92,7 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `photo_upload_failed` | 502 | El almacén de fotos no respondió |
 | `suggestion_unavailable` | 503 | La IA no respondió a tiempo: la app sigue con la elección manual (ADR-12) |
 | `email_delivery_failed` | 503 | El correo no salió. Al recuperar la contraseña, solo se dice si el correo tiene cuenta (5) |
+| `google_sign_in_unavailable` | 503 | La API no tiene `GOOGLE_WEB_CLIENT_ID`: no se puede entrar con Google |
 
 ## Endpoints
 
@@ -111,6 +118,21 @@ La sesión trae los dos tokens, `expiresIn` (segundos del token de acceso), la p
 
 `clientId`, opcional, es un UUID que pone la app y repite en cada intento del mismo formulario. Si la respuesta del registro se perdió (la API terminó después de que la app se rindió), repetirlo abre la sesión en vez de responder `409 email_taken`. Con otro `clientId`, sin él o con otra contraseña, el correo ya tiene cuenta: `409 email_taken`.
 
+### Entrar con Google (ADR-15)
+
+La app pide la cuenta con Credential Manager («Sign in with Google») y manda el ID token que recibe de Google. La API comprueba la firma con las claves públicas de Google, el emisor (`accounts.google.com`), la audiencia (el cliente Web, `GOOGLE_WEB_CLIENT_ID`), el vencimiento y que Google haya verificado el correo.
+
+| Método y ruta | Acceso | Cuerpo | Respuesta | Ejemplo |
+|---|---|---|---|---|
+| `POST /v1/auth/google` | Pública | `{ "idToken", "registration": { "name", "residency" } }` | `200` con la sesión si la cuenta de Google ya está vinculada. Si es nueva: sin `registration`, `404 registration_required` con `email` y `name`; con `registration`, `201` con la sesión y `welcomeEmailSent`. Si el correo ya tiene una cuenta con contraseña, `409 link_required` | [`session.json`](ejemplos/session.json), [`register.json`](ejemplos/register.json) |
+| `POST /v1/auth/google/link` | Pública | `{ "idToken", "password" }` | `200` con la sesión: la cuenta con contraseña de ese correo queda vinculada a Google. Una contraseña equivocada responde `401 invalid_credentials` y cuenta para el límite de intentos (A1) | [`session.json`](ejemplos/session.json) |
+
+- La cuenta se reconoce por la cuenta de Google (su `sub`), no por el correo: sigue funcionando aunque la persona cambie su correo en la app o en Google.
+- **Cuenta nueva (C1):** la app abre el registro (4) en modo Google con el nombre de Google (editable), el correo fijo y sin contraseña. La autorización de la Ley 1581 la pide la app, como en el registro con contraseña. Se crea sin contraseña, con el rol de `MODERATOR_EMAILS` y con el correo de bienvenida.
+- **El correo ya tiene cuenta con contraseña (B1):** se vincula solo con esa contraseña, una vez. Si no, quien hubiera registrado ese correo antes con una contraseña conservaría el acceso. Quien no la recuerde, la cambia con «¿Olvidaste tu contraseña?».
+- **Sin contraseña (D1):** una cuenta creada con Google no puede iniciar sesión con contraseña ni cambiar el correo (`409 password_required`) hasta que cree una con «¿Olvidaste tu contraseña?». Desde entonces entra con cualquiera de las dos.
+- Repetir una petición cuya respuesta se perdió encuentra la cuenta ya creada o vinculada y abre otra sesión.
+
 ### Recuperar la contraseña (5, 6 y 6C)
 
 | Método y ruta | Acceso | Cuerpo | Respuesta | Ejemplo |
@@ -128,11 +150,11 @@ La sesión trae los dos tokens, `expiresIn` (segundos del token de acceso), la p
 
 | Método y ruta | Acceso | Cuerpo | Respuesta | Ejemplo |
 |---|---|---|---|---|
-| `GET /v1/account` | Token | — | El correo y, si lo hay, el correo nuevo pendiente | [`account.json`](ejemplos/account.json) |
+| `GET /v1/account` | Token | — | El correo, el correo nuevo pendiente si lo hay, y cómo entra: `hasPassword` y `googleLinked` (ADR-15). Sin contraseña, la app no ofrece «Cambiar correo» (D1) | [`account.json`](ejemplos/account.json) |
 | `POST /v1/account/email` | Token | `{ "newEmail", "password" }` | `202` con la cuenta y el correo pendiente. Envía el enlace al correo nuevo; otro pedido reemplaza al anterior | [`account.json`](ejemplos/account.json) |
 | `POST /v1/account/email/resend` | Token | — | `202`. Reenvía el enlace; el anterior deja de servir. Antes de 60 s no envía otro | — |
-| `POST /v1/account/email/confirm` | Token | `{ "token" }` | `200` con la cuenta: el correo nuevo ya es el de entrar | `{ "email": "ana.nueva@correo.com" }` |
-| `GET /v1/account/export` | Token | — | «Descargar mis datos»: el archivo JSON con claves en español. El nombre va en `Content-Disposition` (`exploracity-mis-datos-2026-10-03.json`) | [`export.json`](ejemplos/export.json) |
+| `POST /v1/account/email/confirm` | Token | `{ "token" }` | `200` con la cuenta: el correo nuevo ya es el de entrar | `{ "email": "ana.nueva@correo.com", "hasPassword": true, "googleLinked": false }` |
+| `GET /v1/account/export` | Token | — | «Descargar mis datos»: el archivo JSON con claves en español. El nombre va en `Content-Disposition` (`exploracity-mis-datos-2026-10-03.json`). `cuenta.entraConGoogle` dice si también entra con Google, sin el identificador de Google | [`export.json`](ejemplos/export.json) |
 | `DELETE /v1/account` | Token | — | `204`. Elimina la cuenta, todo o nada | — |
 
 - El enlace para confirmar el correo nuevo es `exploracity://enlace/confirmar-correo?token=…`, vence a los **30 minutos** y solo lo confirma la misma cuenta, con la sesión iniciada.

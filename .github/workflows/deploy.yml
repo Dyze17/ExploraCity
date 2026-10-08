@@ -61,6 +61,8 @@ jobs:
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
           # Opcional: vacía, el modelo por omisión de la API (AiSettings.DEFAULT_MODEL).
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+          # ADR-15 · El cliente OAuth «Web»: sin él, la API no ofrece entrar con Google.
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
           WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
         run: |
           # La dirección fija del servicio: https://SERVICIO-NÚMERO_DEL_PROYECTO.REGIÓN.run.app. El número sale del
@@ -79,6 +81,7 @@ jobs:
           APP_LINK_BASE_URL: "$SERVICE_URL/enlace"
           ANDROID_CERT_SHA256: "$ANDROID_CERT_SHA256"
           OPENROUTER_MODEL: "$OPENROUTER_MODEL"
+          GOOGLE_WEB_CLIENT_ID: "$GOOGLE_WEB_CLIENT_ID"
           EOF
 
           # Lo secreto vive en Secret Manager: aquí solo van los nombres, y Cloud Run entrega los valores a la API.

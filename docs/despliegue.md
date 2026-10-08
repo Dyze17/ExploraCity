@@ -181,6 +181,7 @@ En GitHub, «Settings › Secrets and variables › Actions › Variables»:
 | `GCP_WIF_PROVIDER` | Lo que imprimió el último bloque |
 | `CLOUDINARY_CLOUD_NAME` | El nombre de la nube en Cloudinary |
 | `ANDROID_CERT_SHA256` | La huella SHA-256 de la firma de producción, para los App Links ([«Publicar una versión de la app»](#publicar-una-versión-de-la-app)) |
+| `GOOGLE_WEB_CLIENT_ID` | El ID del cliente OAuth «Web», para entrar con Google ([«Entrar con Google»](#entrar-con-google)). Sin ella, la API no lo ofrece |
 | `OPENROUTER_MODEL` | Opcional: otro modelo de OpenRouter para la sugerencia de categoría. Sin ella, `deepseek/deepseek-v4.1-flash`. Tiene que responder una palabra con el razonamiento apagado y en menos de 4 s |
 
 Ninguna es secreta: el repositorio es público y el registro del despliegue las muestra. Por eso los correos y las claves van en Secret Manager. Desde una terminal con `gh`, también sirve `gh variable set GCP_PROJECT_ID --body "…"`.
@@ -218,6 +219,29 @@ Con `APP_ENV=production`, que pone el despliegue, la API no arranca si falta Sen
 
 - La app de producción declara estos enlaces con `autoVerify` (`app/src/release/AndroidManifest.xml`). Al instalarla, Android lee `/.well-known/assetlinks.json` de la API; si trae la huella de su firma (`ANDROID_CERT_SHA256`), los abre directo en la app.
 - En el navegador (en un computador, o sin la verificación), abren una página con el botón «Abrir en ExploraCity», que le pasa el token a la app de producción.
+
+## Entrar con Google
+
+La app pide la cuenta con «Sign in with Google» (Credential Manager) y le manda a la API el ID token de Google (ADR-15). Para eso Google Cloud necesita la pantalla de consentimiento y tres clientes OAuth. Todo se hace en la consola web; nada es secreto.
+
+1. **Pantalla de consentimiento:** en «Google Auth Platform» (o «APIs y servicios › Pantalla de consentimiento de OAuth»), toca «Comenzar».
+   - **Información de la app:** nombre «ExploraCity» y tu correo como correo de asistencia. Sin logo: subirlo pide que Google verifique la marca.
+   - **Público:** «Externo».
+   - **Información de contacto:** tu correo. Acepta la política y crea.
+2. **Acceso a los datos:** no hace falta agregar permisos. La app solo pide el correo y el perfil básico (`openid`, `email`, `profile`), que Google no revisa.
+3. **Público › Estado de publicación:** «Publicar app», para que quede **En producción**. En «Prueba» solo podrían entrar las cuentas de la lista de usuarios de prueba.
+4. **Clientes › Crear cliente**, tres veces:
+
+   | Tipo | Nombre | Datos |
+   |---|---|---|
+   | Aplicación web | ExploraCity API | Nada más: no lleva orígenes ni direcciones de redirección. Su **ID de cliente** va en la variable de GitHub `GOOGLE_WEB_CLIENT_ID` y, para la API del equipo, en `api-ktor/.env`. El secreto del cliente no se usa |
+   | Android | ExploraCity Android | Paquete `co.edu.uniquindio.exploracity` y la huella **SHA-1** de la firma de producción |
+   | Android | ExploraCity Android (dev) | Paquete `co.edu.uniquindio.exploracity.debug` y la huella SHA-1 de depuración de tu equipo (`keytool -list -v -keystore ~/.android/debug.keystore -storepass android`) |
+
+   Los clientes Android no se usan en el código: Google los mira para saber que la app que pide la cuenta es ExploraCity, firmada con esa clave.
+5. Lanza «Actions › Despliegue › Run workflow» para que la API tome `GOOGLE_WEB_CLIENT_ID`.
+
+Sin `GOOGLE_WEB_CLIENT_ID`, `POST /v1/auth/google` responde `503 google_sign_in_unavailable` y lo demás sigue igual.
 
 ## Publicar una versión de la app
 

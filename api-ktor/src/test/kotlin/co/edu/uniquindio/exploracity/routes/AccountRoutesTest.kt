@@ -62,7 +62,7 @@ class AccountRoutesTest : ApiTest() {
         assertEquals(HttpStatusCode.Forbidden, response.status)
         assertEquals("""{"code":"invalid_credentials"}""", response.bodyAsText())
         assertTrue(sentTo("ana.nueva@correo.com").isEmpty())
-        assertEquals("""{"email":"ana.rios@correo.com"}""", get("/v1/account", ana.accessToken).bodyAsText())
+        assertEquals("""{"email":"ana.rios@correo.com","hasPassword":true,"googleLinked":false}""", get("/v1/account", ana.accessToken).bodyAsText())
     }
 
     @Test
@@ -90,7 +90,7 @@ class AccountRoutesTest : ApiTest() {
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         assertEquals("""{"code":"email_delivery_failed"}""", response.bodyAsText())
-        assertEquals("""{"email":"ana.rios@correo.com"}""", get("/v1/account", ana.accessToken).bodyAsText())
+        assertEquals("""{"email":"ana.rios@correo.com","hasPassword":true,"googleLinked":false}""", get("/v1/account", ana.accessToken).bodyAsText())
     }
 
     @Test
@@ -101,8 +101,8 @@ class AccountRoutesTest : ApiTest() {
         val confirmed = post("/v1/account/email/confirm", """{"token":"$token"}""", ana.accessToken)
 
         assertEquals(HttpStatusCode.OK, confirmed.status)
-        assertEquals("""{"email":"ana.nueva@correo.com"}""", confirmed.bodyAsText())
-        assertEquals("""{"email":"ana.nueva@correo.com"}""", get("/v1/account", ana.accessToken).bodyAsText())
+        assertEquals("""{"email":"ana.nueva@correo.com","hasPassword":true,"googleLinked":false}""", confirmed.bodyAsText())
+        assertEquals("""{"email":"ana.nueva@correo.com","hasPassword":true,"googleLinked":false}""", get("/v1/account", ana.accessToken).bodyAsText())
         assertEquals(HttpStatusCode.OK, login("ana.nueva@correo.com", ana.password).status)
         assertEquals(HttpStatusCode.Unauthorized, login("ana.rios@correo.com", ana.password).status)
     }
@@ -117,7 +117,7 @@ class AccountRoutesTest : ApiTest() {
 
         assertEquals(HttpStatusCode.Gone, old.status)
         assertEquals("""{"code":"link_expired","email":"ana.nueva@correo.com"}""", old.bodyAsText())
-        assertEquals("""{"email":"ana.rios@correo.com","pendingEmail":"ana.otra@correo.com"}""", get("/v1/account", ana.accessToken).bodyAsText())
+        assertEquals("""{"email":"ana.rios@correo.com","pendingEmail":"ana.otra@correo.com","hasPassword":true,"googleLinked":false}""", get("/v1/account", ana.accessToken).bodyAsText())
     }
 
     @Test

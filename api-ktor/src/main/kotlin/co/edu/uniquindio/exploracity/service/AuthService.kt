@@ -4,7 +4,12 @@ import co.edu.uniquindio.exploracity.config.JwtConfig
 import co.edu.uniquindio.exploracity.config.JwtSettings
 import co.edu.uniquindio.exploracity.config.UserPrincipal
 import co.edu.uniquindio.exploracity.config.query
+import co.edu.uniquindio.exploracity.integration.GoogleIdentity
+import co.edu.uniquindio.exploracity.integration.GoogleTokenVerifier
+import co.edu.uniquindio.exploracity.integration.InvalidGoogleTokenException
 import co.edu.uniquindio.exploracity.integration.MailDeliveryException
+import co.edu.uniquindio.exploracity.model.GoogleLinkRequest
+import co.edu.uniquindio.exploracity.model.GoogleSignInRequest
 import co.edu.uniquindio.exploracity.model.LinkPurpose
 import co.edu.uniquindio.exploracity.model.LoginRequest
 import co.edu.uniquindio.exploracity.model.RegisterRequest
@@ -44,6 +49,8 @@ class AuthService(
     private val jwtSettings: JwtSettings,
     private val mail: AccountMail,
     private val clock: Clock,
+    /** ADR-15 · null sin GOOGLE_WEB_CLIENT_ID. */
+    private val google: GoogleTokenVerifier? = null,
 ) {
     private val log = LoggerFactory.getLogger(AuthService::class.java)
 
@@ -75,15 +82,94 @@ class AuthService(
             val existing = database.query { users.findByEmail(email) } ?: throw emailTaken()
             return repeated(existing, clientId, request.password) to false
         }
-        val sent = try {
-            mail.welcome(email, name)
-            true
-        } catch (e: MailDeliveryException) {
-            log.warn("No salió el correo de bienvenida; la cuenta quedó creada.", e)
-            false
-        }
-        return session.copy(welcomeEmailSent = sent) to true
+        return session.copy(welcomeEmailSent = welcome(email, name)) to true
     }
+
+    /** 4 · El correo de bienvenida; si no sale, la cuenta queda creada igual. Dice si salió. */
+    private suspend fun welcome(email: String, name: String): Boolean = try {
+        mail.welcome(email, name)
+        true
+    } catch (e: MailDeliveryException) {
+        log.warn("No salió el correo de bienvenida; la cuenta quedó creada.", e)
+        false
+    }
+
+    /**
+     * ADR-15 · Entrar con Google; el segundo valor dice si creó la cuenta. La cuenta se busca por la cuenta de Google
+     * (`sub`), no por el correo: así sigue funcionando aunque la persona cambie de correo en la app o en Google.
+     * - Ya vinculada: abre la sesión.
+     * - El correo ya tiene una cuenta con contraseña: link_required (B1). Solo se vincula con esa contraseña
+     *   ([linkGoogle]): si no, quien registró ese correo antes con una contraseña conservaría el acceso.
+     * - Cuenta nueva: sin [GoogleSignInRequest.registration], registration_required con el correo y el nombre de Google
+     *   (la app abre 4 en modo Google, C1); con ella, la crea sin contraseña y envía la bienvenida.
+     * Repetir una petición cuya respuesta se perdió encuentra la cuenta ya creada y abre otra sesión.
+     */
+    suspend fun signInWithGoogle(request: GoogleSignInRequest): Pair<SessionResponse, Boolean> {
+        val identity = verify(request.idToken)
+        database.query { users.findByGoogleSub(identity.subject)?.let { issue(it).second } }?.let { return it to false }
+        database.query { users.findByEmail(identity.email) }?.let { existing -> throw notLinked(existing) }
+        val registration = request.registration
+            ?: throw ApiException(HttpStatusCode.NotFound, REGISTRATION_REQUIRED, email = identity.email, name = identity.name)
+        val name = registration.name.trim()
+        if (!AccountRules.isValidName(name)) throw ApiException.badRequest("invalid_name")
+        val session = try {
+            database.query {
+                val user = users.create(
+                    identity.email, null, name, registration.residency, security.roleFor(identity.email), clock.instant(),
+                    googleSub = identity.subject,
+                )
+                issue(user).second
+            }
+        } catch (e: EmailTakenException) {
+            // Otra petición la creó mientras tanto: si fue con esta misma cuenta de Google, es el mismo registro.
+            val existing = database.query { users.findByEmail(identity.email) } ?: throw emailTaken()
+            if (existing.googleSub != identity.subject) throw notLinked(existing)
+            return database.query { issue(existing).second } to false
+        }
+        return session.copy(welcomeEmailSent = welcome(identity.email, name)) to true
+    }
+
+    /**
+     * B1 · Vincula Google a la cuenta con contraseña de ese mismo correo y abre la sesión. Una contraseña equivocada
+     * cuenta para el bloqueo de 15 minutos (A1) como en el inicio de sesión, y responde lo mismo: invalid_credentials.
+     */
+    suspend fun linkGoogle(request: GoogleLinkRequest): SessionResponse {
+        val identity = verify(request.idToken)
+        val now = clock.instant()
+        val user = database.query {
+            attempts.lockedUntil(identity.email, now)?.let { until -> throw tooManyAttempts(Duration.between(now, until)) }
+            users.findByEmail(identity.email)
+        }
+        // Ya vinculada (por ejemplo, la respuesta anterior se perdió): basta con abrir la sesión.
+        if (user != null && user.googleSub == identity.subject) return database.query { issue(user).second }
+        if (user == null || user.googleSub != null || !passwords.verify(request.password, user.passwordHash)) {
+            database.query { attempts.recordFailure(identity.email, clock.instant(), MAX_FAILURES, FAILURE_WINDOW, LOCK_DURATION) }
+            throw ApiException.unauthorized(INVALID_CREDENTIALS)
+        }
+        return database.query {
+            users.findByGoogleSub(identity.subject)?.let { throw ApiException.conflict(GOOGLE_ACCOUNT_IN_USE) }
+            users.linkGoogle(user.id, identity.subject)
+            attempts.clear(identity.email)
+            issue(checkNotNull(users.findById(user.id))).second
+        }
+    }
+
+    private suspend fun verify(idToken: String): GoogleIdentity {
+        val verifier = google ?: throw ApiException(HttpStatusCode.ServiceUnavailable, "google_sign_in_unavailable")
+        return try {
+            verifier.verify(idToken)
+        } catch (e: InvalidGoogleTokenException) {
+            log.info("ID token de Google rechazado: {}", e.message)
+            throw ApiException.unauthorized("invalid_google_token")
+        }
+    }
+
+    /**
+     * El correo ya tiene una cuenta sin esta cuenta de Google. Con contraseña, link_required (B1). Si ya tiene otra cuenta
+     * de Google vinculada, email_taken: no se reemplaza la vinculada.
+     */
+    private fun notLinked(existing: UserRecord): ApiException =
+        if (existing.googleSub == null) ApiException(HttpStatusCode.Conflict, LINK_REQUIRED, email = existing.email) else emailTaken()
 
     /**
      * 4 · El correo ya tiene cuenta. Si la creó un registro con el mismo [clientId] y la contraseña coincide, es el mismo
@@ -232,6 +318,9 @@ class AuthService(
         val LOCK_DURATION: Duration = Duration.ofMinutes(15)
 
         const val INVALID_CREDENTIALS = "invalid_credentials"
+        const val REGISTRATION_REQUIRED = "registration_required"
+        const val LINK_REQUIRED = "link_required"
+        const val GOOGLE_ACCOUNT_IN_USE = "google_account_in_use"
 
         fun emailTaken() = ApiException.conflict("email_taken")
 

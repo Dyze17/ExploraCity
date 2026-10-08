@@ -207,6 +207,19 @@ class AppConfigTest {
         assertTrue("ANDROID_CERT_SHA256" in error.message.orEmpty())
     }
 
+    @Test
+    fun `entrar con Google se activa solo con el cliente Web`() {
+        val without = load("exploracity.jwt.secret" to randomSecret()).google
+        val with = load(
+            "exploracity.jwt.secret" to randomSecret(),
+            "exploracity.google.webClientId" to " 123-abc.apps.googleusercontent.com ",
+        ).google
+
+        assertFalse(without.enabled)
+        assertTrue(with.enabled)
+        assertEquals("123-abc.apps.googleusercontent.com", with.webClientId)
+    }
+
     /** Una huella SHA-256 inventada en cada ejecución: «AB:01:…», 32 pares. */
     private fun randomFingerprint(): String = (1..32).joinToString(":") { "%02X".format(Random.nextInt(256)) }
 

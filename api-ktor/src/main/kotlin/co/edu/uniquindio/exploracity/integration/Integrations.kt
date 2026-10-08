@@ -21,6 +21,8 @@ class Integrations(
     val media: MediaStore,
     val classifier: CategoryClassifier = KeywordClassifier(),
     private val http: HttpClient? = null,
+    /** ADR-15 · null sin GOOGLE_WEB_CLIENT_ID: no se puede entrar con Google. */
+    val google: GoogleTokenVerifier? = null,
 ) : Closeable {
 
     override fun close() {
@@ -67,7 +69,14 @@ class Integrations(
                 log.warn("Sugerencia de categoría: sin OPENROUTER_API_KEY sale de palabras clave.")
                 KeywordClassifier()
             }
-            return Integrations(mail, media, classifier, http)
+            val google = if (config.google.enabled) {
+                log.info("Entrar con Google: activado.")
+                JwksGoogleTokenVerifier.google(config.google.webClientId, clock)
+            } else {
+                log.warn("Entrar con Google: sin GOOGLE_WEB_CLIENT_ID no está disponible.")
+                null
+            }
+            return Integrations(mail, media, classifier, http, google)
         }
     }
 }

@@ -62,12 +62,15 @@ class AccountService(
 
     /**
      * «Cambiar correo» · Envía el enlace al correo nuevo, que queda pendiente hasta confirmarlo. Otro pedido reemplaza al
-     * anterior: su enlace deja de servir. Pide la contraseña actual (403 invalid_credentials si no coincide).
+     * anterior: su enlace deja de servir. Pide la contraseña actual (403 invalid_credentials si no coincide); una cuenta
+     * sin contraseña (solo con Google) responde 409 password_required.
      */
     suspend fun requestEmailChange(userId: UUID, request: EmailChangeRequest): AccountResponse {
         val email = AccountRules.normalizeEmail(request.newEmail)
         if (!AccountRules.isValidEmail(email)) throw ApiException.badRequest("invalid_email")
         val user = database.query { user(userId) }
+        // D1 · Una cuenta solo con Google no tiene contraseña que confirmar: la app no ofrece el cambio.
+        if (user.passwordHash == null) throw ApiException.conflict("password_required")
         if (!passwords.verify(request.password, user.passwordHash)) throw ApiException.forbidden(AuthService.INVALID_CREDENTIALS)
         if (email == user.email) throw ApiException.badRequest("same_email")
         if (database.query { users.findByEmail(email) } != null) throw AuthService.emailTaken()
@@ -77,7 +80,7 @@ class AccountService(
             val now = clock.instant()
             replaceLink(user.id, email, token, now)
             users.setPendingEmail(user.id, email)
-            AccountResponse(user.email, email)
+            user.copy(pendingEmail = email).toAccount()
         }
     }
 
@@ -113,7 +116,7 @@ class AccountService(
         }
         links.markUsed(link.id, now)
         links.expireAll(userId, LinkPurpose.EMAIL_CHANGE, now)
-        AccountResponse(link.email)
+        user(userId).toAccount()
     }
 
     /** 29 · «Descargar mis datos»: el mismo archivo, con claves en español, que armaba la app con datos de prueba. */
@@ -129,6 +132,7 @@ class AccountService(
                 residency = ExportLabels.of(user.residency),
                 city = city.name,
                 memberSince = reputation.memberSince(user).toString(),
+                googleLinked = user.googleSub != null,
                 bio = user.bio,
                 photo = user.photoUrl,
             ),
@@ -192,7 +196,7 @@ class AccountService(
         }
     }
 
-    private fun UserRecord.toAccount() = AccountResponse(email, pendingEmail)
+    private fun UserRecord.toAccount() = AccountResponse(email, pendingEmail, hasPassword = passwordHash != null, googleLinked = googleSub != null)
 
     private companion object {
         val SPANISH: Locale = Locale.forLanguageTag("es-CO")

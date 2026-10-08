@@ -16,6 +16,7 @@ data class AppConfig(
     val media: MediaSettings = MediaSettings(),
     val ai: AiSettings = AiSettings(),
     val android: AndroidAppSettings = AndroidAppSettings(),
+    val google: GoogleSettings = GoogleSettings(),
     /** En Cloud Run (APP_ENV=production): lo que en desarrollo tiene una versión local aquí es obligatorio. */
     val production: Boolean = false,
 ) {
@@ -43,6 +44,7 @@ data class AppConfig(
             val cloudinary = media.config("cloudinary")
             val ai = root.config("ai")
             val android = root.config("android")
+            val google = root.config("google")
             return AppConfig(
                 database = DatabaseSettings(
                     url = database.property("url").getString(),
@@ -91,6 +93,7 @@ data class AppConfig(
                     packageName = android.text("packageName").ifEmpty { AndroidAppSettings.DEFAULT_PACKAGE },
                     certFingerprints = AndroidAppSettings.parseFingerprints(android.text("certFingerprints")),
                 ),
+                google = GoogleSettings(webClientId = google.text("webClientId")),
                 production = when (val environment = root.text("environment").lowercase()) {
                     "", "development" -> false
                     "production" -> true
@@ -243,6 +246,14 @@ data class AndroidAppSettings(
                 }
             }
     }
+}
+
+/**
+ * ADR-15 · Entrar con Google. [webClientId] es el cliente OAuth «Web» del proyecto de Google Cloud: la app lo pide como
+ * audiencia del ID token, y la API solo acepta tokens para él. Vacío: sin «Continuar con Google».
+ */
+data class GoogleSettings(val webClientId: String = "") {
+    val enabled: Boolean get() = webClientId.isNotEmpty()
 }
 
 data class CloudinarySettings(val cloudName: String, val apiKey: String, val apiSecret: String) {
