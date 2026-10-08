@@ -85,6 +85,7 @@ fun Application.exploraModule(
     val reputation = ReputationService(ReputationRepository(), notifications, config.city, clock)
     val auth = AuthService(
         database, users, SessionRepository(), links, LoginAttemptRepository(), security, passwords, jwt, config.jwt, mail, clock,
+        integrations.google,
     )
     val accounts = AccountService(
         database, users, links, PersonalDataRepository(), reputation, passwords, mail, integrations.media, config.city, clock,

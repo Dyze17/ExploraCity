@@ -6,6 +6,7 @@
         "comoSePresenta": "Residente",
         "ciudad": "Armenia",
         "miembroDesde": "2026-03",
+        "entraConGoogle": false,
         "sobreMi": "Me encanta caminar por los miradores del Quindío.",
         "foto": "https://res.cloudinary.com/exploracity/image/upload/perfil/ana-rios.jpg"
     },

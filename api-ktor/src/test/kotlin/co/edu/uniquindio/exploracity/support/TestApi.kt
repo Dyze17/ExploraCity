@@ -93,15 +93,20 @@ abstract class ApiTest : DatabaseTest() {
         moderators: Set<String> = emptySet(),
         devMailbox: Boolean = false,
         classifier: CategoryClassifier = KeywordClassifier(),
+        /** Con un Google de prueba ([TestApi.google]); sin él, la API no ofrece entrar con Google. */
+        googleSignIn: Boolean = false,
         block: suspend TestApi.() -> Unit,
     ) = testApplication {
         val settings = testConfig(moderators, devMailbox)
         val clock = MutableClock(NOW)
         val mail: MailClient = if (devMailbox) DevMailbox() else TestMail()
         val media = TestMedia()
+        val google = if (googleSignIn) TestGoogle(clock) else null
         environment { config = MapApplicationConfig() }
-        application { exploraModule(settings, database, clock, Integrations(mail, media, classifier), PasswordHasher(cost = 4)) }
-        TestApi(client, database, settings, clock, mail, media).block()
+        application {
+            exploraModule(settings, database, clock, Integrations(mail, media, classifier, google = google?.verifier), PasswordHasher(cost = 4))
+        }
+        TestApi(client, database, settings, clock, mail, media, google).block()
     }
 
     companion object {
@@ -116,11 +121,15 @@ class TestApi(
     val clock: MutableClock,
     val mail: MailClient,
     val media: TestMedia,
+    private val testGoogle: TestGoogle? = null,
 ) {
     private val accountMail = AccountMail(mail, config.mail.linkBaseUrl)
     private val jwt = JwtConfig(config.jwt, clock)
 
     val testMail: TestMail get() = mail as TestMail
+
+    /** El Google de prueba de `apiTest(googleSignIn = true)`. */
+    val google: TestGoogle get() = checkNotNull(testGoogle) { "La prueba no pidió googleSignIn" }
 
     suspend fun get(path: String, token: String? = null): HttpResponse = client.get(path) { auth(token) }
 

@@ -25,13 +25,13 @@ import java.util.UUID
 
 /**
  * Una cuenta tal como está guardada. [email] y [pendingEmail] van en minúscula. [clientId] es el del registro que la
- * creó, si la app lo mandó.
+ * creó, si la app lo mandó. Sin [passwordHash], la cuenta entra solo con Google ([googleSub], ADR-15).
  */
 data class UserRecord(
     val id: UUID,
     val email: String,
     val pendingEmail: String?,
-    val passwordHash: String,
+    val passwordHash: String?,
     val name: String,
     val bio: String?,
     val residency: Residency,
@@ -40,6 +40,7 @@ data class UserRecord(
     val role: Role,
     val createdAt: Instant,
     val clientId: UUID? = null,
+    val googleSub: String? = null,
 )
 
 /** Ya hay una cuenta con ese correo (índice único sobre lower(email)). */
@@ -70,19 +71,26 @@ class UserRepository(private val database: Database) {
     fun findByEmail(email: String): UserRecord? =
         Users.selectAll().where { Users.email.lowerCase() eq email.lowercase() }.singleOrNull()?.toUser()
 
+    /** ADR-15 · La cuenta vinculada a la cuenta de Google [sub]. */
+    fun findByGoogleSub(sub: String): UserRecord? = Users.selectAll().where { Users.googleSub eq sub }.singleOrNull()?.toUser()
+
     /** La cuenta que espera confirmar [email] como su correo nuevo. */
     fun findByPendingEmail(email: String): UserRecord? =
         Users.selectAll().where { Users.pendingEmail.lowerCase() eq email.lowercase() }.firstOrNull()?.toUser()
 
-    /** Lanza [EmailTakenException] si otra cuenta se llevó el correo justo antes. */
+    /**
+     * Lanza [EmailTakenException] si otra cuenta se llevó el correo justo antes. Con Google, [passwordHash] es null y va
+     * [googleSub].
+     */
     fun create(
         email: String,
-        passwordHash: String,
+        passwordHash: String?,
         name: String,
         residency: Residency,
         role: Role,
         createdAt: Instant,
         clientId: UUID? = null,
+        googleSub: String? = null,
     ): UserRecord {
         val id = uniqueEmail {
             Users.insert {
@@ -93,6 +101,7 @@ class UserRepository(private val database: Database) {
                 it[Users.role] = role
                 it[Users.createdAt] = createdAt.atOffset(ZoneOffset.UTC)
                 it[Users.clientId] = clientId
+                it[Users.googleSub] = googleSub
             }[Users.id]
         }
         return checkNotNull(findById(id))
@@ -100,6 +109,11 @@ class UserRepository(private val database: Database) {
 
     fun updatePassword(id: UUID, passwordHash: String) {
         Users.update({ Users.id eq id }) { it[Users.passwordHash] = passwordHash }
+    }
+
+    /** ADR-15 · Desde ahora la cuenta también entra con la cuenta de Google [sub]. */
+    fun linkGoogle(id: UUID, sub: String) {
+        Users.update({ Users.id eq id }) { it[googleSub] = sub }
     }
 
     fun setPendingEmail(id: UUID, email: String?) {
@@ -166,6 +180,7 @@ class UserRepository(private val database: Database) {
         role = this[Users.role],
         createdAt = this[Users.createdAt].toInstant(),
         clientId = this[Users.clientId],
+        googleSub = this[Users.googleSub],
     )
 
     private companion object {

@@ -23,6 +23,21 @@ data class RegisterRequest(
 @Serializable
 data class LoginRequest(val email: String, val password: String)
 
+/**
+ * ADR-15 · Entrar con Google: el ID token que la app recibe de Google. La primera vez, con [registration] (4 en modo
+ * Google, C1); sin ella, una cuenta nueva responde registration_required.
+ */
+@Serializable
+data class GoogleSignInRequest(val idToken: String, val registration: GoogleRegistration? = null)
+
+/** 4 en modo Google: el nombre (el de Google, que la persona puede cambiar) y el «¿Cómo te presentas?». */
+@Serializable
+data class GoogleRegistration(val name: String, val residency: Residency)
+
+/** B1 · Vincular Google a la cuenta con contraseña de ese mismo correo: la contraseña, una sola vez. */
+@Serializable
+data class GoogleLinkRequest(val idToken: String, val password: String)
+
 @Serializable
 data class RefreshRequest(val refreshToken: String)
 
@@ -56,9 +71,17 @@ data class SessionResponse(
 @Serializable
 data class ResetLinkResponse(val email: String, val expiresAt: String)
 
-/** 28 y 29 · El correo de la cuenta y, con un cambio pedido, el nuevo que espera confirmación. */
+/**
+ * 28 y 29 · El correo de la cuenta y, con un cambio pedido, el nuevo que espera confirmación. [hasPassword] y
+ * [googleLinked] dicen cómo entra (ADR-15): sin contraseña no se ofrece «Cambiar correo» (D1).
+ */
 @Serializable
-data class AccountResponse(val email: String, val pendingEmail: String? = null)
+data class AccountResponse(
+    val email: String,
+    val pendingEmail: String? = null,
+    val hasPassword: Boolean,
+    val googleLinked: Boolean,
+)
 
 /** «Cambiar correo» · El correo nuevo y la contraseña actual. */
 @Serializable
