@@ -47,6 +47,9 @@ class OpenRouterClassifier(
             ),
             temperature = 0.0,
             maxTokens = 5,
+            // Sin razonamiento: un modelo que piensa gastaría los 5 tokens antes de responder. deepseek-v4.1-flash
+            // respondía vacío; sin razonamiento responde la categoría en menos de 1 s.
+            reasoning = ChatReasoning(enabled = false),
         )
         val response = try {
             http.post(endpoint) {
@@ -139,7 +142,12 @@ private data class ChatRequest(
     val messages: List<ChatMessage>,
     val temperature: Double,
     @SerialName("max_tokens") val maxTokens: Int,
+    val reasoning: ChatReasoning,
 )
+
+/** El razonamiento de OpenRouter; los modelos que no lo tienen lo ignoran. */
+@Serializable
+private data class ChatReasoning(val enabled: Boolean)
 
 @Serializable
 private data class ChatMessage(val role: String, val content: String)

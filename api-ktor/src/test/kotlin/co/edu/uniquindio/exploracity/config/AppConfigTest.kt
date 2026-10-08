@@ -120,7 +120,7 @@ class AppConfigTest {
         val with = load("exploracity.jwt.secret" to randomSecret(), "exploracity.ai.openRouterApiKey" to apiKey, "exploracity.ai.model" to "deepseek/deepseek-r1")
 
         assertFalse(without.ai.usesOpenRouter)
-        assertEquals("deepseek/deepseek-chat", without.ai.model)
+        assertEquals("deepseek/deepseek-v4.1-flash", without.ai.model)
         assertTrue(with.ai.usesOpenRouter)
         assertEquals("deepseek/deepseek-r1", with.ai.model)
     }

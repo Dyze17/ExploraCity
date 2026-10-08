@@ -37,7 +37,7 @@ class CategoryClassifierTest {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             install(HttpTimeout)
         }
-        return OpenRouterClassifier(http, apiKey, "deepseek/deepseek-chat", timeoutMillis)
+        return OpenRouterClassifier(http, apiKey, "deepseek/deepseek-v4.1-flash", timeoutMillis)
     }
 
     private fun answer(content: String) = """{"choices":[{"message":{"role":"assistant","content":"$content"}}]}"""
@@ -57,7 +57,10 @@ class CategoryClassifierTest {
         assertEquals(Category.NATURE, category)
         assertEquals("Bearer $apiKey", auth)
         val request = Json.parseToJsonElement(body).jsonObject
-        assertEquals("deepseek/deepseek-chat", request["model"]!!.jsonPrimitive.content)
+        assertEquals("deepseek/deepseek-v4.1-flash", request["model"]!!.jsonPrimitive.content)
+        // Con el razonamiento encendido, un modelo que piensa gasta los 5 tokens y responde vacío.
+        assertEquals(5, request["max_tokens"]!!.jsonPrimitive.content.toInt())
+        assertEquals("false", request["reasoning"]!!.jsonObject["enabled"]!!.jsonPrimitive.content)
         val messages = request["messages"]!!.jsonArray.map { it.jsonObject }
         assertEquals(listOf("system", "user"), messages.map { it["role"]!!.jsonPrimitive.content })
         assertTrue("Título: Mirador de la Secreta" in messages[1]["content"]!!.jsonPrimitive.content)

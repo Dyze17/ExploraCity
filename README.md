@@ -244,7 +244,7 @@ Necesita **Docker Desktop**, que levanta PostgreSQL 16 con PostGIS.
    - `DEV_MAILBOX=true` abre `/v1/dev/mailbox`, para leer los enlaces del buzón de desarrollo. Lo usan los botones de «Correo de prueba» de la app. Nunca va en producción.
    - `SENDGRID_API_KEY` y `MAIL_FROM` envían los correos de verdad.
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`, las tres juntas, suben las fotos a Cloudinary.
-   - `OPENROUTER_API_KEY` sugiere la categoría con IA en OpenRouter. `OPENROUTER_MODEL` cambia el modelo; sin él, `deepseek/deepseek-chat`.
+   - `OPENROUTER_API_KEY` sugiere la categoría con IA en OpenRouter. `OPENROUTER_MODEL` cambia el modelo; sin él, `deepseek/deepseek-v4.1-flash`, con el razonamiento apagado para que responda en menos de 1 s.
    - `PUBLIC_BASE_URL` es el comienzo de las direcciones de la carpeta local. Por omisión, `http://localhost:8080`, que también sirve en el teléfono con `adb reverse`. Si la app usa la IP del equipo, pon esa misma (`http://192.168.x.x:8080`).
 2. Levanta la base de datos y la API:
 
