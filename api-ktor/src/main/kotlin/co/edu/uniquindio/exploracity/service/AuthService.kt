@@ -304,6 +304,8 @@ class AuthService(
             role = user.role,
             email = user.email,
             pendingEmail = user.pendingEmail,
+            hasPassword = user.passwordHash != null,
+            googleLinked = user.googleSub != null,
         )
         return id to session
     }

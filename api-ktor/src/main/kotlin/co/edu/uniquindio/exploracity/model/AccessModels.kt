@@ -63,6 +63,9 @@ data class SessionResponse(
     val role: Role,
     val email: String,
     val pendingEmail: String? = null,
+    /** ADR-15 · Cómo entra la cuenta: sin contraseña, la app no ofrece «Cambiar correo» (D1). */
+    val hasPassword: Boolean,
+    val googleLinked: Boolean,
     /** Solo al registrarse (4): false si el correo de bienvenida no salió. La cuenta se creó igual. */
     val welcomeEmailSent: Boolean? = null,
 )
