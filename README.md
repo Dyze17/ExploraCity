@@ -48,9 +48,9 @@ Es un monorepo con la **app Android** (Kotlin y Jetpack Compose) y su **API REST
 
 ## <img src="docs/img/iconos/instalar.svg" width="28" height="28" align="top"> Instalar la app
 
-1. Desde el teléfono, descarga `ExploraCity-1.0.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
+1. Desde el teléfono, descarga `ExploraCity-1.1.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
 2. Ábrelo. Android pide permitir la instalación de apps desde el navegador.
-3. Crea tu cuenta. La app ya usa la API en la nube, así que no hace falta nada más.
+3. Crea tu cuenta con tu correo o con «Continuar con Google». La app ya usa la API en la nube, así que no hace falta nada más.
 
 Requiere **Android 9** o posterior. Las versiones nuevas se instalan encima de las anteriores.
 
@@ -112,6 +112,10 @@ Requiere **Android 9** o posterior. Las versiones nuevas se instalan encima de l
 ### <img src="docs/img/iconos/cuenta.svg" width="24" height="24" align="top"> Acceso y cuenta
 - **Arranque**: la primera vez va al onboarding de tres paneles; con una sesión guardada, entra directo al feed. Si la red falla, se puede seguir sin conexión con lo guardado.
 - **Registro**: pide la autorización de tratamiento de datos (**Ley 1581 de 2012**), que nunca viene marcada.
+- **Entrar con Google**: «Continuar con Google» está en el inicio de sesión y en el registro.
+  - La primera vez, el registro trae el nombre de Google, que se puede cambiar, y pide la residencia y la autorización. No hay contraseña.
+  - Si el correo ya tiene una cuenta con contraseña, se vincula escribiéndola una sola vez.
+  - Una cuenta que entra solo con Google crea una contraseña con «¿Olvidaste tu contraseña?» antes de cambiar su correo.
 - **Inicio de sesión**:
   - no revela cuál de los dos datos falló;
   - tras 5 intentos fallidos con el mismo correo, pide esperar 15 minutos;
@@ -147,7 +151,7 @@ Se envían con SendGrid.
 
 ## <img src="docs/img/iconos/estado.svg" width="28" height="28" align="top"> Estado del proyecto
 
-**Versión 1.0.0, publicada.**
+**Versión 1.1.0, publicada.** Trae entrar y registrarse con Google.
 - Todas las pantallas del diseño están implementadas.
 - La app trabaja con la API desplegada en Google Cloud, sin datos de ejemplo.
 - La ciudad es **Armenia**; se cambia en `api-ktor/src/main/resources/application.conf`.
@@ -160,13 +164,13 @@ Se envían con SendGrid.
 | Notificaciones, perfil e insignias | 25–27 | ✅ |
 | Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ |
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ |
+| Entrar y registrarse con Google ([ADR-15](docs/decisiones-arquitectonicas/ADR-15-entrar-con-google.md)) | sin número | ✅ |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ |
 | API ([contrato](docs/api/README.md)) | — | ✅ |
 | Despliegue: la API en Cloud Run y la app en GitHub Releases ([guía](docs/despliegue.md)) | — | ✅ |
 
 **Pendiente:**
 - La API todavía no recibe reportes de lugares, así que la revisión de una pendiente (33) no muestra ninguno.
-- **Próximo:** entrar y registrarse con una cuenta de Google.
 
 ## <img src="docs/img/iconos/arquitectura.svg" width="28" height="28" align="top"> Arquitectura
 
@@ -231,6 +235,7 @@ Paquetes `routes/`, `service/`, `repository/`, `model/`, `integration/`, `config
 - Ktor 3.6 (Netty) con autenticación JWT.
 - Exposed y HikariCP sobre PostgreSQL con **PostGIS** y **pg_trgm**, con las migraciones de Flyway.
 - BCrypt para las contraseñas.
+- Entrar con Google: la API verifica el ID token que la app recibe de Credential Manager y entrega su propia sesión. Revisa la firma con las claves públicas de Google, el emisor, la audiencia (el cliente «Web»), el vencimiento y que el correo esté verificado.
 - Integraciones con Ktor Client:
   - Cloudinary, para las fotos;
   - SendGrid, para los correos;
@@ -279,6 +284,7 @@ El contrato con la app, con sus endpoints, códigos de error y ejemplos, está e
 - **Android Studio 2026.1.3** o posterior (el proyecto usa AGP 9.4) y el **Android SDK 37**
 - **Docker Desktop**, para la base de datos de la API.
 - Una clave de **Google Maps**, para ver el mapa. Tiene que aceptar el paquete `co.edu.uniquindio.exploracity.debug` con la huella de depuración de tu equipo ([guía](docs/despliegue.md)). Sin ella, la pantalla del mapa muestra un aviso de desarrollo.
+- Para «Continuar con Google» en la versión de depuración: un cliente OAuth Android con ese mismo paquete y huella, en el proyecto del cliente «Web» ([guía](docs/despliegue.md#entrar-con-google)). Sin él, la versión de depuración no puede entrar con Google.
 
 ### App Android
 
@@ -342,6 +348,7 @@ Necesita **Docker Desktop**, que levanta PostgreSQL 16 con PostGIS.
    - `SENDGRID_API_KEY` y `MAIL_FROM` envían los correos de verdad.
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`, las tres juntas, suben las fotos a Cloudinary.
    - `OPENROUTER_API_KEY` sugiere la categoría con IA. `OPENROUTER_MODEL` cambia el modelo; sin él, `deepseek/deepseek-v4.1-flash`, con el razonamiento apagado para que responda en menos de 1 s.
+   - `GOOGLE_WEB_CLIENT_ID` activa «Continuar con Google»: es el ID del cliente OAuth «Web», el mismo de la app, y no es secreto. Sin él, la API responde que entrar con Google no está disponible.
    - `PUBLIC_BASE_URL` es el comienzo de las direcciones de la carpeta local. Por omisión, `http://localhost:8080`, que también sirve en el teléfono con `adb reverse`.
 2. Levanta la base de datos y la API:
 
