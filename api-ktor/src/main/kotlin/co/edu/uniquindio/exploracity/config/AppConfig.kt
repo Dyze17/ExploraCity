@@ -213,8 +213,11 @@ data class AiSettings(val openRouterApiKey: String = "", val model: String = DEF
     val usesOpenRouter: Boolean get() = openRouterApiKey.isNotEmpty()
 
     companion object {
-        /** ADR-11: DeepSeek por OpenRouter. */
-        const val DEFAULT_MODEL = "deepseek/deepseek-chat"
+        /**
+         * ADR-11: DeepSeek por OpenRouter. V4.1 Flash en vez de V3 (deepseek-chat): con el razonamiento apagado responde
+         * la categoría igual de bien en menos de 1 s, cuando V3 tardaba de 1 a 2,5 s del límite de 4 s.
+         */
+        const val DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
     }
 }
 

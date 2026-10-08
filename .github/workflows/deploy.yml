@@ -59,6 +59,8 @@ jobs:
         env:
           CLOUDINARY_CLOUD_NAME: ${{ vars.CLOUDINARY_CLOUD_NAME }}
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+          # Opcional: vacía, el modelo por omisión de la API (AiSettings.DEFAULT_MODEL).
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
           WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
         run: |
           # La dirección fija del servicio: https://SERVICIO-NÚMERO_DEL_PROYECTO.REGIÓN.run.app. El número sale del
@@ -76,6 +78,7 @@ jobs:
           CLOUDINARY_CLOUD_NAME: "$CLOUDINARY_CLOUD_NAME"
           APP_LINK_BASE_URL: "$SERVICE_URL/enlace"
           ANDROID_CERT_SHA256: "$ANDROID_CERT_SHA256"
+          OPENROUTER_MODEL: "$OPENROUTER_MODEL"
           EOF
 
           # Lo secreto vive en Secret Manager: aquí solo van los nombres, y Cloud Run entrega los valores a la API.

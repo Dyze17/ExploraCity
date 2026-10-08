@@ -181,6 +181,7 @@ En GitHub, «Settings › Secrets and variables › Actions › Variables»:
 | `GCP_WIF_PROVIDER` | Lo que imprimió el último bloque |
 | `CLOUDINARY_CLOUD_NAME` | El nombre de la nube en Cloudinary |
 | `ANDROID_CERT_SHA256` | La huella SHA-256 de la firma de producción, para los App Links ([«Publicar una versión de la app»](#publicar-una-versión-de-la-app)) |
+| `OPENROUTER_MODEL` | Opcional: otro modelo de OpenRouter para la sugerencia de categoría. Sin ella, `deepseek/deepseek-v4.1-flash`. Tiene que responder una palabra con el razonamiento apagado y en menos de 4 s |
 
 Ninguna es secreta: el repositorio es público y el registro del despliegue las muestra. Por eso los correos y las claves van en Secret Manager. Desde una terminal con `gh`, también sirve `gh variable set GCP_PROJECT_ID --body "…"`.
 
