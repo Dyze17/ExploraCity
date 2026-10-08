@@ -5,52 +5,66 @@ import co.edu.uniquindio.exploracity.integration.MailMessage
 import co.edu.uniquindio.exploracity.model.LinkPurpose
 
 /**
- * Los correos de la cuenta, en español, con texto plano y HTML simple. Los enlaces abren la app con su token: en
- * desarrollo «exploracity://enlace/restablecer?token=…», y en producción la misma ruta en https, en la dirección de la
- * API (App Links, con la página de routes/AppLinkRoutes.kt si no abren la app). Lanzan MailDeliveryException si el
- * correo no sale.
+ * Los correos de la cuenta, en español, con la forma de [MailLayout]: HTML con los colores de la app y el enlace como
+ * botón, y el mismo texto en texto plano. Los enlaces abren la app con su token: en desarrollo
+ * «exploracity://enlace/restablecer?token=…», y en producción la misma ruta en https, en la dirección de la API (App
+ * Links, con la página de routes/AppLinkRoutes.kt si no abren la app). Lanzan MailDeliveryException si el correo no
+ * sale.
  */
 class AccountMail(private val client: MailClient, private val linkBaseUrl: String) {
 
     /** 4 · Bienvenida al crear la cuenta. */
     suspend fun welcome(to: String, name: String) = send(
-        to = to,
-        subject = "Tu cuenta de ExploraCity está lista",
-        name = name,
-        paragraphs = listOf(
-            "Tu cuenta de ExploraCity quedó lista. Ya puedes explorar los lugares que comparte la comunidad y publicar los tuyos.",
-            "Si no fuiste tú quien la creó, puedes ignorar este mensaje.",
+        to,
+        MailContent(
+            subject = "Tu cuenta de ExploraCity está lista",
+            preview = "Ya puedes explorar y publicar los lugares de tu ciudad.",
+            greeting = greeting(name),
+            paragraphs = listOf(
+                "Tu cuenta de ExploraCity quedó lista. Ya puedes explorar los lugares que comparte la comunidad y publicar los tuyos.",
+                "Si no fuiste tú quien la creó, puedes ignorar este mensaje.",
+            ),
+            reason = "Recibes este correo porque se creó una cuenta de ExploraCity con esta dirección.",
         ),
     )
 
     /** 5 · El enlace para crear una contraseña nueva (6.b). */
     suspend fun passwordReset(to: String, name: String, token: String) = send(
-        to = to,
-        subject = "Crea una contraseña nueva para ExploraCity",
-        name = name,
-        paragraphs = listOf(
-            "Recibimos una solicitud para crear una contraseña nueva. Abre este enlace en tu teléfono, con la app de ExploraCity instalada:",
-        ),
-        link = link(LinkPurpose.PASSWORD_RESET, token),
-        after = listOf(
-            "El enlace vence en ${AccountRules.RESET_LINK_TTL.toMinutes()} minutos y sirve una sola vez. Si no lo pediste, " +
-                "ignora este correo: tu contraseña sigue igual.",
+        to,
+        MailContent(
+            subject = "Crea una contraseña nueva para ExploraCity",
+            preview = "El enlace vence en ${AccountRules.RESET_LINK_TTL.toMinutes()} minutos.",
+            greeting = greeting(name),
+            paragraphs = listOf(
+                "Recibimos una solicitud para crear una contraseña nueva. Abre el enlace en tu teléfono, con la app de " +
+                    "ExploraCity instalada.",
+            ),
+            link = MailLink(link(LinkPurpose.PASSWORD_RESET, token), "Crear contraseña nueva"),
+            after = listOf(
+                "El enlace vence en ${AccountRules.RESET_LINK_TTL.toMinutes()} minutos y sirve una sola vez. Si no lo pediste, " +
+                    "ignora este correo: tu contraseña sigue igual.",
+            ),
+            reason = "Recibes este correo porque se pidió una contraseña nueva para tu cuenta de ExploraCity.",
         ),
     )
 
     /** «Cambiar correo» · El enlace que confirma el correo nuevo; llega a ese correo. */
     suspend fun emailChange(to: String, name: String, token: String) = send(
-        to = to,
-        subject = "Confirma tu correo nuevo en ExploraCity",
-        name = name,
-        paragraphs = listOf(
-            "Pediste usar este correo en tu cuenta de ExploraCity. Para confirmarlo, abre este enlace en tu teléfono, con la " +
-                "sesión iniciada en la app:",
-        ),
-        link = link(LinkPurpose.EMAIL_CHANGE, token),
-        after = listOf(
-            "El enlace vence en ${AccountRules.EMAIL_CHANGE_LINK_TTL.toMinutes()} minutos. Hasta que lo confirmes, sigues " +
-                "entrando con tu correo anterior. Si no lo pediste, ignora este mensaje.",
+        to,
+        MailContent(
+            subject = "Confirma tu correo nuevo en ExploraCity",
+            preview = "Confírmalo para empezar a usarlo en tu cuenta.",
+            greeting = greeting(name),
+            paragraphs = listOf(
+                "Pediste usar este correo en tu cuenta de ExploraCity. Para confirmarlo, abre el enlace en tu teléfono, con " +
+                    "la sesión iniciada en la app.",
+            ),
+            link = MailLink(link(LinkPurpose.EMAIL_CHANGE, token), "Confirmar correo nuevo"),
+            after = listOf(
+                "El enlace vence en ${AccountRules.EMAIL_CHANGE_LINK_TTL.toMinutes()} minutos. Hasta que lo confirmes, sigues " +
+                    "entrando con tu correo anterior. Si no lo pediste, ignora este mensaje.",
+            ),
+            reason = "Recibes este correo porque se pidió usar esta dirección en una cuenta de ExploraCity.",
         ),
     )
 
@@ -62,42 +76,8 @@ class AccountMail(private val client: MailClient, private val linkBaseUrl: Strin
 
     private fun prefix(purpose: LinkPurpose): String = "$linkBaseUrl/${purpose.path}?token="
 
-    private suspend fun send(
-        to: String,
-        subject: String,
-        name: String,
-        paragraphs: List<String>,
-        link: String? = null,
-        after: List<String> = emptyList(),
-    ) {
-        val greeting = "Hola, $name:"
-        val text = buildString {
-            append(greeting).append("\n\n")
-            paragraphs.forEach { append(it).append("\n\n") }
-            link?.let { append(it).append("\n\n") }
-            after.forEach { append(it).append("\n\n") }
-            append("— ExploraCity")
-        }
-        val html = buildString {
-            append("<p>").append(escape(greeting)).append("</p>")
-            paragraphs.forEach { append("<p>").append(escape(it)).append("</p>") }
-            link?.let { append("<p><a href=\"").append(escape(it)).append("\">").append(escape(it)).append("</a></p>") }
-            after.forEach { append("<p>").append(escape(it)).append("</p>") }
-            append("<p>— ExploraCity</p>")
-        }
-        client.send(MailMessage(to, subject, text, html))
-    }
+    private fun greeting(name: String) = "Hola, $name:"
 
-    private fun escape(text: String): String = buildString {
-        text.forEach { c ->
-            when (c) {
-                '&' -> append("&amp;")
-                '<' -> append("&lt;")
-                '>' -> append("&gt;")
-                '"' -> append("&quot;")
-                '\'' -> append("&#39;")
-                else -> append(c)
-            }
-        }
-    }
+    private suspend fun send(to: String, content: MailContent) =
+        client.send(MailMessage(to, content.subject, MailLayout.text(content), MailLayout.html(content)))
 }
