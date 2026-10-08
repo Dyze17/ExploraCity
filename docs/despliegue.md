@@ -90,17 +90,32 @@ Las extensiones (PostGIS, pg_trgm y unaccent) y el esquema los crea Flyway la pr
 
 La clave del JWT también se genera aquí. Los demás valores los escribes tú: `secreto` los pide sin mostrarlos en pantalla ni guardarlos en el historial.
 
+**Pega estas líneas de una en una**, no el bloque entero: cada `secreto` se queda esperando su valor, y si pegas todo junto, la línea siguiente se guardaría como el valor del anterior. Al pegar o escribir el valor no se ve nada en pantalla; es normal. Termina con Enter, y `gcloud` responde «Created version [1] of the secret».
+
 ```bash
 printf %s "$(openssl rand -base64 48 | tr -d '/+=\n')" | gcloud secrets create jwt-secret --data-file=-
-
-secreto() { read -rsp "$1: " valor; echo; printf %s "$valor" | gcloud secrets create "$1" --data-file=-; unset valor; }
-secreto moderator-emails        # los correos de moderador, separados por comas
-secreto mail-from               # el remitente verificado en SendGrid
-secreto sendgrid-api-key
-secreto cloudinary-api-key
-secreto cloudinary-api-secret
-secreto openrouter-api-key      # opcional: sáltalo si no usas OpenRouter
 ```
+
+```bash
+secreto() { read -rsp "$1: " valor; echo; printf %s "$valor" | gcloud secrets create "$1" --data-file=-; unset valor; }
+```
+
+| Línea | Valor que pide |
+|---|---|
+| `secreto moderator-emails` | Los correos de moderador, separados por comas |
+| `secreto mail-from` | El remitente verificado en SendGrid, igual que allá |
+| `secreto sendgrid-api-key` | La clave de SendGrid (`SG.…`), solo con «Mail Send» |
+| `secreto cloudinary-api-key` | La clave de API de Cloudinary |
+| `secreto cloudinary-api-secret` | El secreto de API de Cloudinary |
+| `secreto openrouter-api-key` | Opcional: la clave de OpenRouter. Sáltala si no la usas |
+
+Si un valor quedó mal, o el secreto ya existía («already exists»), agrega una versión nueva; la última es la que usa la API:
+
+```bash
+read -rsp "valor: " valor; echo; printf %s "$valor" | gcloud secrets versions add NOMBRE_DEL_SECRETO --data-file=-; unset valor
+```
+
+Para ver qué secretos hay, sin sus valores: `gcloud secrets list --format="value(name)"`.
 
 ### Cuentas de servicio
 
