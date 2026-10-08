@@ -19,7 +19,8 @@ jobs:
           java-version: 25
       - uses: android-actions/setup-android@v4
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew assembleDebug testDebugUnitTest
+      # La de producción también, sin firma (la firma solo existe en release.yml): así un cambio que la rompa se ve aquí.
+      - run: ./gradlew assembleDebug assembleRelease testDebugUnitTest
 
   api-ktor:
     runs-on: ubuntu-latest
