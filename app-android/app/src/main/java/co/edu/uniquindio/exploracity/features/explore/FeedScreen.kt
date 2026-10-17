@@ -1,0 +1,827 @@
+package co.edu.uniquindio.exploracity.features.explore
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.ActiveFilterChip
+import co.edu.uniquindio.exploracity.core.ui.components.CategoryChip
+import co.edu.uniquindio.exploracity.core.ui.components.EmptyState
+import co.edu.uniquindio.exploracity.core.ui.components.EmptyStateTone
+import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
+import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
+import co.edu.uniquindio.exploracity.core.ui.components.ExploraSearchBar
+import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
+import co.edu.uniquindio.exploracity.core.ui.components.FeedMode
+import co.edu.uniquindio.exploracity.core.ui.components.FiltersBottomSheet
+import co.edu.uniquindio.exploracity.core.ui.components.FiltersButton
+import co.edu.uniquindio.exploracity.core.ui.components.ListMapToggle
+import co.edu.uniquindio.exploracity.core.ui.components.LoadingMoreRow
+import co.edu.uniquindio.exploracity.core.ui.components.OfflineBanner
+import co.edu.uniquindio.exploracity.core.ui.components.POICard
+import co.edu.uniquindio.exploracity.core.ui.components.POICardSkeleton
+import co.edu.uniquindio.exploracity.core.ui.components.PublishFab
+import co.edu.uniquindio.exploracity.core.ui.components.RemotePhoto
+import co.edu.uniquindio.exploracity.core.ui.components.SkeletonBlock
+import co.edu.uniquindio.exploracity.core.ui.components.dashedBorder
+import co.edu.uniquindio.exploracity.core.ui.components.labelRes
+import co.edu.uniquindio.exploracity.core.ui.components.relativeTimeText
+import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
+import co.edu.uniquindio.exploracity.core.ui.components.rememberShimmerBrush
+import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.core.ui.preview.previewPlaces
+import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.core.ui.theme.ExploraSpacing
+import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
+import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
+import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.core.util.formatDistance
+import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.FeedFilters
+import co.edu.uniquindio.exploracity.domain.model.LocationScope
+import co.edu.uniquindio.exploracity.domain.model.Poi
+import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+import co.edu.uniquindio.exploracity.domain.repository.FeedQuery
+import co.edu.uniquindio.exploracity.domain.repository.ModerationSummary
+import co.edu.uniquindio.exploracity.domain.repository.SavedPlaces
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlin.math.roundToInt
+
+/**
+ * 7 · Feed en modo lista. [viewModel] vive en el grafo de Explorar: el mapa (8) comparte búsqueda, filtros
+ * y hoja de filtros.
+ */
+@Composable
+fun FeedRoute(
+    viewModel: FeedViewModel,
+    isModerator: Boolean,
+    onOpenPoi: (String) -> Unit,
+    onOpenMap: () -> Unit,
+    onPublish: () -> Unit,
+    onOpenModeration: () -> Unit,
+    notice: String? = null,
+    onNoticeShown: () -> Unit = {},
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    FeedScreen(
+        state = state,
+        isModerator = isModerator,
+        callbacks = FeedCallbacks(
+            filters = rememberFilterCallbacks(viewModel),
+            onRetry = viewModel::onRetry,
+            onRefresh = viewModel::onRefresh,
+            onShowSaved = viewModel::onShowSaved,
+            onLoadMore = viewModel::onLoadMore,
+            onOpenPoi = onOpenPoi,
+            onOpenMap = onOpenMap,
+            onPublish = onPublish,
+            onOpenModeration = onOpenModeration,
+            onNoticeShown = onNoticeShown,
+        ),
+        notice = notice,
+    )
+}
+
+class FeedCallbacks(
+    val filters: FilterCallbacks = FilterCallbacks(),
+    val onRetry: () -> Unit = {},
+    /** Deslizar hacia abajo: trae de nuevo los lugares. */
+    val onRefresh: () -> Unit = {},
+    /** 12.b «Ver mis lugares guardados». */
+    val onShowSaved: () -> Unit = {},
+    val onLoadMore: () -> Unit = {},
+    val onOpenPoi: (String) -> Unit = {},
+    val onOpenMap: () -> Unit = {},
+    val onPublish: () -> Unit = {},
+    val onOpenModeration: () -> Unit = {},
+    val onNoticeShown: () -> Unit = {},
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallbacks, modifier: Modifier = Modifier, notice: String? = null) {
+    Box(modifier.fillMaxSize()) {
+        val collapsing = remember { CollapsingHeaderState() }
+        // Al cambiar los filtros los chips activos vuelven a la vista (README 9: «con los chips activos visibles»).
+        LaunchedEffect(state.filters) { collapsing.expand() }
+        val saved = state.content as? FeedContent.Saved
+        // 12.a: el aviso va arriba del todo y no se esconde al desplazar; sin nada guardado lo dice el vacío. Con fuente
+        // grande, fijo junto a la cabecera dejaba ver solo media tarjeta (S20+ al 200 %): ahí se desplaza con la lista.
+        val pinnedBanner = saved?.places != null && LocalDensity.current.fontScale <= FontScaleThresholds.StackRows
+        val pullGate = remember { PullFromTopGate() }
+        Column(Modifier.fillMaxSize()) {
+            if (pinnedBanner) SavedPlacesBanner(saved.places, saved.reason, callbacks.onRetry, underStatusBar = true)
+            PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = !pinnedBanner)
+            // Sin conexión no se busca ni se filtra: lo guardado se muestra tal cual.
+            if (saved == null) CollapsibleFilters(state, isModerator, callbacks, collapsing)
+            // Deslizar hacia abajo recarga; TalkBack tiene la misma acción en el contenido.
+            val refreshLabel = stringResource(R.string.feed_refresh)
+            val pullState = rememberPullToRefreshState()
+            // Mientras recarga, la lista se atenúa y vuelve con lo nuevo: se nota que el gesto hizo algo.
+            val contentAlpha by animateFloatAsState(if (state.refreshing) REFRESHING_ALPHA else 1f, label = "recarga")
+            PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = callbacks.onRefresh,
+                state = pullState,
+                modifier = Modifier.fillMaxSize().semantics {
+                    customActions = listOf(CustomAccessibilityAction(refreshLabel) { callbacks.onRefresh(); true })
+                },
+                indicator = {
+                    // Con los colores del botón de publicar: el gris de serie casi no se ve sobre el fondo oscuro.
+                    PullToRefreshDefaults.Indicator(
+                        state = pullState,
+                        isRefreshing = state.refreshing,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                },
+            ) {
+                // La cabecera va por dentro de la recarga: al volver arriba se despliega antes de que el gesto llegue a
+                // recargar, y la compuerta solo deja recargar a un gesto que empieza arriba del todo.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .nestedScroll(pullGate)
+                        .nestedScroll(collapsing.connection)
+                        .graphicsLayer { alpha = contentAlpha },
+                ) {
+                    when (val content = state.content) {
+                        FeedContent.Loading -> FeedSkeleton()
+                        is FeedContent.Loaded -> FeedList(content, state, isModerator, callbacks)
+                        is FeedContent.NoResults -> Scrollable {
+                            EmptyState(
+                                icon = R.drawable.ic_search_off,
+                                title = stringResource(R.string.feed_no_results_title),
+                                body = noResultsBody(content.query),
+                            ) {
+                                // Las dos salidas de 10.a son reversibles: amplían o quitan filtros, que se pueden volver a poner.
+                                if (content.query.filters.scope == LocationScope.NEARBY) {
+                                    ExploraButton(
+                                        stringResource(R.string.feed_search_whole_city),
+                                        onClick = callbacks.filters.onSearchWholeCity,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        icon = R.drawable.ic_location_city,
+                                    )
+                                }
+                                ExploraButton(
+                                    stringResource(R.string.feed_clear_filters),
+                                    onClick = callbacks.filters.onClearFilters,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = ExploraButtonStyle.TEXT,
+                                )
+                            }
+                        }
+                        FeedContent.EmptyArea -> Scrollable {
+                            EmptyState(
+                                icon = R.drawable.ic_travel_explore,
+                                title = stringResource(R.string.feed_empty_area_title, state.areaName),
+                                body = stringResource(R.string.feed_empty_area_body),
+                            ) {
+                                ExploraButton(
+                                    stringResource(R.string.feed_publish_first),
+                                    onClick = callbacks.onPublish,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    icon = R.drawable.ic_add_location_alt,
+                                )
+                            }
+                        }
+                        is FeedContent.Error -> Scrollable {
+                            EmptyState(
+                                icon = R.drawable.ic_sync_problem,
+                                title = stringResource(R.string.feed_error_title),
+                                body = stringResource(R.string.feed_error_body),
+                                tone = EmptyStateTone.WARNING,
+                            ) {
+                                ExploraButton(
+                                    stringResource(R.string.action_retry),
+                                    onClick = callbacks.onRetry,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    icon = R.drawable.ic_refresh,
+                                )
+                                if (content.hasSaved) {
+                                    ExploraButton(
+                                        stringResource(R.string.feed_show_saved),
+                                        onClick = callbacks.onShowSaved,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        style = ExploraButtonStyle.TEXT,
+                                    )
+                                }
+                            }
+                        }
+                        is FeedContent.Saved -> {
+                            val places = content.places
+                            if (places != null) {
+                                SavedList(
+                                    places,
+                                    callbacks.onOpenPoi,
+                                    banner = if (pinnedBanner) null else { { SavedPlacesBanner(places, content.reason, callbacks.onRetry) } },
+                                )
+                            } else {
+                                Scrollable {
+                                    EmptyState(
+                                        icon = R.drawable.ic_cloud_off,
+                                        title = stringResource(R.string.offline_title),
+                                        body = stringResource(R.string.feed_nothing_saved_body),
+                                        tone = EmptyStateTone.WARNING,
+                                    ) {
+                                        ExploraButton(
+                                            stringResource(R.string.action_retry),
+                                            onClick = callbacks.onRetry,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            icon = R.drawable.ic_refresh,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // El aviso aparece debajo del FAB y lo empuja hacia arriba, como en un Scaffold.
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), horizontalAlignment = Alignment.End) {
+            if (state.content is FeedContent.Loaded) {
+                PublishFab(onClick = callbacks.onPublish, modifier = Modifier.padding(ExploraSpacing.ScreenMargin))
+            }
+            FeedSnackbar(state.message, callbacks.filters, notice, callbacks.onNoticeShown)
+        }
+        FiltersBottomSheet(
+            draft = state.filterSheet?.draft,
+            count = state.filterSheet?.count,
+            onDraftChange = callbacks.filters.onDraftChange,
+            onClear = callbacks.filters.onClearDraft,
+            onApply = callbacks.filters.onApplyFilters,
+            onDismissRequest = callbacks.filters.onDismissFilters,
+        )
+    }
+}
+
+@Composable
+private fun FeedSnackbar(message: FeedMessage?, callbacks: FilterCallbacks, notice: String?, onNoticeShown: () -> Unit) {
+    val hostState = remember { SnackbarHostState() }
+    FeedMessageEffect(message, hostState, callbacks)
+    NoticeEffect(notice, hostState, onNoticeShown)
+    ExploraSnackbarHost(hostState)
+}
+
+/** Un aviso con que se llega al feed («Tu cuenta quedó lista», 4); se ve una vez. */
+@Composable
+private fun NoticeEffect(notice: String?, hostState: SnackbarHostState, onShown: () -> Unit) {
+    val currentOnShown by rememberUpdatedState(onShown)
+    LaunchedEffect(notice) {
+        if (notice == null) return@LaunchedEffect
+        // Se marca al terminar: marcarlo antes cambia la clave del efecto y cancela el aviso.
+        hostState.showSnackbar(notice, withDismissAction = true, duration = SnackbarDuration.Long)
+        currentOnShown()
+    }
+}
+
+@Composable
+private fun Scrollable(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.Center) { content() }
+}
+
+/**
+ * 12.a: «Sin conexión · Estás viendo 20 lugares guardados hace 2 horas». Sin la frase del lienzo sobre publicar: la
+ * publicación (15–20) aún no existe y el aviso prometería algo que la app no hace.
+ */
+@Composable
+private fun SavedPlacesBanner(places: SavedPlaces, reason: SavedReason, onRetry: () -> Unit, underStatusBar: Boolean = false) {
+    val now by rememberNow()
+    val count = places.items.size
+    OfflineBanner(
+        title = stringResource(if (reason == SavedReason.OFFLINE) R.string.offline_title else R.string.feed_not_updated_title),
+        body = pluralStringResource(R.plurals.feed_saved_body, count, count, relativeTimeText(places.savedAt, now)),
+        onRetry = onRetry,
+        underStatusBar = underStatusBar,
+    )
+}
+
+/**
+ * 12.a: el buscador inhabilitado dice por qué, los lugares guardados llevan «Guardado» si su detalle también se
+ * guardó, y al final se explica que los votos y comentarios nuevos llegan con la conexión.
+ */
+@Composable
+private fun SavedList(places: SavedPlaces, onOpenPoi: (String) -> Unit, banner: (@Composable () -> Unit)?) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (banner != null) item(key = "banner") { Box(Modifier.fullBleed(16.dp)) { banner() } }
+        item(key = "search") {
+            ExploraSearchBar(value = "", onValueChange = {}, placeholder = stringResource(R.string.feed_search_offline), enabled = false)
+        }
+        item(key = "header") {
+            Text(
+                stringResource(R.string.feed_saved_header),
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                color = MaterialTheme.exploraColors.iconSecondary,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        items(places.items, key = { it.id }) { poi ->
+            POICard(
+                title = poi.title,
+                category = poi.category,
+                status = poi.status,
+                distance = formatDistance(poi.distanceMeters),
+                votes = poi.votes,
+                comments = poi.comments,
+                onClick = { onOpenPoi(poi.id) },
+                saved = poi.id in places.withDetails,
+                photo = { RemotePhoto(poi.photoUrl) },
+            )
+        }
+        item(key = "note") { SavedNote() }
+    }
+}
+
+/** Ocupa también el margen lateral de la lista: el aviso va de borde a borde, como cuando está fijo arriba. */
+private fun Modifier.fullBleed(margin: Dp) = layout { measurable, constraints ->
+    val extra = (margin * 2).roundToPx()
+    val width = constraints.maxWidth + extra
+    val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+}
+
+@Composable
+private fun SavedNote() {
+    val shape = MaterialTheme.shapes.large
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer, shape)
+            .dashedBorder(1.dp, MaterialTheme.exploraColors.outlineDisabled, 16.dp)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(painterResource(R.drawable.ic_info), null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp.scaledWithFont()))
+        Text(
+            stringResource(R.string.feed_saved_note),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 19.sp),
+            color = MaterialTheme.exploraColors.textSecondary,
+        )
+    }
+}
+
+/**
+ * Fija arriba: «Estás explorando / ciudad» y el conmutador Lista ⇄ Mapa, siempre visible (README 7). Con el aviso de
+ * 12.a encima, la barra de estado ya queda cubierta por él ([underStatusBar] false).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PinnedHeader(areaName: String, onOpenMap: () -> Unit, underStatusBar: Boolean = true) {
+    val largeFont = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
+    FlowRow(
+        Modifier
+            .fillMaxWidth()
+            .then(if (underStatusBar) Modifier.windowInsetsPadding(WindowInsets.statusBars) else Modifier)
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.feed_exploring),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                areaName,
+                style = MaterialTheme.typography.headlineSmall.copy(fontFamily = Outfit, fontWeight = FontWeight.W600, lineHeight = 28.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        ListMapToggle(
+            selected = FeedMode.LIST,
+            onSelect = { if (it == FeedMode.MAP) onOpenMap() },
+            expanded = largeFont,
+        )
+    }
+}
+
+/** Rol, buscador y chips: se esconden al bajar por la lista y vuelven al regresar arriba o al enfocar el buscador. */
+@Composable
+private fun CollapsibleFilters(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallbacks, collapsing: CollapsingHeaderState) {
+    Column(
+        collapsing.modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (isModerator) ModeratorChip()
+        ExploraSearchBar(
+            value = state.query,
+            onValueChange = callbacks.filters.onQueryChange,
+            placeholder = stringResource(R.string.feed_search_placeholder, state.areaName),
+            modifier = Modifier.onFocusChanged { if (it.isFocused) collapsing.expand() },
+            trailing = { FiltersButton(activeCount = state.filters.activeCount, onClick = callbacks.filters.onOpenFilters) },
+        )
+        // Primero los filtros que no son categorías y después las categorías, activas primero tras aplicar la hoja.
+        val chipsScroll = rememberScrollState()
+        LaunchedEffect(state.categoryOrder, state.filters.scope, state.filters.verifiedOnly) { chipsScroll.animateScrollTo(0) }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(chipsScroll),
+            horizontalArrangement = Arrangement.spacedBy(ExploraSpacing.BetweenChips),
+        ) {
+            if (state.filters.scope == LocationScope.NEARBY) {
+                ActiveFilterChip(stringResource(R.string.feed_chip_nearby), R.drawable.ic_near_me, onRemove = callbacks.filters.onSearchWholeCity)
+            }
+            if (state.filters.verifiedOnly) {
+                ActiveFilterChip(stringResource(R.string.feed_chip_verified), R.drawable.ic_verified, onRemove = callbacks.filters.onRemoveVerifiedOnly)
+            }
+            state.categoryOrder.forEach { category ->
+                CategoryChip(
+                    category = category,
+                    selected = category in state.filters.categories,
+                    onSelectedChange = { callbacks.filters.onToggleCategory(category) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Cabecera que se pliega con el desplazamiento: al bajar se esconde antes de mover la lista; solo vuelve
+ * cuando la lista regresa arriba. Se encoge (no se superpone), así nada queda tapado.
+ */
+@Stable
+private class CollapsingHeaderState {
+    private var offset by mutableFloatStateOf(0f)
+    private var height = 0
+
+    fun expand() {
+        offset = 0f
+    }
+
+    val connection = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset =
+            if (available.y < 0) consume(available.y) else Offset.Zero
+
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
+            if (available.y > 0) consume(available.y) else Offset.Zero
+    }
+
+    private fun consume(delta: Float): Offset {
+        val next = (offset + delta).coerceIn(-height.toFloat(), 0f)
+        val used = next - offset
+        offset = next
+        return Offset(0f, used)
+    }
+
+    val modifier: Modifier = Modifier
+        .clipToBounds()
+        .layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+            height = placeable.height
+            val shift = offset.roundToInt()
+            layout(placeable.width, (placeable.height + shift).coerceAtLeast(0)) { placeable.place(0, shift) }
+        }
+}
+
+/**
+ * Recargar solo desde arriba del todo (7): con la lista al principio y la cabecera desplegada. El gesto que empieza más
+ * abajo trae de vuelta la lista y la cabecera, y lo que le sobra al llegar arriba no pasa a la recarga; hace falta
+ * soltar y deslizar otra vez. Se decide con el primer movimiento de cada gesto, y el gesto termina al soltar (también
+ * si se cancela, Compose despacha el fling con velocidad cero).
+ */
+private class PullFromTopGate : NestedScrollConnection {
+    private var startedAtTop: Boolean? = null
+
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+        if (source != NestedScrollSource.UserInput) return Offset.Zero
+        // Arriba del todo, el primer movimiento hacia abajo no lo usan ni la lista ni la cabecera.
+        val atTop = startedAtTop ?: (consumed.y == 0f && available.y > 0f).also { startedAtTop = it }
+        return if (!atTop && available.y > 0f) Offset(0f, available.y) else Offset.Zero
+    }
+
+    override suspend fun onPreFling(available: Velocity): Velocity {
+        startedAtTop = null
+        return Velocity.Zero
+    }
+}
+
+@Composable
+private fun ModeratorChip() {
+    Row(
+        Modifier
+            .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_shield_person),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.size(16.dp.scaledWithFont()),
+        )
+        Text(
+            stringResource(R.string.feed_moderator),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.W700),
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+        )
+    }
+}
+
+@Composable
+private fun FeedList(content: FeedContent.Loaded, state: FeedUiState, isModerator: Boolean, callbacks: FeedCallbacks) {
+    val moderation = state.moderation.takeIf { isModerator }
+    val listState = rememberLazyListState()
+    val loadMore by rememberUpdatedState(callbacks.onLoadMore)
+    // Carga la página siguiente al acercarse al final, sin bloquear la lista.
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            last >= listState.layoutInfo.totalItemsCount - 4
+        }.distinctUntilChanged().filter { it }.collect { loadMore() }
+    }
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        // 96 dp abajo para que el FAB no tape la última tarjeta (README).
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (moderation != null && moderation.pending > 0) {
+            item(key = "moderation") { ModerationQueueCard(moderation, callbacks.onOpenModeration) }
+        }
+        item(key = "header") { ListHeader(content.total, state.filters.scope, state.areaName) }
+        items(content.items, key = { it.id }) { poi -> PoiItem(poi, callbacks.onOpenPoi) }
+        if (content.loadingMore) {
+            item(key = "loading-more") { LoadingMoreRow(stringResource(R.string.feed_loading_more)) }
+        }
+    }
+}
+
+@Composable
+private fun PoiItem(poi: Poi, onOpenPoi: (String) -> Unit) {
+    POICard(
+        title = poi.title,
+        category = poi.category,
+        status = poi.status,
+        distance = formatDistance(poi.distanceMeters),
+        votes = poi.votes,
+        comments = poi.comments,
+        onClick = { onOpenPoi(poi.id) },
+        modifier = Modifier.fillMaxWidth(),
+        photo = { RemotePhoto(poi.photoUrl) },
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ListHeader(total: Int, scope: LocationScope, areaName: String) {
+    // «24 lugares cerca de ti» (7.a) solo con «Cercanos»; con toda la ciudad lo dice («26 lugares en Bogotá»).
+    val title = when (scope) {
+        LocationScope.NEARBY -> pluralStringResource(R.plurals.feed_places_nearby, total, total)
+        LocationScope.CITY -> pluralStringResource(R.plurals.feed_places_in_area, total, total, areaName)
+    }
+    // Se desdobla en dos líneas si no cabe (fuente grande), sin partir «Más cercanos».
+    FlowRow(
+        Modifier.fillMaxWidth().heightIn(min = 44.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.W700),
+            color = MaterialTheme.exploraColors.iconSecondary,
+            modifier = Modifier.semantics { heading() },
+        )
+        // Orden actual de la lista (el diseño no define cambiarlo): se muestra como información, no como acción.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(
+                painterResource(R.drawable.ic_swap_vert),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp.scaledWithFont()),
+            )
+            Text(
+                stringResource(R.string.feed_sort_nearest),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Acceso rápido a la cola (7.c): solo con rol Moderador. */
+@Composable
+private fun ModerationQueueCard(summary: ModerationSummary, onClick: () -> Unit) {
+    val warning = MaterialTheme.exploraColors.warning
+    val shape = MaterialTheme.shapes.large
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(warning.container)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(44.dp).background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(painterResource(R.drawable.ic_shield_person), null, tint = MaterialTheme.exploraColors.warningAccent, modifier = Modifier.size(24.dp))
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                pluralStringResource(R.plurals.feed_moderation_pending, summary.pending, summary.pending),
+                style = MaterialTheme.typography.titleSmall,
+                color = warning.content,
+            )
+            Text(
+                pluralStringResource(R.plurals.feed_moderation_oldest, summary.oldestWaitingDays, summary.oldestWaitingDays),
+                style = MaterialTheme.typography.bodySmall,
+                color = warning.content,
+            )
+        }
+        Icon(painterResource(R.drawable.ic_chevron_right), null, tint = warning.content, modifier = Modifier.size(22.dp))
+    }
+}
+
+/** 11: 4 skeletons con la silueta de POICard y un único anuncio. */
+@Composable
+private fun FeedSkeleton() {
+    val brush = rememberShimmerBrush()
+    val loading = stringResource(R.string.feed_loading)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .clearAndSetSemantics {
+                contentDescription = loading
+                liveRegion = LiveRegionMode.Polite
+            },
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SkeletonBlock(brush, Modifier.padding(vertical = 15.dp).size(width = 150.dp, height = 14.dp), RoundedCornerShape(7.dp))
+        POICardSkeleton(brush, titleWidth = 0.78f, lineWidths = 0.52f to 0.38f)
+        POICardSkeleton(brush, titleWidth = 0.66f, lineWidths = 0.58f to 0.34f)
+        POICardSkeleton(brush, titleWidth = 0.72f, lineWidths = 0.48f to 0.40f)
+        POICardSkeleton(brush, titleWidth = 0.60f, lineWidths = 0.54f to 0.30f)
+    }
+}
+
+/**
+ * 10.a repite los criterios aplicados y propone la salida: «Buscaste «teatro al aire libre» en Naturaleza
+ * y cerca de ti. Prueba quitando un filtro o ampliando a toda la ciudad.»
+ */
+@Composable
+private fun noResultsBody(query: FeedQuery): String {
+    val filters = query.filters
+    // Las categorías se suman (cualquiera de ellas): «en Gastronomía o Cultura».
+    val categories = filters.categories.sorted().map { stringResource(it.labelRes) }
+    val criteria = buildList {
+        if (categories.isNotEmpty()) add(stringResource(R.string.feed_criteria_categories, joinWords(categories, stringResource(R.string.list_or))))
+        if (filters.scope == LocationScope.NEARBY) add(stringResource(R.string.feed_criteria_nearby))
+        if (filters.verifiedOnly) add(stringResource(R.string.feed_criteria_verified))
+    }
+    val joinedCriteria = joinWords(criteria, stringResource(R.string.list_and))
+    val searched = query.text.isNotBlank()
+    val sentence = when {
+        searched && criteria.isNotEmpty() -> stringResource(R.string.feed_no_results_query_criteria, query.text, joinedCriteria)
+        searched -> stringResource(R.string.feed_no_results_query, query.text)
+        else -> stringResource(R.string.feed_no_results_criteria, joinedCriteria)
+    }
+    val hint = when {
+        filters.scope == LocationScope.NEARBY -> R.string.feed_no_results_hint_city
+        searched && criteria.isNotEmpty() -> R.string.feed_no_results_hint_filters_words
+        searched -> R.string.feed_no_results_hint_words
+        else -> R.string.feed_no_results_hint_filters
+    }
+    return "$sentence ${stringResource(hint)}"
+}
+
+/** «a», «a y b», «a, b y c». */
+private fun joinWords(words: List<String>, conjunction: String): String = when (words.size) {
+    0 -> ""
+    1 -> words.single()
+    else -> words.dropLast(1).joinToString(", ") + " $conjunction " + words.last()
+}
+
+private val previewState = FeedUiState(
+    areaName = "Armenia",
+    filters = FeedFilters(categories = setOf(Category.GASTRONOMY), scope = LocationScope.NEARBY),
+    content = FeedContent.Loaded(previewPlaces.take(5), total = 24, canLoadMore = true, loadingMore = true),
+    moderation = ModerationSummary(pending = 7, oldestWaitingDays = 3),
+)
+
+@Preview(name = "10.a · Sin resultados · claro", widthDp = 360, heightDp = 800)
+@Composable
+private fun FeedNoResultsPreview() {
+    val query = FeedQuery(FeedFilters(categories = setOf(Category.NATURE), scope = LocationScope.NEARBY), "teatro al aire libre")
+    ExploraCityTheme(ThemeMode.LIGHT) {
+        FeedScreen(
+            previewState.copy(query = query.text, filters = query.filters, content = FeedContent.NoResults(query)),
+            isModerator = false,
+            callbacks = FeedCallbacks(),
+        )
+    }
+}
+
+@Preview(name = "7 · Feed · claro", widthDp = 360, heightDp = 800)
+@Composable
+private fun FeedLightPreview() {
+    ExploraCityTheme(ThemeMode.LIGHT) { FeedScreen(previewState, isModerator = false, callbacks = FeedCallbacks()) }
+}
+
+@Preview(name = "7.c · Moderador · oscuro", widthDp = 360, heightDp = 800)
+@Composable
+private fun FeedModeratorDarkPreview() {
+    ExploraCityTheme(ThemeMode.DARK) { FeedScreen(previewState, isModerator = true, callbacks = FeedCallbacks()) }
+}
+
+@Preview(name = "11 · Cargando", widthDp = 360, heightDp = 800)
+@Composable
+private fun FeedLoadingPreview() {
+    ExploraCityTheme(ThemeMode.LIGHT) { FeedScreen(previewState.copy(content = FeedContent.Loading), isModerator = false, callbacks = FeedCallbacks()) }
+}
+
+@Preview(name = "12.b · Error · oscuro", widthDp = 360, heightDp = 800)
+@Composable
+private fun FeedErrorPreview() {
+    ExploraCityTheme(ThemeMode.DARK) { FeedScreen(previewState.copy(content = FeedContent.Error(hasSaved = true)), isModerator = false, callbacks = FeedCallbacks()) }
+}
+
+/** Cuánto se atenúa la lista mientras recarga. */
+private const val REFRESHING_ALPHA = 0.4f

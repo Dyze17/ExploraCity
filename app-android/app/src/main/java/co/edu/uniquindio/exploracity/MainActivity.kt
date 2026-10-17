@@ -8,8 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import co.edu.uniquindio.exploracity.ui.ExploraApp
-import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.navigation.ExploraApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

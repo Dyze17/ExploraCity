@@ -3,8 +3,8 @@ package co.edu.uniquindio.exploracity
 import android.app.Application
 import android.content.Context
 import androidx.work.Configuration
-import co.edu.uniquindio.exploracity.data.AppContainer
-import co.edu.uniquindio.exploracity.data.sync.ExploraWorkerFactory
+import co.edu.uniquindio.exploracity.core.data.sync.ExploraWorkerFactory
+import co.edu.uniquindio.exploracity.core.di.AppContainer
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
