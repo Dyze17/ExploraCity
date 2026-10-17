@@ -52,18 +52,22 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.AccessOfflineNotice
 import co.edu.uniquindio.exploracity.core.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.core.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
+import co.edu.uniquindio.exploracity.core.ui.components.PasswordEye
+import co.edu.uniquindio.exploracity.core.ui.components.SyncText
 import co.edu.uniquindio.exploracity.core.ui.components.onBlur
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.AuthRules
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /** 6.b · Nueva contraseña, conectada a su ViewModel. Guardada sigue a [onSaved]; con el enlace vencido, a [onExpired] (6C). */
 @Composable
 fun NewPasswordRoute(

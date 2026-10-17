@@ -32,6 +32,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.net.SocketTimeoutException
+
 /** ADR-15 · Entrar con Google con la API: qué sigue tras elegir la cuenta, la sesión que se guarda y sus errores. */
 class ApiGoogleAuthRepositoryTest {
 

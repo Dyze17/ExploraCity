@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraSizes
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import kotlin.math.min
+
 /**
  * Pestaña de la barra inferior.
  * @param badgeDescription lectura completa cuando hay badge, p. ej. «Avisos, 3 sin leer».

@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.core.data.repository
 
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.Residency
+
 // Temporal hasta que exista la API: lo público de los autores de prueba y de la persona de la sesión. Camilo R. trae
 // la biografía del lienzo 31.a; su nivel sigue siendo Aventurero (320 puntos), como en el detalle (13.a).
 

@@ -36,6 +36,7 @@ import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+
 /** 32.c · La última cola queda guardada: sin conexión se lee con su antigüedad y no se decide nada. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

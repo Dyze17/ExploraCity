@@ -33,6 +33,7 @@ import org.junit.Test
 import java.io.IOException
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapViewModelTest {
 

@@ -80,6 +80,7 @@ import co.edu.uniquindio.exploracity.core.util.LocationAccess
 import co.edu.uniquindio.exploracity.core.util.locationAccess
 import co.edu.uniquindio.exploracity.core.util.openAppSettings
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /**
  * 29 · Ajustes, conectada a su ViewModel. El permiso de ubicación se lee del teléfono cada vez que la pantalla vuelve
  * al frente: «Cambiar» abre la ficha de la app en los ajustes de Android y al regresar ya dice el estado nuevo.

@@ -18,6 +18,7 @@ import kotlinx.serialization.json.Json
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
+
 // Caché para ver sin conexión (12.a): lo último que cargó el feed y el detalle de esos lugares (opción A de Daniel).
 
 /** Lugar del feed guardado; [position] conserva el orden en que se vio. */

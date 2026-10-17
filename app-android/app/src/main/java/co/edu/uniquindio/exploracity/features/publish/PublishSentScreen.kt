@@ -43,7 +43,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.core.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.core.ui.components.DuplicateFlag
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
@@ -58,6 +57,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /**
  * 20 · Confirmación. Tres variantes con el mismo diseño centrado de 20.a:
  * - Enviada: «Pendiente · Suele tardar menos de 48 horas» y, si fue la primera, la insignia con sus puntos.

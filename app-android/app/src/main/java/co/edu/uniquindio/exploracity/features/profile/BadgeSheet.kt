@@ -61,6 +61,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.ScrimAlpha
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /**
  * 27A · Hoja «Cómo se obtiene» al tocar una insignia (en 27 y en la vista previa de 26). Está abierta mientras
  * [badge] no sea null; deslizar abajo o «Entendido» la cierran. Al cerrarse desde fuera se anima la salida con la

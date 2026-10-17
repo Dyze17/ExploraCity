@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import java.io.IOException
+
 /** Si el teléfono tiene internet ahora. La app pasa a sus datos guardados (12.a, 8.c) cuando no. */
 interface ConnectivityObserver {
     val isOnline: StateFlow<Boolean>

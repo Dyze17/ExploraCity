@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import co.edu.uniquindio.exploracity.core.util.LocationPurpose
 import co.edu.uniquindio.exploracity.core.util.rememberLocationPermissionRequester
 import co.edu.uniquindio.exploracity.core.util.shouldShowLocationRationale
+
 // Lo que el formulario (15–19) y la edición (23) piden fuera de la app: el permiso de ubicación, la cámara y la galería.
 
 /**

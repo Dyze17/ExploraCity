@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraSizes
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+
 /**
  * Barra superior del esqueleto común: mínimo 56 dp, flecha de 48 × 48 y título en Outfit 20/600 (titleLarge).
  * Crece con la fuente en vez de recortar (el TopAppBar de M3 tiene alto fijo). [subtitle] va debajo del título

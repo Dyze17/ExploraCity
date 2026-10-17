@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.domain.model.GoogleSignInOutcome
 import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.UserRole
+
 /**
  * ADR-15 · Entrar con Google, con el ID token que da Credential Manager. Al entrar guarda la sesión, como el inicio de
  * sesión con contraseña. Todas pueden lanzar [GoogleTokenRejectedException] (el token venció: dura una hora) y

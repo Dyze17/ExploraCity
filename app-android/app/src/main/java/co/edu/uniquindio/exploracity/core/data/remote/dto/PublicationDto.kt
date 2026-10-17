@@ -26,6 +26,7 @@ import co.edu.uniquindio.exploracity.domain.model.SubmitResult
 import co.edu.uniquindio.exploracity.domain.repository.ModerationSummary
 import kotlinx.serialization.Serializable
 import java.time.Instant
+
 // DTO de Publicar y Moderar (docs/api). Las peticiones no tienen valores por defecto: así viaja todo, también lo que
 // coincide con el valor por defecto de la API.
 

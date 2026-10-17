@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 22 · Estados de la lista; los de carga siguen a los de Avisos (25) y del perfil. */
 sealed interface MyPublicationsContent {
     data object Loading : MyPublicationsContent

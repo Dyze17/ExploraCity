@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.AccessOfflineNotice
 import co.edu.uniquindio.exploracity.core.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.core.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
@@ -53,6 +54,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.core.ui.components.StatusBadge
+import co.edu.uniquindio.exploracity.core.ui.components.SyncText
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
@@ -65,9 +67,8 @@ import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import co.edu.uniquindio.exploracity.features.access.AccessOfflineNotice
-import co.edu.uniquindio.exploracity.features.access.SyncText
 import java.time.Instant
+
 /** 36 · Cambiar estado, conectada a su ViewModel. Al guardar vuelve a «Resueltas» con lo hecho ([onDone]). */
 @Composable
 fun ChangeStateRoute(

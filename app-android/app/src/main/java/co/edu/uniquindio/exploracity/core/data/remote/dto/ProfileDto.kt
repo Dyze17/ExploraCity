@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import kotlinx.serialization.Serializable
 import java.time.YearMonth
+
 // DTO de Perfil (docs/api).
 
 @Serializable

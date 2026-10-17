@@ -16,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.time.Duration
+
 /**
  * Lo que solo funciona con red (acceso, cuenta, publicaciones, sugerencia y parecidos): sin ella se avisa sin intentar y
  * nada queda a medias. Con red, cada envoltorio llega al servidor.

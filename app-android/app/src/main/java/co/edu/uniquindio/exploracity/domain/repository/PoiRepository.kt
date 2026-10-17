@@ -11,6 +11,7 @@ import co.edu.uniquindio.exploracity.domain.model.VoteResult
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.util.UUID
+
 /** Tamaño de página del feed (README: paginación de 20). */
 const val FEED_PAGE_SIZE = 20
 

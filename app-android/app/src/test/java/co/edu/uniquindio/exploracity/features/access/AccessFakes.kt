@@ -24,6 +24,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlin.time.Duration.Companion.seconds
+
 // Dobles del acceso (1–6C) que comparten las pruebas de sus ViewModels.
 
 internal class MemoryAccessPreferences : AppPreferences {

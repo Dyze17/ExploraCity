@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.features.explore
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.Poi
+
 /** Lo que se dibuja en el mapa: un lugar suelto o un grupo de lugares que en pantalla se tocarían. */
 sealed interface MapMarker {
     data class Place(val poi: Poi) : MapMarker

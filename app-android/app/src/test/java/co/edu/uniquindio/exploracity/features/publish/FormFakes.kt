@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+
 // Servidores de prueba del formulario (15–19) y de la edición (23): parecidos, direcciones, fotos y cola de envío.
 
 /** Búsqueda de parecidos con respuesta, demora y fallo a mano; cuenta las búsquedas. */

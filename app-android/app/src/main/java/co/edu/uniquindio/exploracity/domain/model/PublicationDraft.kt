@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.DayOfWeek
 import java.time.LocalTime
+
 /** Los 5 pasos del formulario de publicación (15–19), con el nombre corto del indicador («Paso 1 de 5 · Lo básico»). */
 enum class PublishStep {
     /** 15 · Título y descripción. */

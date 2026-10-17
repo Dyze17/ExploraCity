@@ -52,6 +52,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /** Muestrario del sistema de diseño para comparar con «Sistema de Diseño.dc.html». Solo para desarrollo. */
 @Composable
 internal fun DesignCatalog(modifier: Modifier = Modifier) {

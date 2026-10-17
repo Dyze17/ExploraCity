@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /**
  * 8 · Feed en modo mapa. [pois] son los marcadores del área visible (los más cercanos, como máximo 200) y
  * [totalInArea], todos los del área. Mientras se consulta un área nueva se conservan los marcadores anteriores:

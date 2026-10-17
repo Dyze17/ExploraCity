@@ -15,6 +15,7 @@ import co.edu.uniquindio.exploracity.domain.repository.UserRepository
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+
 /**
  * Temporal hasta que exista la API: los perfiles de prueba con los lugares que publicó cada persona, tomados del
  * servidor de lugares ([pois]) para que sus votos y comentarios estén al día. Las publicaciones que el feed no muestra

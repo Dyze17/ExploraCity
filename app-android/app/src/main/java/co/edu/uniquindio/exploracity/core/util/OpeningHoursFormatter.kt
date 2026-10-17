@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+
 private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm", spanishColombia)
 
 /** Palabras de enlace (de strings.xml): «Todos los días», «a» y «y». */

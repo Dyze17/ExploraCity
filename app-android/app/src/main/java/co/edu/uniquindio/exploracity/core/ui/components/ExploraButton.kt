@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraSizes
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+
 enum class ExploraButtonStyle {
     /** Acción principal: relleno primary. */
     PRIMARY,

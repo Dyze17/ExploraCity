@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.core.data.remote.ApiSession
 import co.edu.uniquindio.exploracity.core.data.remote.DevMailboxApi
 import co.edu.uniquindio.exploracity.core.data.remote.dto.LinkPurpose
 import kotlinx.coroutines.flow.first
+
 /**
  * Solo en compilaciones de desarrollo, contra una API con DEV_MAILBOX=true: los enlaces que llegarían al correo, para
  * abrirlos sin un correo de verdad (6.a y «Confirma tu correo nuevo»). Cada uno da el token del enlace, o null si no

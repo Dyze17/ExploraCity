@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+
 /** Preferencias del teléfono que no dependen de la cuenta: sobreviven al cierre de sesión (29A). */
 interface AppPreferences {
     /** 29 · Tema elegido en Ajustes; Sistema mientras no se elija otro. */

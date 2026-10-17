@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
 /** Niveles de elevación del diseño (claro). En oscuro no hay sombra: ver [ExploraColors.shadow]. */
 object ExploraElevation {
     val Card = 1.dp

@@ -12,6 +12,7 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
+
 class ExploraApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
     val container: AppContainer by lazy { AppContainer(this) }
 

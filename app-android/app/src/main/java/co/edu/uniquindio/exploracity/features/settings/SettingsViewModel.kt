@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
 /** 29 · «Descargar mis datos»: el servidor arma el archivo y después Android pregunta dónde guardarlo. */
 sealed interface DataDownload {
     data object Idle : DataDownload

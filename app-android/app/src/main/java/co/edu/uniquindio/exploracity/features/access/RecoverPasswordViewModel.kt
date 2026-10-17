@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
+
 /** 5 → 6.a · El enlace salió hacia [email] en [sentAtMillis] (para la cuenta regresiva del reenvío). */
 data class RecoverySent(val email: String, val sentAtMillis: Long)
 

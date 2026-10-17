@@ -5,6 +5,7 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+
 /** Coordenada geográfica en grados. Sin tipos de Google Maps: el dominio no depende del SDK. */
 data class GeoPoint(val latitude: Double, val longitude: Double) {
 

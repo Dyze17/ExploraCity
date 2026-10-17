@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.domain.repository.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
 /**
  * Los avisos con la API (ADR-09: la app los consulta). [unreadCount] se pone al día con cada consulta y con cada aviso
  * que se marca leído. Lo de ver sin conexión lo hace OfflineNotificationRepository, que envuelve a este.

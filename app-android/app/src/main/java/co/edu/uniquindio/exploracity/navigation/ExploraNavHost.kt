@@ -62,6 +62,7 @@ import co.edu.uniquindio.exploracity.features.settings.EmailChangeSentRoute
 import co.edu.uniquindio.exploracity.features.settings.EmailLinkExpiredScreen
 import co.edu.uniquindio.exploracity.features.settings.LegalDocumentsScreen
 import co.edu.uniquindio.exploracity.features.settings.SettingsRoute
+
 /**
  * Grafo de navegación completo, con los destinos y enlaces que define el README («Navegación e interacciones»): el
  * acceso, y Explorar, Publicar, Avisos, Perfil y Moderación con sus pantallas.

@@ -29,6 +29,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 13 · Detalle: los estados de carga no los dibuja el diseño; siguen a 11 y 12.b. */
 sealed interface DetailContent {
     data object Loading : DetailContent

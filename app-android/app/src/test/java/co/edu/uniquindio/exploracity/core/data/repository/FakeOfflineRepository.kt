@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import java.time.Instant
+
 /**
  * Se comporta como OfflinePoiRepository sin Room: sin red, lo guardado es [saved] y [savedDetails], votar y marcar la
  * visita quedan en la cola y los comentarios esperan en [pendingComments] hasta [sendQueued]. Con [serverDown] hay red

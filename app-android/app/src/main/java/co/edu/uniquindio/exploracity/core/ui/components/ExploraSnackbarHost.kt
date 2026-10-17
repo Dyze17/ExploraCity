@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
+
 /**
  * El lugar de los avisos (snackbars) de cada pantalla. Con fuente grande (README · por encima de 1,3 las filas pasan a
  * columnas) la acción («Reintentar», «Permitir»…) va debajo del texto: al lado, el texto quedaba en una columna de una

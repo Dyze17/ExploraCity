@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+
 /**
  * Buscador del feed: 52 dp, píldora sobre surfaceContainer, lupa, placeholder y borrar cuando hay texto.
  * Sobre el mapa (8) flota con [containerColor] surface y sombra.

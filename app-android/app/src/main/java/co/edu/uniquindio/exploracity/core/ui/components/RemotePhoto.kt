@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
+
 /**
  * Una foto publicada (su URL en el servidor de imágenes) que llena su contenedor. Va encima del contenedor neutro del
  * lienzo, que sigue a la vista mientras carga, si no hay conexión ni copia guardada, o si no hay foto ([url] null).

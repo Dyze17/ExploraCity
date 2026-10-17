@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
 /** Por qué no se pudo entrar con Google; el aviso queda hasta que la persona lo cierra. */
 enum class GoogleError {
     /** El teléfono no tiene cuentas de Google. */

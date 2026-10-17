@@ -19,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.Instant
+
 /** 30 (A1) · Lo que dejó una cuenta eliminada sigue a la vista como «Usuario eliminado», sin nivel ni perfil. */
 @RunWith(RobolectricTestRunner::class)
 class DeletedAuthorTest {

@@ -105,6 +105,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.components.spokenRes
 import co.edu.uniquindio.exploracity.core.ui.components.symbol
+import co.edu.uniquindio.exploracity.core.ui.map.PlacePin
 import co.edu.uniquindio.exploracity.core.ui.preview.previewDetails
 import co.edu.uniquindio.exploracity.core.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
@@ -134,6 +135,7 @@ import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import java.time.Instant
+
 /** 13 · Detalle del POI, conectado a su ViewModel. */
 @Composable
 fun PoiDetailRoute(

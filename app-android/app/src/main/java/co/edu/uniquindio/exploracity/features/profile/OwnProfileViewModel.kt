@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 26 y 27 · Los estados de carga no los dibuja el diseño; siguen a los de Avisos (25). */
 sealed interface OwnProfileContent {
     data object Loading : OwnProfileContent

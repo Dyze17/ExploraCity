@@ -1,4 +1,5 @@
 package co.edu.uniquindio.exploracity.domain.model
+
 /** 28 · Reglas del README: nombre de 2 a 40 caracteres y «Sobre mí» hasta 150. */
 object ProfileLimits {
     const val NAME_MIN = 2

@@ -9,6 +9,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+
 /**
  * Se piden las dos para que el diálogo del sistema deje elegir entre ubicación precisa y aproximada.
  * Para «Cercanos» (5 km) basta la aproximada; la precisa servirá al mapa (8) y al formulario de publicación.

@@ -23,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+
 /** 29A · Cerrar sesión borra lo de la cuenta en el teléfono y deja los borradores con sus fotos. */
 @RunWith(RobolectricTestRunner::class)
 class LocalSessionManagerTest {

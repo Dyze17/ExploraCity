@@ -31,6 +31,7 @@ import io.ktor.http.encodeURLPathPart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+
 /** /v1/photos, /v1/places y /v1/publications · El formulario de publicación y las publicaciones propias (15–24). */
 class PublicationApi(private val client: HttpClient) {
 

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+
 /**
  * Banner sin conexión del sistema de diseño (12.a, 8.c): ámbar, con icono, qué pasa y qué se está viendo, y
  * «Reintentar». Es liveRegion polite: se anuncia al aparecer o cambiar sin robar el foco.

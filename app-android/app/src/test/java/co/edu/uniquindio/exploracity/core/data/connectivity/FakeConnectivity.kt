@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.core.data.connectivity
 
 import kotlinx.coroutines.flow.MutableStateFlow
+
 /** Red de prueba: se prende y se apaga a mano con [online]. */
 class FakeConnectivity(online: Boolean = true) : ConnectivityObserver {
     override val isOnline = MutableStateFlow(online)

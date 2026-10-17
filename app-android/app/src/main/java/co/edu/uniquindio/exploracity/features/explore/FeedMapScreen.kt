@@ -100,6 +100,13 @@ import co.edu.uniquindio.exploracity.core.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.components.spokenRes
 import co.edu.uniquindio.exploracity.core.ui.components.symbol
+import co.edu.uniquindio.exploracity.core.ui.map.GroupPin
+import co.edu.uniquindio.exploracity.core.ui.map.MissingMapsKey
+import co.edu.uniquindio.exploracity.core.ui.map.PlacePin
+import co.edu.uniquindio.exploracity.core.ui.map.UserPin
+import co.edu.uniquindio.exploracity.core.ui.map.toGeoBounds
+import co.edu.uniquindio.exploracity.core.ui.map.toLatLng
+import co.edu.uniquindio.exploracity.core.ui.map.toLatLngBounds
 import co.edu.uniquindio.exploracity.core.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
@@ -133,6 +140,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
+
 /** Zoom al abrir el mapa y al centrarlo en la persona. */
 private const val CITY_ZOOM = 13f
 private const val STREET_ZOOM = 15f
@@ -494,24 +502,6 @@ private fun MapOffline(savedCount: Int, callbacks: MapCallbacks, modifier: Modif
                 )
             }
         }
-    }
-}
-
-/** Solo en compilaciones de desarrollo sin MAPS_API_KEY: explica cómo configurarla en vez de dejar el mapa en blanco. */
-@Composable
-internal fun MissingMapsKey() {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(32.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            stringResource(R.string.map_missing_key),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.exploraColors.textSecondary,
-        )
     }
 }
 

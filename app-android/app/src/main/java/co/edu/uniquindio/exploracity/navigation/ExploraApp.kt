@@ -23,6 +23,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraNavigationBar
 import co.edu.uniquindio.exploracity.core.ui.components.NavigationBarItem
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.coroutines.flow.first
+
 /**
  * Raíz de la app: barra inferior en las pantallas raíz de cada pestaña y el grafo de navegación.
  * El Scaffold pinta el fondo del tema en toda la ventana, también detrás de las barras del sistema. [emailLink] es el

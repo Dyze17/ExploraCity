@@ -30,6 +30,7 @@ import java.io.File
 import java.io.IOException
 import kotlin.math.min
 import kotlin.math.roundToInt
+
 /**
  * Miniatura de una foto: del teléfono (19.b), decodificada al tamaño en que se ve, o ya publicada (23, 32), descargada
  * del servidor. Mientras carga, o si no se puede leer, queda el fondo. Decorativa: la fila que la contiene dice de qué

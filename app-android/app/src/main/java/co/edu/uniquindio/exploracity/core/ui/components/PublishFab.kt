@@ -20,6 +20,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
+
 /**
  * FAB «Publicar un lugar nuevo»: 56 dp, radio 28 (README), primary, sombra de nivel 3 en claro.
  * [expanded] muestra la etiqueta «Publicar».

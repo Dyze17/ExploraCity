@@ -63,6 +63,11 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraSearchBar
 import co.edu.uniquindio.exploracity.core.ui.components.colors
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.core.ui.map.MissingMapsKey
+import co.edu.uniquindio.exploracity.core.ui.map.NewPlacePin
+import co.edu.uniquindio.exploracity.core.ui.map.PlacePin
+import co.edu.uniquindio.exploracity.core.ui.map.toGeoPoint
+import co.edu.uniquindio.exploracity.core.ui.map.toLatLng
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
@@ -74,11 +79,6 @@ import co.edu.uniquindio.exploracity.core.util.rememberTouchExplorationEnabled
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import co.edu.uniquindio.exploracity.features.explore.MissingMapsKey
-import co.edu.uniquindio.exploracity.features.explore.NewPlacePin
-import co.edu.uniquindio.exploracity.features.explore.PlacePin
-import co.edu.uniquindio.exploracity.features.explore.toGeoPoint
-import co.edu.uniquindio.exploracity.features.explore.toLatLng
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.MapStyleOptions
@@ -92,6 +92,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.sqrt
+
 /** Con el pin puesto se ve la cuadra; sin él, el centro de la ciudad. */
 private const val PIN_ZOOM = 17f
 private const val CITY_ZOOM = 14f

@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.AccessOfflineNotice
 import co.edu.uniquindio.exploracity.core.ui.components.EmptyState
 import co.edu.uniquindio.exploracity.core.ui.components.EmptyStateTone
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
@@ -63,6 +64,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraCheckbox
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
+import co.edu.uniquindio.exploracity.core.ui.components.SyncText
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
@@ -70,9 +72,8 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import co.edu.uniquindio.exploracity.features.access.AccessOfflineNotice
-import co.edu.uniquindio.exploracity.features.access.SyncText
 import java.time.Instant
+
 /**
  * 35 · Rechazar con motivo, conectada a su ViewModel. Al rechazar abre la siguiente pendiente ([onNext], con cuántas
  * quedan) o vuelve a la cola vacía ([onQueueEmpty]), como al verificar (C1).

@@ -7,6 +7,7 @@ import java.text.Normalizer
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+
 /**
  * Temporal hasta que exista la API: cuenta palabras clave de cada categoría. Empates o ninguna coincidencia: sin
  * sugerencia. Tarda un poco, como el servicio real (el indicador de 16.a se alcanza a ver).

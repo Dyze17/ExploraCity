@@ -22,6 +22,7 @@ import io.ktor.http.encodeURLPathPart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+
 /** /v1/profile y /v1/users · El perfil propio (26 y 28), el perfil público (31) y su reporte (31A). Piden el token de acceso. */
 class ProfileApi(private val client: HttpClient) {
     suspend fun ownProfile(): OwnProfile = client.get("v1/profile").body<OwnProfileDto>().toDomain()

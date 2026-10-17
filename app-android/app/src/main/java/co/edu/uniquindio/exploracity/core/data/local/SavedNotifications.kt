@@ -10,6 +10,7 @@ import androidx.room.Upsert
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
+
 // Los últimos avisos que llegaron (25): sin conexión, la lista queda en su último estado conocido con su antigüedad.
 
 enum class NotificationType { VERIFIED, FINALIZED, COMMENTED, REJECTED, DUPLICATE_REJECTED, ACHIEVEMENT }

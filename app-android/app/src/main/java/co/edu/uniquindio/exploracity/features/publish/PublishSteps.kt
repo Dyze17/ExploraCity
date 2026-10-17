@@ -63,6 +63,7 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublicationLimits
+
 /**
  * 15 · Título y descripción, con ejemplos en los campos vacíos (15.b) y el aviso del borrador automático. El error de un
  * campo se ve al salir de él o al tocar «Continuar» (21); en ese caso el foco va al primero con error.

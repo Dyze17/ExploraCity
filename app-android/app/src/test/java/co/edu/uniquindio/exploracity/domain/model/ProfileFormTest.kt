@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
 /** 28 · Nombre de 2 a 40 caracteres (sin contar espacios alrededor) y «Sobre mí» hasta 150. */
 class ProfileFormTest {
 

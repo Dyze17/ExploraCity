@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+
 /** 17 · Lo del mapa mientras se pone el pin: su dirección, la ubicación, la búsqueda por dirección y los parecidos. */
 data class PinState(
     /** Dirección del pin; null mientras no esté puesto. */

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+
 /**
  * La persona de la sesión: su id sale de la sesión con la API, y su nombre y sus puntos del perfil propio guardado
  * (26), que se pone al día cada vez que llega uno nuevo. Antes de que llegue el perfil, el nombre va vacío; sin sesión,

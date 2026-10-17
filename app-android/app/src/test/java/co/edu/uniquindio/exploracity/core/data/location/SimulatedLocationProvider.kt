@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.core.data.location
 
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+
 /** Punto simulado en Bogotá (cerca del Parque Nacional), donde están los lugares de prueba. */
 val SIMULATED_LOCATION = GeoPoint(4.6275, -74.0655)
 /**

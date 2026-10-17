@@ -1,4 +1,4 @@
-package co.edu.uniquindio.exploracity.features.explore
+package co.edu.uniquindio.exploracity.core.ui.map
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
@@ -39,6 +39,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import kotlin.math.sqrt
+
 // Estos composables se dibujan a mapa de bits para los marcadores de Google Maps: sin estado ni semántica
 // (la descripción va en el propio marcador). El área táctil es el mapa de bits: mínimo 48 dp (README 8).
 

@@ -15,6 +15,7 @@ import co.edu.uniquindio.exploracity.core.util.rememberLocationPermissionRequest
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
+
 /** Búsqueda, chips y hoja de filtros (9): las mismas acciones en la lista (7) y en el mapa (8). */
 class FilterCallbacks(
     val onQueryChange: (String) -> Unit = {},

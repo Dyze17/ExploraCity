@@ -12,6 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+
 /**
  * Cambios de pestaña con [navigateToTab] sobre el mismo esqueleto de grafos que [ExploraNavHost], con pantallas vacías.
  * Reporte del 2026-10-05: tras «Volver a explorar» en 20, la pestaña «Perfil» volvía a mostrar la confirmación.

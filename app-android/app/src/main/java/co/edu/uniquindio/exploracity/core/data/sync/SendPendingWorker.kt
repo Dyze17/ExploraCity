@@ -13,6 +13,7 @@ import androidx.work.WorkRequest
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
+
 /** Envía la cola cuando hay red; si la red vuelve a fallar a mitad de camino, pide reintentar más tarde. */
 class SendPendingWorker(
     context: Context,

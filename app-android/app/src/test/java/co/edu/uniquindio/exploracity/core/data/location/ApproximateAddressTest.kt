@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.data.location
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+
 /** 17 · La dirección aproximada a partir de lo que entrega el Geocoder de Android. */
 class ApproximateAddressTest {
 

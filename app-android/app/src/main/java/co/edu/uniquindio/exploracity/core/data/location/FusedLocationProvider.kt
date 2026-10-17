@@ -19,6 +19,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
+
 /**
  * La ubicación del teléfono con FusedLocationProvider (ADR-08). Si la última conocida es reciente, esa; si no, pide una
  * nueva con precisión equilibrada, como mucho [timeout], y si no llega se queda con la última. Lanza excepción sin el

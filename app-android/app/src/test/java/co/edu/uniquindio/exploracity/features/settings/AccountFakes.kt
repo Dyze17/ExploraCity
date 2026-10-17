@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.time.Duration.Companion.seconds
+
 // Dobles de la cuenta y la sesión para 29, 28 y 30: cada operación tarda 1 s de tiempo virtual.
 
 internal class FakeAccounts : AccountRepository {

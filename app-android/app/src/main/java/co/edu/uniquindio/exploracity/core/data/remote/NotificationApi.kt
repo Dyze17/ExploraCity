@@ -7,6 +7,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.http.encodeURLPathPart
+
 /** Los avisos de la API y cuántos hay sin leer. */
 data class NotificationsResult(val items: List<Notification>, val unread: Int)
 

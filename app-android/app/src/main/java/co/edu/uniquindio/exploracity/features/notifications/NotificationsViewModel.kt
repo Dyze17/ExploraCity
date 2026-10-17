@@ -26,6 +26,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 25 · Estados de la lista de avisos (25.a, 25.b, 25.c y sin conexión). */
 sealed interface NotificationsContent {
     /** 25.b: siluetas. */

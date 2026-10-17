@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+
 /**
  * La sesión abierta en el teléfono (SAD: DataStore de sesión). Hoy guarda el rol con el que se entró (3); con el inicio
  * de sesión real guardará también el token.

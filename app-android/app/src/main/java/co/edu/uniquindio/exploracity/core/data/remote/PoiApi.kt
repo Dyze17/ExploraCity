@@ -30,6 +30,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.encodeURLPathPart
+
 /**
  * /v1/places · Explorar y Social (7, 8, 9, 13, 14 y 14.b). Piden el token de acceso. [near] es la ubicación de la
  * persona: la API mide desde ahí la distancia y el orden; sin ella, desde el centro de la ciudad.

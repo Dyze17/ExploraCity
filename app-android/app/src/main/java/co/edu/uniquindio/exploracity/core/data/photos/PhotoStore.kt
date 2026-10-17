@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.roundToInt
+
 /** Las fotos del formulario en el teléfono (19): comprimidas antes de subirlas y guardadas hasta que se envían. */
 interface PhotoStore {
     /** Comprime la foto de [uri] (de la galería o de la cámara) y la guarda; null si no se pudo leer. */

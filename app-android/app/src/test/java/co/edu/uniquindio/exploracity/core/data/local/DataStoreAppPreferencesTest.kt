@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
+
 /** 29 · El tema elegido se guarda en el teléfono; sin elegir, sigue al sistema. */
 class DataStoreAppPreferencesTest {
 

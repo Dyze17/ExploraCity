@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.domain.model.NewAccount
 import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.ResetLink
 import co.edu.uniquindio.exploracity.domain.model.UserRole
+
 /** Acceso (SAD: componente de Usuarios, JWT emitido por el backend). */
 interface AuthRepository {
     /** 3 · El rol de la cuenta. Lanza [InvalidCredentialsException] si no coinciden, o excepción si falla la red. */

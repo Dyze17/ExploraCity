@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.domain.model.Poi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
 class MarkerGroupsTest {
 
     private val pois = samplePois.take(5)

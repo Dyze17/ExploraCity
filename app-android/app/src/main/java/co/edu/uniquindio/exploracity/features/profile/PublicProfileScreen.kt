@@ -79,6 +79,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /** 31 · Perfil público, conectado a su ViewModel. */
 @Composable
 fun PublicProfileRoute(

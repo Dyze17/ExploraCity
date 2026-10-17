@@ -40,6 +40,7 @@ import java.time.Clock
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+
 /**
  * Temporal hasta que exista la API (api-ktor): lugares de Bogotá en memoria, ordenados por cercanía a la
  * ubicación simulada. Simula la latencia de red; la búsqueda ignora mayúsculas y tildes.

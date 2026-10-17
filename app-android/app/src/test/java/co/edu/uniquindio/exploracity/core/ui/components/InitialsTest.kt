@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.core.ui.components
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+
 class InitialsTest {
 
     @Test

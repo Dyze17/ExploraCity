@@ -13,7 +13,6 @@ import co.edu.uniquindio.exploracity.core.data.local.SessionStore
 import co.edu.uniquindio.exploracity.core.util.catchingNonCancellation
 import co.edu.uniquindio.exploracity.domain.model.SessionEndedException
 import co.edu.uniquindio.exploracity.domain.repository.AuthRepository
-import co.edu.uniquindio.exploracity.features.publish.Done
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** A dónde sigue el arranque. [SESSION_ENDED]: al inicio de sesión, diciendo que la sesión terminó. */
 enum class SplashDestination { ONBOARDING, LOGIN, SESSION_ENDED, FEED }
 

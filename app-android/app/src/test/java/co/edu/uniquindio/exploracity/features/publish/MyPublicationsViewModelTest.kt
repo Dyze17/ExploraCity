@@ -26,6 +26,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class MyPublicationsViewModelTest {
 

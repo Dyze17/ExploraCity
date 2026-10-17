@@ -33,6 +33,7 @@ import org.junit.Before
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalTime
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditPublicationViewModelTest {
 

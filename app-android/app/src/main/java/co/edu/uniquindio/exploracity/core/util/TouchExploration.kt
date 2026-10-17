@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+
 /**
  * true mientras haya un lector de pantalla que explora por toque (TalkBack). Sirve para mostrar alternativas a los
  * gestos, como los botones de ajuste fino del pin (17). Se actualiza si la persona lo activa con la app abierta.

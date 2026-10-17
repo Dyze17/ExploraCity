@@ -22,6 +22,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 import kotlin.time.Duration
+
 /** 30 · Doble confirmación, sin red, fallo sin estados a medias y borrado de lo del teléfono. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeleteAccountViewModelTest {

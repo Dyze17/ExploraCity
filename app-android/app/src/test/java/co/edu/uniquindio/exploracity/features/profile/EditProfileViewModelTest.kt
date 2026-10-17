@@ -33,6 +33,7 @@ import org.junit.Test
 import java.io.IOException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 28 · Validación, foto, guardado, descartar y restauración. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditProfileViewModelTest {

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
 /** Lo que falta para poder rechazar (35.b): se muestra después del primer intento. */
 enum class RejectProblem {
     /** «Elige un motivo para continuar». */

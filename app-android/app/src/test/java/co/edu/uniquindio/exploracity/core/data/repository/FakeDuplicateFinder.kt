@@ -9,6 +9,7 @@ import java.text.Normalizer
 import java.util.Locale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+
 /**
  * Temporal hasta que exista la API, que lo hará con PostGIS y pg_trgm (ADR-13): compara con los lugares del feed y con
  * las publicaciones pendientes. El nombre se compara por trigramas, como pg_trgm, con su umbral por defecto.

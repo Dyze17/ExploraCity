@@ -62,6 +62,7 @@ import co.edu.uniquindio.exploracity.domain.model.ProfileForm
 import co.edu.uniquindio.exploracity.domain.model.ProfileLimits
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /** 28 · Editar perfil, conectada a su ViewModel. Al guardar vuelve al perfil (26), que lo dice. */
 @Composable
 fun EditProfileRoute(

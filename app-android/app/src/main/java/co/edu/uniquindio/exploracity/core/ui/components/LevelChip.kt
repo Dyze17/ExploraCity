@@ -24,6 +24,7 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.ContainerColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.UserLevel
+
 @get:StringRes
 val UserLevel.labelRes: Int
     get() = when (this) {

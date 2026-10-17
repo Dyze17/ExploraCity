@@ -13,6 +13,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+
 /** 19 · Cómo van las fotos que aún no están en el servidor. */
 data class PhotoStatus(
     /** Subidas en curso o fallidas, por id de foto; las que ya subieron no están aquí. */

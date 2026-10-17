@@ -18,6 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalTime
+
 /**
  * 15 · El borrador sobrevive al cierre de la app: se guarda en DataStore como JSON, con una clave por borrador. El
  * DataStore es en memoria: el de archivo no puede reemplazar su archivo en Windows (en Android sí), y lo que se prueba

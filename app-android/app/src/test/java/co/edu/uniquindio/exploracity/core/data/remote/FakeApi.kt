@@ -16,6 +16,7 @@ import io.ktor.http.headersOf
 import java.io.File
 import java.net.URLDecoder
 import java.util.UUID
+
 /** Ejemplo del contrato (docs/api/ejemplos), el mismo que comprueban las pruebas de api-ktor. */
 internal fun contractExample(name: String): String {
     val dir = System.getProperty("exploracity.contract") ?: error("Falta la propiedad exploracity.contract")

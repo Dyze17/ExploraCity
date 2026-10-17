@@ -43,6 +43,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
+
 private val ReportReason.labelRes: Int
     get() = when (this) {
         ReportReason.IMPERSONATION -> R.string.report_reason_impersonation

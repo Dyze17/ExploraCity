@@ -69,6 +69,7 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /** 15–19 · Formulario de publicación, conectado a su ViewModel. [onOpenPlace] abre un lugar parecido (17A → 13). */
 @Composable
 fun PublishFormRoute(

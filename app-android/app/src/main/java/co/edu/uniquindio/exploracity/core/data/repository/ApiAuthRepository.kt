@@ -26,6 +26,7 @@ import co.edu.uniquindio.exploracity.domain.repository.AuthRepository
 import co.edu.uniquindio.exploracity.domain.repository.GoogleAuthRepository
 import kotlinx.coroutines.CancellationException
 import java.io.IOException
+
 /**
  * Acceso con la API (SAD: componente de Usuarios, ADR-06). Al entrar o registrarse guarda la sesión ([ApiSession]):
  * los tokens y la cuenta. Traduce los códigos de error a las excepciones que las pantallas ya explican.

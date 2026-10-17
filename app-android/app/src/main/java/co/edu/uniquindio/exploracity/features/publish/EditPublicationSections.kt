@@ -35,6 +35,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
+
 // 23 · Lo que la edición agrega a 23.a: ubicación, horario y precio y fotos, con las piezas del formulario (17–19).
 
 /** Título de una sección de 23 («Ubicación», «Horario y precio», «Fotos»). */

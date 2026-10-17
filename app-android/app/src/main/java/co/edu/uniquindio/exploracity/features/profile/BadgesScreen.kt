@@ -67,6 +67,7 @@ import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.UserLevel
 import co.edu.uniquindio.exploracity.domain.model.inDisplayOrder
+
 /** 27 · Niveles e insignias, conectado a su ViewModel. */
 @Composable
 fun BadgesRoute(onBack: () -> Unit, viewModel: OwnProfileViewModel = viewModel(factory = OwnProfileViewModel.factory)) {

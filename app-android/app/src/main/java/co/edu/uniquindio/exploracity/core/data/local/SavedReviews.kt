@@ -26,6 +26,7 @@ import kotlinx.serialization.json.Json
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
+
 // La última cola de moderación que llegó (32.c): sin conexión se lee con su antigüedad y se abre cada detalle (33).
 // Cada pendiente va entera en JSON: solo se lee para mostrarla, nunca se consulta por sus campos.
 

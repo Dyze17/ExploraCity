@@ -23,6 +23,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.io.File
+
 /** 26, 28, 31 y 31A con la API: el perfil propio, su edición con la foto, el perfil público y el reporte. */
 class ApiUserRepositoryTest {
 

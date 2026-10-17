@@ -25,6 +25,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.time.Duration
+
 /** 26 y 27 · El perfil propio queda guardado para verlo sin conexión; los de otras personas necesitan red (31). */
 @RunWith(RobolectricTestRunner::class)
 class OfflineUserRepositoryTest {

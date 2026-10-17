@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.core.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+
 class DistanceFormatterTest {
 
     @Test

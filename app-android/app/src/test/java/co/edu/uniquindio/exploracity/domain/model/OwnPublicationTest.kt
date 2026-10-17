@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.domain.model
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
+
 class OwnPublicationTest {
 
     private fun rejection(vararg kinds: FixKind) = Rejection(

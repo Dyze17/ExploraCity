@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+
 /** Para qué se pidió el permiso de ubicación: decide qué hacer con la respuesta. */
 enum class LocationPurpose {
     /** «Ver N lugares» con «Cercanos» en la hoja de filtros (9). */

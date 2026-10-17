@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.domain.model.City
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import kotlinx.serialization.Serializable
+
 // DTO de la API (docs/api): la forma del JSON, separada del dominio.
 
 @Serializable

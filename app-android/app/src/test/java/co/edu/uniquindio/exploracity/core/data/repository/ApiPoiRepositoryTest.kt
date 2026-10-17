@@ -35,6 +35,7 @@ import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
+
 /** 7, 8, 9, 13, 14 y 14.b con la API: los criterios en la consulta y lo que llega según el contrato. */
 class ApiPoiRepositoryTest {
 

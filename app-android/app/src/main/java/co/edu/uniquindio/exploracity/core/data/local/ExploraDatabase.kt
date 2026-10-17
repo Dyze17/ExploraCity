@@ -6,6 +6,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+
 /**
  * Base local (SAD: data/local, caché Room). El esquema de cada versión se exporta a app/schemas y cada cambio lleva
  * migración: la cola de envío no se puede perder al actualizar la app.

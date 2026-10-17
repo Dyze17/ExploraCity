@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.util
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+
 /**
  * 6.a · «Abrir mi correo»: la app de correo del teléfono (si hay varias, Android pregunta cuál). False si no hay
  * ninguna; entonces el botón no se muestra. El manifiesto declara la consulta (Android 11+).

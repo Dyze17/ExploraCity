@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+
 enum class RegisterField { NAME, EMAIL, PASSWORD }
 
 /** C1 · El registro con la cuenta de Google: el correo es el de Google y no hay contraseña. */

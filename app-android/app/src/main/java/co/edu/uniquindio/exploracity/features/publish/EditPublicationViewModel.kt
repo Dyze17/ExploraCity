@@ -36,6 +36,7 @@ import java.time.DayOfWeek
 import java.time.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 23 · Estados de carga; siguen a los de la publicación rechazada (24). */
 sealed interface EditContent {
     data object Loading : EditContent

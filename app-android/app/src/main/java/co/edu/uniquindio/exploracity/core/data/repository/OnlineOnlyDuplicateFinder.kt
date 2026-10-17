@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import co.edu.uniquindio.exploracity.domain.repository.DuplicateFinder
+
 /** Sin red no se busca: el formulario sigue al paso 4 y el servidor repite la búsqueda al recibir la publicación. */
 class OnlineOnlyDuplicateFinder(
     private val remote: DuplicateFinder,

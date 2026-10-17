@@ -10,6 +10,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+
 /** Lo que pasó al pedir la cuenta de Google. */
 sealed interface GoogleCredentialResult {
     /** La persona eligió una cuenta: el ID token para la API, que vale una hora. */

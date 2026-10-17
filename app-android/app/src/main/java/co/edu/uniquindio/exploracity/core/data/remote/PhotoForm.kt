@@ -4,6 +4,7 @@ import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+
 /**
  * La foto como cuerpo multipart, en la parte «photo»: la API toma la primera parte con archivo (JPEG, PNG o WebP de
  * hasta 8 MB). [name] es el nombre del archivo sin la extensión.

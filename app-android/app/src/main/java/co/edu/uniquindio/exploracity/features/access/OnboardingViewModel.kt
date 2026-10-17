@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.core.data.local.AppPreferences
 import kotlinx.coroutines.launch
+
 /** 2 · Salir del onboarding por cualquier botón lo marca como visto: el arranque (1) ya no lo repite. */
 class OnboardingViewModel(private val preferences: AppPreferences) : ViewModel() {
 

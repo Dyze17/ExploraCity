@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
 import kotlin.time.Duration.Companion.milliseconds
+
 enum class NewPasswordContent { LOADING, READY, OFFLINE, ERROR }
 
 enum class NewPasswordField { PASSWORD, CONFIRM }

@@ -29,6 +29,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
+
 /** «Cambiar correo»: el formulario, «Confirma tu correo nuevo» y la confirmación del enlace. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChangeEmailViewModelsTest {

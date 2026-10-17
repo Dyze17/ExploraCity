@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
+
 /** Pie de una lista que carga al desplazar: indicador pequeño y texto («Cargando más lugares…»). */
 @Composable
 fun LoadingMoreRow(text: String, modifier: Modifier = Modifier) {

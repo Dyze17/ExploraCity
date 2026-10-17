@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Category
+
 /**
  * Filtro de categoría. Seleccionado = color de la categoría + borde + check que sustituye al icono,
  * para que el estado no dependa solo del color. Área táctil de 48 dp.

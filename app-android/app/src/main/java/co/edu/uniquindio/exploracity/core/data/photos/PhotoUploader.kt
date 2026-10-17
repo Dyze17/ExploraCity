@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.data.photos
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.last
+
 /** Cómo va la subida de una foto. */
 sealed interface UploadProgress {
     /** 0 a 100. */

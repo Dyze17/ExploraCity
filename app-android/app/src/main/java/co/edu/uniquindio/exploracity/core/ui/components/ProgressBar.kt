@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
 /**
  * Barra de avance de los lienzos 26, 27 y 27A: pista redondeada y relleno sin el hueco ni el punto final de la
  * LinearProgressIndicator de M3. Con [description] el lector dice la frase completa («340 de 500 puntos, 68 por ciento

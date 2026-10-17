@@ -11,6 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
 /** 6.a y «Confirma tu correo nuevo» · El buzón de desarrollo de la API detrás de los botones de prueba. */
 class ApiDevMailboxTest {
 

@@ -19,6 +19,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import java.time.DayOfWeek
 import java.time.LocalTime
+
 /**
  * Dónde vive un borrador (15–19). La publicación nueva y la corrección de cada rechazada (24) no se pisan: corregir
  * una no borra lo que se estaba escribiendo de otra.

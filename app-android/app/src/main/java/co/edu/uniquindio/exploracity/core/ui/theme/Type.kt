@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
+
 // Outfit y Manrope son fuentes variables (eje wght): un solo archivo sirve para todos los pesos.
 private val Weights = listOf(FontWeight.W400, FontWeight.W500, FontWeight.W600, FontWeight.W700, FontWeight.W800)
 

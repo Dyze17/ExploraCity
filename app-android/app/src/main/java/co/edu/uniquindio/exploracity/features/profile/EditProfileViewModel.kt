@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 28 · Los estados de carga no los dibuja el diseño; siguen a los de 23. */
 enum class EditProfileContent { LOADING, LOADED, OFFLINE, ERROR }
 

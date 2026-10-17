@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+
 enum class EmptyStateTone {
     /** Vacíos y sin resultados: contenedor neutro con icono de acento. */
     NEUTRAL,

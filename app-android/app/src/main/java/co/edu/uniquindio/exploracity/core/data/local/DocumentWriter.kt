@@ -5,6 +5,7 @@ import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
+
 /** Escribe en el documento que la persona eligió con el diálogo «Guardar» de Android: la app no necesita permisos. */
 fun interface DocumentWriter {
     /** Lanza excepción si no se pudo escribir. */

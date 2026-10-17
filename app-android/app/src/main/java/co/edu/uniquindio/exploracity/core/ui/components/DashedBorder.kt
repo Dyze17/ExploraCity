@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
 /** Borde discontinuo (posible duplicado, campo deshabilitado): Compose solo trae borde continuo. */
 internal fun Modifier.dashedBorder(width: Dp, color: Color, cornerRadius: Dp) = drawBehind {
     val stroke = width.toPx()

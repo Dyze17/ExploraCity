@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.domain.model
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
+
 /** Rango de precio tal como se captura en el paso 4 de publicación (18). */
 enum class PriceRange {
     /** «Entrada libre». */

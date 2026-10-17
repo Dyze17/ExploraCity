@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+
 /** Avisos de una sola vez de «enlace enviado». */
 enum class LinkSentMessage {
     /** «Te enviamos otro enlace.» */

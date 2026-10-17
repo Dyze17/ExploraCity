@@ -68,6 +68,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import java.time.YearMonth
+
 /** 30 · Eliminar cuenta, conectada a su ViewModel. Al terminar lleva al inicio de sesión (3), que lo dice. */
 @Composable
 fun DeleteAccountRoute(

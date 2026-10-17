@@ -82,6 +82,7 @@ import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+
 /** 24 · Publicación rechazada, conectada a su ViewModel. Al eliminarla, [onDeleted] vuelve a Mis publicaciones (22). */
 @Composable
 fun RejectedPublicationRoute(

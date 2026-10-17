@@ -47,6 +47,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
+
 /**
  * Fotos a pantalla completa (33: «cada foto es tocable a pantalla completa con zoom»): se pasan con el dedo, se acercan
  * pellizcando o tocando dos veces, y se cierran con la X o con «atrás». Mientras una foto carga, o si no se puede

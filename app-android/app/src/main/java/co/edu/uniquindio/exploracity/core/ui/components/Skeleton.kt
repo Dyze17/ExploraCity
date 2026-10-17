@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
+
 /** Brillo que recorre los skeletons (1,2 s, lineal), como en el lienzo 11. */
 @Composable
 fun rememberShimmerBrush(): Brush {

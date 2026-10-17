@@ -26,6 +26,7 @@ import java.io.IOException
 import java.time.Instant
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+
 /** 5, 6.a y 6.b · Pedir el enlace, esperar el reenvío y crear la contraseña nueva. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecoveryViewModelsTest {

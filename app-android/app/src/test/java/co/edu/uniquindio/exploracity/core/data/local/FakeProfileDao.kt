@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.data.local
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+
 /** El perfil guardado en memoria, para las pruebas que no necesitan Room. */
 class FakeProfileDao : ProfileDao {
     private val saved = MutableStateFlow<SavedProfileEntity?>(null)

@@ -18,6 +18,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.core.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
+
 // Piezas comunes del perfil propio (26) y de niveles e insignias (27): los dos leen el mismo perfil y tienen los mismos
 // estados de carga, error y sin conexión, como Avisos (25).
 

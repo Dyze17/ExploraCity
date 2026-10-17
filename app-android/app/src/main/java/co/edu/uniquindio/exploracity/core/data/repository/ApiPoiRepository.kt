@@ -18,6 +18,7 @@ import co.edu.uniquindio.exploracity.domain.repository.SavedPlaces
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+
 /**
  * Explorar y Social con la API (SAD: componentes de Puntos de Interés y Social). La distancia y el orden los calcula la
  * API desde la ubicación de [location]; si no hay, desde el centro de la ciudad. Lo de ver y enviar sin conexión lo

@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
+
 /** Personas (SAD: componente de Usuarios y Reputación, aparte de Puntos de Interés). */
 interface UserRepository {
     /** 31 · Perfil público; null si la persona ya no existe. Lanza excepción si falla la red. */

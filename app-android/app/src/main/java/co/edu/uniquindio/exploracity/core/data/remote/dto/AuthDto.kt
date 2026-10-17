@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import kotlinx.serialization.Serializable
 import java.time.Instant
+
 // DTO de Sesión, Recuperar la contraseña y Cuenta (docs/api).
 
 @Serializable

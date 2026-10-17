@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.domain.model.City
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+
 /**
  * B1 · La ciudad que atiende la app (nombre, centro del mapa y límites de la búsqueda por dirección): la decide la API
  * (`/v1/city`) y se guarda en el teléfono para abrir sin conexión. La app no entra sin ella: el arranque (1), el inicio

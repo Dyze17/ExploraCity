@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.fail
 import org.junit.Test
+
 /**
  * Regla global del diseño: contraste ≥ 4,5:1 en ambos temas para texto,
  * y ≥ 3:1 para contenido no textual (iconos, bordes de campos y chips).

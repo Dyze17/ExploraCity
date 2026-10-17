@@ -78,6 +78,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import java.time.Instant
+
 /** 25 · Notificaciones, conectado a su ViewModel. Cada destino lo decide el tipo de aviso. */
 @Composable
 fun NotificationsRoute(

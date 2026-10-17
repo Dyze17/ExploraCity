@@ -19,6 +19,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
+
 /**
  * Temporal hasta que exista la API: lo que el servidor falso de la cuenta («Cambiar correo») consulta al de acceso. Con
  * la API es un solo servidor.

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
 enum class ConfirmEmailContent { LOADING, OFFLINE, ERROR }
 
 /** Cómo termina: el correo quedó cambiado (vuelve a Ajustes, que lo dice) o el enlace venció (para pedir otro). */

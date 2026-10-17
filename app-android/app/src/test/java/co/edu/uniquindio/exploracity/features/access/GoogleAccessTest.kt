@@ -30,6 +30,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+
 /** ADR-15 · «Continuar con Google» en el inicio de sesión (3) y el registro en modo Google (4, C1), y vincular (B1). */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GoogleAccessTest {

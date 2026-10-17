@@ -1,4 +1,5 @@
 package co.edu.uniquindio.exploracity.domain.model
+
 /** SAD: el usuario es turista o residente; en la app, «De visita» o «Residente» (también en 28). */
 enum class Residency { RESIDENT, VISITOR }
 

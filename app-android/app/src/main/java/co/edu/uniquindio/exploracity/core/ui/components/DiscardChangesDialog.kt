@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+
 /**
  * «¿Descartar los cambios?» al salir de una edición con cambios (23, 28). [body] dice qué queda como estaba. El foco
  * inicial va a «Seguir editando»: descartar es destructivo y nunca la acción por defecto.

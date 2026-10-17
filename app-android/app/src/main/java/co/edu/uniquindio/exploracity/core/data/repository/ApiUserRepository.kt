@@ -11,6 +11,7 @@ import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import co.edu.uniquindio.exploracity.domain.repository.UserRepository
 import kotlinx.coroutines.CancellationException
 import java.io.File
+
 /**
  * Personas con la API (SAD: componente de Usuarios y Reputación): el perfil propio, el público y los reportes. Lo propio
  * para ver sin conexión lo guarda OfflineUserRepository, que envuelve a este.

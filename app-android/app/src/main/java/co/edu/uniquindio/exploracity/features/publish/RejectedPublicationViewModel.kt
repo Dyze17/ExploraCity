@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 24 · Los estados de carga no los dibuja el diseño; siguen a los del perfil público (31). */
 sealed interface RejectedContent {
     data object Loading : RejectedContent

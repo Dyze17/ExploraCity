@@ -13,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
 /** D1 · El cliente con la sesión: lleva el token de acceso y, con un 401, lo renueva una vez y repite la petición. */
 class ApiSessionTest {
 

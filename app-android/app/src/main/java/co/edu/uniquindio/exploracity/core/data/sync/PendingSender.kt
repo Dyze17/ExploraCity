@@ -16,6 +16,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
+
 /**
  * Envía la cola al servidor ([remote]) en el orden en que se hizo cada cosa. Lo llama [SendPendingWorker] cuando
  * WorkManager ve red, también con la app cerrada.

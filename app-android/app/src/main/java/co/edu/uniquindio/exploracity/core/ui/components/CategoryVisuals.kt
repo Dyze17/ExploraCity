@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.CategoryColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Category
+
 // Icono, nombre y color de cada categoría: estables en lista, mapa, formulario y filtros.
 
 @get:DrawableRes

@@ -32,6 +32,7 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /** 14 · Comentarios: los estados de carga no los dibuja el diseño; siguen a 11 y 12.b, como el detalle. */
 sealed interface CommentsContent {
     data object Loading : CommentsContent

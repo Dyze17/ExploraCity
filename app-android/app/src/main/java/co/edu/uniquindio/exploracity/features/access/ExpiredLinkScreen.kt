@@ -14,6 +14,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.domain.model.AuthRules
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /**
  * 6C · Enlace vencido. Explica qué pasó sin códigos; «Pedir otro enlace» vuelve a 5 con el correo escrito y «Volver a
  * iniciar sesión» a 3.

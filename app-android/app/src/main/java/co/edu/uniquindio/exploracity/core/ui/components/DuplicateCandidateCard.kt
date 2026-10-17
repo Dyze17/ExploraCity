@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.map.NumberPin
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
@@ -40,8 +41,8 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import co.edu.uniquindio.exploracity.features.explore.NumberPin
 import java.util.Locale
+
 /**
  * 17A · Un lugar parecido: el número lo enlaza con su marcador del minimapa. El lector oye «Lugar parecido 1: La Fonda
  * Café, Gastronomía, verificada, a 23 m». Una pendiente no tiene página pública: en lugar de «Ver este lugar» dice que

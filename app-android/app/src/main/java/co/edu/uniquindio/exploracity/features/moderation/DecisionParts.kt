@@ -56,6 +56,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
+
 // Piezas de las pantallas donde se decide con un motivo: rechazar (35) y cambiar estado (36).
 
 /** Los motivos de 35, en su orden (A1): el duplicado primero. */

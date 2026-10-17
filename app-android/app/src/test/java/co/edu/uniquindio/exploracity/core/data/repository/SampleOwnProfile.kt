@@ -24,6 +24,7 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
+
 // Temporal hasta que exista la API: lo que solo ve Ana de sí misma (24, 26 y 27). Sus lugares públicos son los de
 // currentUserPlaces; aquí están los que aún no se ven en el feed. Con 3 verificadas cuadran el «3 de 10» de 27.a y el
 // aviso «3 lugares verificados · te faltan 7» (25).

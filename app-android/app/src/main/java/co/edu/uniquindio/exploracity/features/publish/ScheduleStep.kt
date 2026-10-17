@@ -70,6 +70,7 @@ import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+
 /** El orden de la semana en Colombia, como el resto de la app: empieza el lunes. */
 private val week = DayOfWeek.entries
 

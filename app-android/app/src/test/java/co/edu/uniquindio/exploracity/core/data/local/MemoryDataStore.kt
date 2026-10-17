@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+
 /** DataStore en memoria: el de archivo no puede reemplazar su archivo en Windows (en Android sí). */
 internal class MemoryDataStore : DataStore<Preferences> {
     private val state = MutableStateFlow(emptyPreferences())

@@ -8,6 +8,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+
 /** Antigüedad de un comentario como se dice en 14 («hace 2 días»). La pantalla pone las palabras. */
 sealed interface RelativeTime {
     data object JustNow : RelativeTime

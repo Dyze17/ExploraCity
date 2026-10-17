@@ -15,6 +15,7 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
+
 /** El cliente de la API: la ciudad según el contrato y los errores como [ApiException]. */
 class ApiClientTest {
 

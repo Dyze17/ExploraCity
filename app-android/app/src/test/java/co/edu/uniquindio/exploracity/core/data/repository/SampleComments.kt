@@ -9,6 +9,7 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
+
 // Temporal hasta que exista la API: comentarios de los lugares de prueba. Café Las Acacias trae los del lienzo 14.a
 // y Sendero La Vieja abre con el de Laura, al que lleva el aviso de 25. El resto se completa con frases generales,
 // tantas como diga el contador del lugar.

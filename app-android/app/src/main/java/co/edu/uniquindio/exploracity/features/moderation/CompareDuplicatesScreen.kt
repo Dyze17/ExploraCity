@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.AccessOfflineNotice
 import co.edu.uniquindio.exploracity.core.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.core.ui.components.CategoryTag
 import co.edu.uniquindio.exploracity.core.ui.components.DuplicateFlag
@@ -67,6 +68,10 @@ import co.edu.uniquindio.exploracity.core.ui.components.labelRes
 import co.edu.uniquindio.exploracity.core.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.core.ui.map.MissingMapsKey
+import co.edu.uniquindio.exploracity.core.ui.map.NewPlacePin
+import co.edu.uniquindio.exploracity.core.ui.map.NumberPin
+import co.edu.uniquindio.exploracity.core.ui.map.toLatLng
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.LocalDarkTheme
@@ -81,11 +86,6 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import co.edu.uniquindio.exploracity.features.access.AccessOfflineNotice
-import co.edu.uniquindio.exploracity.features.explore.MissingMapsKey
-import co.edu.uniquindio.exploracity.features.explore.NewPlacePin
-import co.edu.uniquindio.exploracity.features.explore.NumberPin
-import co.edu.uniquindio.exploracity.features.explore.toLatLng
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.Dash
@@ -103,6 +103,7 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 import java.time.Instant
 import kotlin.math.cos
 import kotlin.math.max
+
 /**
  * 33A · Comparar lugares, conectada a su ViewModel. «Verificar como lugar distinto» vuelve a 33 con la hoja de 34
  * abierta ([onVerifyDistinct]); «Rechazar por duplicado» abre 35 con ese lugar como original ([onRejectDuplicate]).

@@ -16,6 +16,7 @@ import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
+
 // Solo para las vistas previas (@Preview) de Android Studio: la app nunca los muestra. Los datos llegan de la API.
 
 /** Quien mira las vistas previas. */

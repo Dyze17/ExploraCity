@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
 /** 32 · «Pendientes» o solo «Posibles duplicados»; las dos conservan el orden por antigüedad. */
 enum class QueueFilter { ALL, DUPLICATES }
 

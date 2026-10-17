@@ -53,8 +53,11 @@ import co.edu.uniquindio.exploracity.core.data.google.GoogleCredentialResult
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTextField
+import co.edu.uniquindio.exploracity.core.ui.components.PasswordEye
+import co.edu.uniquindio.exploracity.core.ui.components.SyncText
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import kotlinx.coroutines.launch
+
 /**
  * ADR-15 · «Continuar con Google» con el estilo que pide la guía de marca de Google: fondo blanco con borde gris en el
  * tema claro y casi negro en el oscuro, la «G» en sus colores y la tipografía del sistema (Roboto). [request] pide la

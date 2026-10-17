@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.domain.model.Residency
+
 /**
  * «¿Cómo te presentas?» (4 y 28): De visita o Residente, como en el perfil (26 y 31). Con fuente grande, una debajo de
  * otra.

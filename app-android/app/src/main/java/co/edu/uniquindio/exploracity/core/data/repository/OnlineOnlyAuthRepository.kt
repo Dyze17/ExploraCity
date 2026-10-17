@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.ResetLink
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.domain.repository.AuthRepository
+
 /** Sin red no se intenta: cada pantalla de acceso lo dice antes (3.c) y el arranque ofrece seguir sin conexión (1.c). */
 class OnlineOnlyAuthRepository(
     private val remote: AuthRepository,

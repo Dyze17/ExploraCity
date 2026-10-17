@@ -55,15 +55,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.data.google.GoogleCredentialResult
+import co.edu.uniquindio.exploracity.core.ui.components.AccessOfflineNotice
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTextField
+import co.edu.uniquindio.exploracity.core.ui.components.PasswordEye
+import co.edu.uniquindio.exploracity.core.ui.components.SyncText
 import co.edu.uniquindio.exploracity.core.ui.components.onBlur
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /**
  * 3 · Inicio de sesión, conectado a su ViewModel. Al entrar sigue a [onSignedIn]. [notice] es el aviso con que se
  * llega («Cerraste sesión.», «Ya puedes entrar con tu contraseña nueva»). [suggestedEmail] llega del registro (4)

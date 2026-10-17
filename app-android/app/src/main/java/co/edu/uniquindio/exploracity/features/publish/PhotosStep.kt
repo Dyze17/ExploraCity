@@ -58,6 +58,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.PhotoRules
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+
 /**
  * 19 · Fotografías: de 1 a 5, la primera es la portada. Cada foto dice su estado con icono y texto (subida, subiendo
  * con %, error recuperable) y el lector oye el progreso cada 25 %. Con una foto subida ya se puede enviar.

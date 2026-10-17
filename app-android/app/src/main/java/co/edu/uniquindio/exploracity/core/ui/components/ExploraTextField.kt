@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+
 /**
  * Campo del sistema de diseño: etiqueta encima, alto mínimo 56 dp, radio 12.
  *

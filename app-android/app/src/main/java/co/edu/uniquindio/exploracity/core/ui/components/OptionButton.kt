@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
+
 /**
  * Una opción de un grupo que se elige con un toque (29 · Tema, 28 · ¿Cómo te presentas?). La elegida va en
  * primaryContainer y lleva check en lugar de su icono: el estado no depende solo del color. El grupo que la contiene

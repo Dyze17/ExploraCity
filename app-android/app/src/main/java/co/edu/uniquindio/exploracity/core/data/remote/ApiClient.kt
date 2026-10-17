@@ -20,6 +20,7 @@ import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.ConnectException
 import java.net.UnknownHostException
+
 /**
  * La API respondió con un error (docs/api): [status] HTTP y [code] estable, que cada repositorio traduce a su
  * excepción del dominio. [email] solo lo trae un enlace vencido (6C). Sin red no llega aquí: eso es una IOException.

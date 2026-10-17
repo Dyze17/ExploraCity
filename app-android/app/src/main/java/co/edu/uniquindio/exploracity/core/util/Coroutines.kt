@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.core.util
 
 import kotlinx.coroutines.CancellationException
+
 /** Como runCatching, pero deja pasar la cancelación de la corrutina: null si [block] falla. */
 internal suspend fun <T> runCatchingNonCancellation(block: suspend () -> T): T? = try {
     block()

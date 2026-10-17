@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.domain.repository
 
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
+
 /** 17 · Busca lugares que podrían ser el mismo que se está publicando (SAD: Componente de Detección de Duplicados). */
 interface DuplicateFinder {
     /**

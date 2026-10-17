@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.navigation
 import co.edu.uniquindio.exploracity.BuildConfig
 import java.net.URI
 import java.net.URLDecoder
+
 /**
  * Un enlace del correo de la API: «Nueva contraseña» (6.b) o «Cambiar correo», con su token. Llega de dos formas:
  * - `exploracity://enlace/restablecer?token=…` y `…/confirmar-correo?token=…`: desde la API del equipo, y desde el

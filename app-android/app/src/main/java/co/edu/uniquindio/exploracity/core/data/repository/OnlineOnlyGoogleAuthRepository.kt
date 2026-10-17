@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.domain.model.Registration
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.domain.repository.GoogleAuthRepository
+
 /** Sin red no se intenta: el inicio de sesión y el registro ya lo dicen arriba (3.c). */
 class OnlineOnlyGoogleAuthRepository(
     private val remote: GoogleAuthRepository,

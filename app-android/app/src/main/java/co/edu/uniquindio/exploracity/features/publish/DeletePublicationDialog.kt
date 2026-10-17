@@ -34,6 +34,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
+
 /**
  * 23 · «¿Eliminar…?» con las consecuencias enumeradas (23.a): fotos, comentarios, votos y los puntos que se descuentan.
  * Solo nombra lo que tiene: una rechazada nunca fue pública y pierde solo ella y sus fotos. El foco inicial va a

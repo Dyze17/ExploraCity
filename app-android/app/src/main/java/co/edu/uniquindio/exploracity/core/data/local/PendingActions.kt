@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.UUID
+
 // Cola de envío: lo que la persona hizo sin conexión y se manda al servidor cuando vuelve la red (WorkManager).
 // No depende de lo guardado para ver sin conexión: si el feed reemplaza su caché, la cola sigue intacta.
 

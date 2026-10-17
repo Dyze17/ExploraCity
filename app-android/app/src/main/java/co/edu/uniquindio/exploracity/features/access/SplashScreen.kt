@@ -52,6 +52,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.LocalDarkTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /** 1 · Arranque, conectado a su ViewModel: cuando decide, sigue a [onDestination]. */
 @Composable
 fun SplashRoute(onDestination: (SplashDestination) -> Unit, viewModel: SplashViewModel = viewModel(factory = SplashViewModel.factory)) {

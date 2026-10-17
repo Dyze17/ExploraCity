@@ -84,6 +84,7 @@ import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.UserLevel
 import co.edu.uniquindio.exploracity.domain.model.inDisplayOrder
 import java.time.YearMonth
+
 /** 26 · Perfil propio, conectado a su ViewModel. */
 @Composable
 fun OwnProfileRoute(

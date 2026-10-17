@@ -21,6 +21,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+
 /** 19 con la API: la foto del formulario sube con su progreso y vuelve con su dirección. */
 class ApiPhotoUploaderTest {
 

@@ -30,6 +30,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+
 /**
  * README: «Alto mínimo 96 dp, crece con el texto», también con la fuente al 200 %. Con las tarjetas del
  * feed de prueba, ningún texto puede quedar aplastado ni salirse de la tarjeta (la tarjeta recorta).

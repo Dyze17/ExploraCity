@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.domain.model
 
 import kotlinx.serialization.Serializable
+
 /** Alcance de ubicación del feed (9): alrededor de la persona o toda la ciudad. */
 enum class LocationScope {
     NEARBY,

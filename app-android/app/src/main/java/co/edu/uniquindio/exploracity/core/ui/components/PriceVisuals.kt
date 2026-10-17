@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.ui.components
 import androidx.annotation.StringRes
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
+
 // Rango de precio del paso 4 (18): «$ · Hasta 25.000». El lienzo 13.a dibuja «$ 10.000 – 25.000», un rango que el
 // paso 4 no captura; se muestran los rangos que sí existen.
 

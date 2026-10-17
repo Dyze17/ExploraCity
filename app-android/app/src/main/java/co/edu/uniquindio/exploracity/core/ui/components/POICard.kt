@@ -52,6 +52,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import java.util.Locale
+
 /**
  * Tarjeta de un punto de interés en el feed. Alto mínimo 96 dp y crece con el texto.
  * Con fontScale > 1,3 pasa a vertical: foto arriba y cada dato en su propia fila, con texto completo.

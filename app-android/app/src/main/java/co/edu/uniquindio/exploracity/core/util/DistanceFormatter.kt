@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.core.util
 
 import java.text.NumberFormat
 import java.util.Locale
+
 /** Idioma de los textos de la app: números y fechas con formato de Colombia. */
 internal val spanishColombia: Locale = Locale.forLanguageTag("es-CO")
 

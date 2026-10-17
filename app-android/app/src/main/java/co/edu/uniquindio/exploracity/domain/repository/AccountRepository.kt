@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.domain.repository
 import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.DataExport
 import kotlinx.coroutines.flow.StateFlow
+
 /** La cuenta de la sesión (SAD: componente de Usuarios): el correo y los datos personales (Ley 1581). */
 interface AccountRepository {
     /** Llega con el inicio de sesión y se guarda con la sesión: no necesita red. Cambia al confirmar un correo nuevo. */

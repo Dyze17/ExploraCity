@@ -16,6 +16,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
+
 /**
  * Actualizar la app no puede borrar lo guardado ni la cola: cada versión migra desde la anterior. La base vieja se crea
  * con el SQL de su esquema exportado (app/schemas) y Room la abre en la versión actual, migrando y validando el

@@ -76,6 +76,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.AccessOfflineNotice
 import co.edu.uniquindio.exploracity.core.ui.components.BadgeSize
 import co.edu.uniquindio.exploracity.core.ui.components.CategoryTag
 import co.edu.uniquindio.exploracity.core.ui.components.EmptyState
@@ -97,6 +98,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.dashedBorder
 import co.edu.uniquindio.exploracity.core.ui.components.labelRes
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.core.ui.map.PlacePin
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.LocalDarkTheme
@@ -110,8 +112,6 @@ import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import co.edu.uniquindio.exploracity.features.access.AccessOfflineNotice
-import co.edu.uniquindio.exploracity.features.explore.PlacePin
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -125,6 +125,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import java.time.Instant
 import java.util.Locale
+
 /**
  * 33 y 34 · Revisión de una pendiente, conectada a su ViewModel. Al verificar abre la siguiente ([onNext], con cuántas
  * quedan) o vuelve a la cola vacía ([onQueueEmpty]). [notice] es el aviso con que se llega desde la anterior (verificada

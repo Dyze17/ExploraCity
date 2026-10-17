@@ -16,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
 /**
  * 7 · Deslizar hacia abajo recarga solo desde arriba del todo: el gesto que trae de vuelta la lista y la cabecera
  * (búsqueda y chips) se queda en eso y no sigue en recarga.

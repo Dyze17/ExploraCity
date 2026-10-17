@@ -13,6 +13,7 @@ import co.edu.uniquindio.exploracity.navigation.ExploraApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+
 class MainActivity : ComponentActivity() {
     /** El enlace del correo con que se abrió la app, o que llegó con ella abierta, hasta que la navegación lo abre. */
     private val emailLink = MutableStateFlow<String?>(null)

@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import java.io.File
+
 /**
  * Sube las fotos del formulario a la API, que las guarda en Cloudinary (SAD: Media Store). El progreso es el de los
  * bytes enviados: al 100 % falta solo la respuesta, con la dirección de la foto.

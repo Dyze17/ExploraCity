@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+
 /**
  * La cuenta con la API (SAD: componente de Usuarios). El correo llega con la sesión y se guarda con ella ([ApiSession]):
  * se ve sin red. Cada cambio que confirma la API se guarda ahí también.

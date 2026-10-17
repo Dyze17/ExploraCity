@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+
 /** D1 · Los dos tokens de la sesión con la API: el de acceso (15 minutos) y el de renovación (30 días). */
 data class AuthTokens(val access: String, val refresh: String)
 

@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.ContainerColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+
 // El estado siempre se comunica con color + icono + texto, nunca solo con color.
 
 @get:DrawableRes

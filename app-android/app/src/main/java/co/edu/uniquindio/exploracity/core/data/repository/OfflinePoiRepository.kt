@@ -42,6 +42,7 @@ import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
+
 /**
  * Envuelve al repositorio del servidor ([remote]) y guarda en Room lo necesario para ver sin conexión (12.a): lo último
  * que cargó el feed, hasta [SAVED_PLACES_LIMIT] lugares, y en segundo plano el detalle de cada uno (opción A de Daniel).

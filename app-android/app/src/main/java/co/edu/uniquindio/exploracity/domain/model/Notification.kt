@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.Instant
+
 /**
  * 25 · Aviso dentro de la app (SAD: sin notificaciones push). Cada tipo lleva lo que su texto necesita; la pantalla
  * arma la frase y decide el destino.

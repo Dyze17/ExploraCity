@@ -85,6 +85,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import java.time.Instant
+
 /**
  * 23 · Editar publicación, conectada a su ViewModel. Al guardar o eliminar vuelve a Mis publicaciones (22) con el aviso.
  * [onOpenPlace] abre un lugar parecido desde el mapa (17A → 13).

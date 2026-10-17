@@ -17,6 +17,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
+
 /** B1 · La ciudad de la API, guardada en el teléfono para abrir sin conexión. */
 class CityRepositoryTest {
 

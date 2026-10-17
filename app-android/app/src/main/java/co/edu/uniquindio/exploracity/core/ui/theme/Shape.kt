@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.ui.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
+
 // Los valores por defecto de M3 no coinciden con el diseño en Button (píldora → 12),
 // Card (12 → 16) ni OutlinedTextField (4 → 12): los componentes del sistema pasan la forma explícita.
 val ExploraShapes = Shapes(

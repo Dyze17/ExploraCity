@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
+
 /** Una cola en memoria para los ViewModels de moderación: cargarla y decidir tardan 1 s; abrir una, medio. */
 internal class MemoryModeration(initial: List<ReviewItem>) : ModerationRepository {
     val items = initial.toMutableList()

@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.domain.repository
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
+
 /** Los avisos, de la más reciente a la más antigua. [savedAt] no es null si vienen de lo guardado (sin conexión). */
 data class NotificationList(val items: List<Notification>, val savedAt: Instant? = null)
 /** 25 · Avisos dentro de la app (SAD: sin push). */

@@ -68,6 +68,10 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraTextField
 import co.edu.uniquindio.exploracity.core.ui.components.NoNavigationBarScrim
 import co.edu.uniquindio.exploracity.core.ui.components.SheetHandle
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
+import co.edu.uniquindio.exploracity.core.ui.map.MissingMapsKey
+import co.edu.uniquindio.exploracity.core.ui.map.NewPlacePin
+import co.edu.uniquindio.exploracity.core.ui.map.NumberPin
+import co.edu.uniquindio.exploracity.core.ui.map.toLatLng
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.LocalDarkTheme
@@ -81,10 +85,6 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import co.edu.uniquindio.exploracity.features.explore.MissingMapsKey
-import co.edu.uniquindio.exploracity.features.explore.NewPlacePin
-import co.edu.uniquindio.exploracity.features.explore.NumberPin
-import co.edu.uniquindio.exploracity.features.explore.toLatLng
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.Dash
@@ -101,6 +101,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import kotlinx.coroutines.launch
 import kotlin.math.cos
+
 /** Lo que se hace desde la hoja de parecidos (17A/17B). */
 class DuplicateCallbacks(
     /** Deslizar la hoja hacia abajo o «Atrás» en 17A. */

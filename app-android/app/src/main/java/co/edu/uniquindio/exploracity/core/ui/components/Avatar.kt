@@ -24,6 +24,7 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.CategoryColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Author
+
 /**
  * Avatar con la foto de perfil ([photo], 28: la recién elegida en el teléfono o la publicada) o, sin ella, con las
  * iniciales. El color sale de los contenedores de categoría y es siempre el mismo para cada persona (en 14.a, María

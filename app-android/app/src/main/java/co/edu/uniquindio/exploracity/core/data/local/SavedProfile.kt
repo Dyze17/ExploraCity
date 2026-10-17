@@ -17,6 +17,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.YearMonth
+
 // El último perfil propio que llegó (26 y 27): sin conexión se ve con su antigüedad, como los avisos. Es un solo
 // documento, así que se guarda como JSON; lo que agregue el servidor más adelante no rompe lo ya guardado.
 

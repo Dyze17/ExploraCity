@@ -17,6 +17,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.time.YearMonth
+
 /** 26, 28 y 31A con la API: el perfil del contrato, su edición con la foto y el reporte. */
 class ProfileApiTest {
 

@@ -67,6 +67,7 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /**
  * 9 · Hoja de filtros (FiltersBottomSheet). Modal: el fondo queda inerte y el foco inicial va al título.
  * Todo cambia un borrador; [onApply] lo aplica y el botón anuncia en vivo cuántos lugares se verán.

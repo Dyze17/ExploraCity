@@ -13,6 +13,7 @@ import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.time.Duration.Companion.seconds
+
 /** La hora actual, puesta al día cada 30 s mientras la pantalla está abierta: «hace 2 días» no se queda viejo. */
 @Composable
 fun rememberNow(): State<Instant> = produceState(Instant.now()) {

@@ -13,6 +13,7 @@ import java.time.DayOfWeek.THURSDAY
 import java.time.DayOfWeek.TUESDAY
 import java.time.DayOfWeek.WEDNESDAY
 import java.time.LocalTime
+
 // Temporal hasta que exista la API: autores y detalles de los lugares de prueba. Café Las Acacias trae los textos
 // del lienzo 13.a; el resto se completa a partir de su resumen.
 

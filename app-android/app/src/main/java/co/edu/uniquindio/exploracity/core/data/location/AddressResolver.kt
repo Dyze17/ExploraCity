@@ -16,6 +16,7 @@ import java.io.IOException
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+
 /**
  * Dirección aproximada de un punto (17): «Cl. 45 #19-32» en [street], «Chapinero» en [neighborhood] y «Bogotá» en
  * [city]. Cualquiera puede faltar: en un parque no hay calle.

@@ -38,6 +38,7 @@ import co.edu.uniquindio.exploracity.core.util.formatCount
 import co.edu.uniquindio.exploracity.core.util.spanishColombia
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
+
 /** Icono de la insignia desbloqueada según lo que cuenta; bloqueada lleva siempre el candado. */
 @get:DrawableRes
 val Badge.iconRes: Int

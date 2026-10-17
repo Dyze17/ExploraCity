@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+
 /** Par fondo / contenido (texto e icono) con contraste ≥ 4,5:1 en ambos temas. */
 @Immutable
 data class ContainerColors(val container: Color, val content: Color)

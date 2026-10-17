@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
 data class CompareDuplicatesUiState(
     val content: ReviewContent = ReviewContent.Loading,
     /** «Comparar con: 1 · 2»: el parecido que se ve al lado. */

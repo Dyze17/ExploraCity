@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+
 /** Solo en desarrollo · El buzón de la API que leen los botones de prueba de 6.a y «Cambiar correo». */
 class DevMailboxApiTest {
 

@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.SubmitResult
 import kotlinx.coroutines.flow.update
+
 /** Las publicaciones de la persona de la sesión (SAD: API de Publicaciones y Feed). */
 interface PublicationRepository {
     /** 22 · Todas, de la más reciente a la más antigua. Lanza excepción si falla la red. */

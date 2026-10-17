@@ -55,6 +55,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import kotlinx.coroutines.launch
+
 /** 2 · Onboarding, conectado a su ViewModel: salir por cualquier botón lo marca como visto. */
 @Composable
 fun OnboardingRoute(

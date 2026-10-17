@@ -53,6 +53,7 @@ import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+
 /** 15–19 · Qué muestra el formulario. */
 sealed interface PublishContent {
     /** Leyendo el borrador (o la publicación a corregir). */

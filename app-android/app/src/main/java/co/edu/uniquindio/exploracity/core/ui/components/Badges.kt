@@ -28,6 +28,7 @@ import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+
 /** REGULAR: badge suelto (detalle, listas propias). SMALL: dentro de POICard y filas compactas. */
 enum class BadgeSize { REGULAR, SMALL }
 

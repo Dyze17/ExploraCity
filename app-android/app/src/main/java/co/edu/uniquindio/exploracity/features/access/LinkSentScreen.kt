@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.AccessOfflineNotice
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
@@ -47,6 +48,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.util.hasEmailApp
 import co.edu.uniquindio.exploracity.core.util.openEmailApp
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
+
 /** 6.a · Revisa tu correo, conectada a su ViewModel. [onOpenLink] abre el enlace del correo (en desarrollo, el de prueba). */
 @Composable
 fun RecoveryEmailSentRoute(

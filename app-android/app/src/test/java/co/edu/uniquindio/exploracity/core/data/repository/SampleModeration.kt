@@ -12,6 +12,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+
 // Temporal hasta que exista la API: las pendientes de otras personas en la cola de moderación (32). Con las dos de
 // Ana (sampleHiddenPublications) son las 7 del lienzo, 2 de ellas posibles duplicados. Los nombres del lienzo ya están
 // en el feed como lugares verificados; aquí van otros para que, al verificarlos (34), no aparezcan repetidos.

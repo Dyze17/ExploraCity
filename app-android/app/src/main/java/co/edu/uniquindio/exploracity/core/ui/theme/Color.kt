@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.ui.theme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
+
 // Roles Material 3 del sistema de diseño (README del handoff, «Design Tokens»).
 // «derivado» = la especificación no da el valor; sale de los lienzos .dc.html o de la convención de tonos de M3.
 // Sin color dinámico: la paleta cálida propia es requisito de identidad.

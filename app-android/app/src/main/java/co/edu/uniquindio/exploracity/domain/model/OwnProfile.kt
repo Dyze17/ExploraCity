@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.Instant
 import java.time.YearMonth
+
 /**
  * Qué cuenta el avance de una insignia. La regla y la meta las fija el servidor (SAD: Motor de Reputación y Logros);
  * la app solo sabe nombrar la unidad («3 de 10 lugares verificados»).

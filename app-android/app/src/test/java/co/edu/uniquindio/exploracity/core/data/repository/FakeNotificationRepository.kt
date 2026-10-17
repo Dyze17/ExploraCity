@@ -16,6 +16,7 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
+
 /**
  * Temporal hasta que exista la API: un aviso de cada tipo para Ana (la persona de la sesión), sobre sus lugares
  * (currentUserPlaces). El comentario es el más reciente que tiene de verdad Sendero La Vieja, el de Laura (25.a).

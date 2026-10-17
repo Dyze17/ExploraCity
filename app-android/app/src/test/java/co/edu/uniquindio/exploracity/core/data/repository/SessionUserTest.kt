@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.YearMonth
+
 /** La persona de la sesión: el id de la sesión con la API, y el nombre y los puntos del perfil propio guardado. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionUserTest {

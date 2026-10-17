@@ -6,7 +6,6 @@ import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.SessionEndedException
 import co.edu.uniquindio.exploracity.domain.model.TooManyAttemptsException
 import co.edu.uniquindio.exploracity.domain.model.UserRole
-import co.edu.uniquindio.exploracity.features.publish.Done
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -25,6 +24,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
+
 /** 1, 2 y 3 · Por dónde entra la persona, el onboarding visto y el inicio de sesión. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccessViewModelsTest {

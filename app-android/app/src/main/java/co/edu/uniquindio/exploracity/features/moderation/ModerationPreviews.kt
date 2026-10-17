@@ -16,6 +16,7 @@ import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
+
 /** Solo para las vistas previas de 32 y 33: una pendiente urgente y una reportada con posible duplicado. */
 internal fun previewReviews(now: Instant): List<ReviewItem> {
     fun photos(id: String, count: Int) = (1..count).map { PublishedPhoto("$id-$it", "fake://fotos/$id-$it.jpg") }

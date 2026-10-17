@@ -47,6 +47,7 @@ import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewUrgency
 import java.time.Duration
 import java.time.Instant
+
 /** Colores de la urgencia: el chip y la franja lateral. Nunca solo color: el chip lleva icono y texto. */
 private class UrgencyColors(val container: Color, val content: Color, val stripe: Color)
 

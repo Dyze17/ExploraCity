@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewQueue
 import kotlinx.coroutines.flow.StateFlow
+
 /** Resumen de la cola para el acceso rápido del moderador en el feed (7.c). */
 data class ModerationSummary(val pending: Int, val oldestWaitingDays: Int)
 /** Moderación (SAD: componente de Moderación). Solo la usa quien entró con rol de moderador. */

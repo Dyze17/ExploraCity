@@ -120,6 +120,7 @@ import co.edu.uniquindio.exploracity.domain.repository.SavedPlaces
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlin.math.roundToInt
+
 /**
  * 7 · Feed en modo lista. [viewModel] vive en el grafo de Explorar: el mapa (8) comparte búsqueda, filtros
  * y hoja de filtros.

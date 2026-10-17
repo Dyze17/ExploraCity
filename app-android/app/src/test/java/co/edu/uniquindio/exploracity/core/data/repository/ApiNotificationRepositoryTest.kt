@@ -16,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
+
 /** 25 con la API: cada tipo con lo que pide su frase, y el contador de «Avisos» al día. */
 class ApiNotificationRepositoryTest {
 

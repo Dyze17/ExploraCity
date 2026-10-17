@@ -25,6 +25,7 @@ import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.time.Clock
 import java.time.Instant
+
 /**
  * Envuelve al servidor de avisos ([remote]) y guarda en Room la última lista (25: sin conexión, la lista queda en su
  * último estado conocido con su antigüedad). Leer funciona siempre: cambia en el teléfono al instante y, sin red, la

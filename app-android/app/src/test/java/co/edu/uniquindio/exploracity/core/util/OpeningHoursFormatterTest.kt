@@ -11,6 +11,7 @@ import java.time.DayOfWeek.SUNDAY
 import java.time.DayOfWeek.TUESDAY
 import java.time.DayOfWeek.WEDNESDAY
 import java.time.LocalTime
+
 class OpeningHoursFormatterTest {
 
     private val words = HoursWords(everyDay = "Todos los días", to = "a", and = "y")

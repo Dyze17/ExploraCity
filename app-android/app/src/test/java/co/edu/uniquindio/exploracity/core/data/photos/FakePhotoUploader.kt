@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 /**
  * Temporal hasta que exista la API: tarda [duration] por foto y avanza de 5 en 5 %. Sin red no empieza, y si la red se
  * corta a mitad de camino falla ahí, como una subida real.

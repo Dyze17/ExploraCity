@@ -19,6 +19,7 @@ import io.ktor.client.request.post
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+
 /**
  * D1 · La sesión con la API en el teléfono: guarda lo que llega al entrar, registrarse o renovar (los tokens y la
  * cuenta) y lo borra al terminar. El cliente de [sessionHttpClient] lee de aquí el token de cada petición.

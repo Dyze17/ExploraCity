@@ -52,6 +52,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.navigation.LegalTab
+
 /**
  * 4A · Política de tratamiento de datos y aviso de privacidad (Ley 1581 de 2012), en dos pestañas. Se abre desde el
  * registro (4) y desde Ajustes (29) en la pestaña que se tocó; «Entendido» vuelve atrás. Los textos son de ejemplo y

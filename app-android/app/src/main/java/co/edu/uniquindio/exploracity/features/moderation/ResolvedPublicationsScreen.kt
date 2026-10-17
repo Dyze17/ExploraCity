@@ -69,6 +69,7 @@ import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import java.time.Instant
 import java.time.ZoneId
+
 /**
  * «Resueltas» (E1), conectada a su ViewModel. Una verificada o finalizada abre 36 ([onOpen]); [notice] es el cambio de
  * estado con que se vuelve de allí.

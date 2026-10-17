@@ -67,6 +67,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.ScrimAlpha
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
+
 /**
  * 14.b · Hoja «Marcar como visitado». Todo es opcional salvo la marca: no bloquea. Modal, con el foco inicial en
  * el título y hasta el 90 % del alto (el formulario se desplaza; los botones quedan fijos). Está abierta mientras

@@ -1,4 +1,5 @@
 package co.edu.uniquindio.exploracity.domain.model
+
 /** Punto de interés tal como se muestra en el feed público (solo verificados y finalizados). */
 data class Poi(
     val id: String,

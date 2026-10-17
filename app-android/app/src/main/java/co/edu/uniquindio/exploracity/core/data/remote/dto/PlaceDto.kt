@@ -19,6 +19,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
 import java.util.Locale
+
 // DTO de Explorar, Social, Avisos y Perfil público (docs/api).
 
 /** Un lugar público del feed, del mapa y del perfil público. */

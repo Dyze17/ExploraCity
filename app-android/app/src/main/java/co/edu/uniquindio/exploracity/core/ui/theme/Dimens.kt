@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.core.ui.theme
 
 import androidx.compose.ui.unit.dp
+
 /** Espaciado en múltiplos de 4 dp. */
 object ExploraSpacing {
     val IconToText = 4.dp
