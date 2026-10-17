@@ -4,7 +4,6 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.domain.model.UserRole
-
 /** Pestañas de la barra inferior, en el orden del diseño. */
 enum class TopLevelDestination(
     val graph: Any,

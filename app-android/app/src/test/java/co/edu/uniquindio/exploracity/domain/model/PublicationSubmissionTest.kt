@@ -6,7 +6,6 @@ import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
-
 /** 19 → 20 · Lo que se envía sale del borrador completo. */
 class PublicationSubmissionTest {
 

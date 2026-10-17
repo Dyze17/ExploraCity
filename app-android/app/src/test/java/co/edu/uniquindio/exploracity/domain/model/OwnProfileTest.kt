@@ -3,7 +3,6 @@ package co.edu.uniquindio.exploracity.domain.model
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-
 class OwnProfileTest {
 
     @Test

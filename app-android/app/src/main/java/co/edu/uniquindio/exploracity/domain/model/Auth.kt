@@ -4,7 +4,6 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-
 /** README · Reglas de validación del acceso (3, 4, 5 y 6). */
 object AuthRules {
     const val PASSWORD_MIN = 8

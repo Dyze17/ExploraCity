@@ -2,7 +2,6 @@ package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.Duration
 import java.time.Instant
-
 /** 32 · Urgencia según lo que lleva esperando: rojo desde 3 días, ámbar desde 1 día, neutra el resto (README · State Management). */
 enum class ReviewUrgency { HIGH, MEDIUM, NORMAL }
 

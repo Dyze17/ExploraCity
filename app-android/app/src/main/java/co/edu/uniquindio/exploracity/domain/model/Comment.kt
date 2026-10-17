@@ -1,7 +1,6 @@
 package co.edu.uniquindio.exploracity.domain.model
 
 import java.time.Instant
-
 /**
  * 14 · Comentario publicado sobre un lugar. [author] es null si la cuenta que lo escribió se eliminó: se muestra como
  * «Usuario eliminado» (30). [mine] si lo escribió la persona de la sesión; [pending] si se escribió sin conexión y

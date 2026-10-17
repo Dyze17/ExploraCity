@@ -3,7 +3,6 @@ package co.edu.uniquindio.exploracity.navigation
 import androidx.annotation.Keep
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import kotlinx.serialization.Serializable
-
 // Rutas tipadas de la app. El número de cada una es el de la pantalla en el README del diseño.
 // Hojas inferiores y diálogos (9, 14.b, 15A, 17A/17B, 23, 27A, 29A, 31A, 34) no son rutas: viven en su pantalla.
 // Los enums de las rutas llevan @Keep: su serializador no puede ofuscarse en la compilación minificada.

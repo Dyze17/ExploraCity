@@ -4,7 +4,6 @@ import co.edu.uniquindio.exploracity.BuildConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-
 /** Los enlaces del correo de la API (docs/api): 6.b y «Cambiar correo». */
 class EmailLinkTest {
 

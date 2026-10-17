@@ -1,7 +1,6 @@
 package co.edu.uniquindio.exploracity.domain.model
 
 import java.util.UUID
-
 /**
  * 20 · Lo que se envía a verificación: el borrador completo. Con [resubmitId] reenvía una rechazada (24), que vuelve a
  * pendiente. Las fotos sin [DraftPhoto.remoteUrl] aún están solo en el teléfono. [clientId] es el mismo en cada intento

@@ -199,20 +199,38 @@ flowchart LR
 
 ### App Android (`app-android/`)
 
-Paquete `co.edu.uniquindio.exploracity`, organizado por capas:
+Paquete `co.edu.uniquindio.exploracity`, organizado por funcionalidad. Cada pantalla vive junto a su ViewModel en la carpeta de su funcionalidad; lo que comparten varias funcionalidades está en `core`.
+
+```
+co.edu.uniquindio.exploracity/
+├── core/
+│   ├── data/          Fuentes de datos e implementaciones de los repositorios
+│   ├── di/            AppContainer: inyección de dependencias manual
+│   ├── ui/            Tema Material 3, componentes del sistema de diseño y piezas del mapa
+│   └── util/          Formateadores, permisos y utilidades de corrutinas
+├── domain/
+│   ├── model/         Modelos del dominio
+│   └── repository/    Contratos de los repositorios (interfaces)
+├── features/
+│   ├── access/        Splash, onboarding, inicio de sesión, registro y recuperación (1–6, 6C, Google)
+│   ├── explore/       Feed, mapa, filtros, detalle y comentarios (7–14)
+│   ├── publish/       Formulario en 5 pasos, editar, mis publicaciones y rechazada (15–24)
+│   ├── notifications/ Notificaciones (25)
+│   ├── profile/       Perfil, insignias, editar perfil y perfil público (26–28, 31)
+│   ├── settings/      Ajustes, documentos legales, cambiar correo y eliminar cuenta (29, 30, 4A)
+│   └── moderation/    Cola, revisión, verificar, rechazar, finalizar y Resueltas (32–37)
+└── navigation/        Rutas tipadas, NavHost, barra inferior según el rol y enlaces del correo
+```
 
 | Paquete | Contenido |
 |---|---|
-| `ui/` | Pantallas Compose, componentes del sistema de diseño y tema Material 3 |
-| `navigation/` | Navegación con rutas tipadas, una barra inferior según el rol y los enlaces del correo |
-| `viewmodel/` | Estado de la UI con `StateFlow` |
-| `data/remote` | Cliente de la API (Ktor Client, DTO) y sesión que renueva el token con un 401 |
-| `data/local` | Sesión (rol, tokens y cuenta) y preferencias en DataStore, caché sin conexión en Room |
-| `data/repository` | Repositorios `Api*` sobre la API. Los envoltorios `Offline*` guardan una copia para usar sin conexión, y los `OnlineOnly*` ni lo intentan sin red |
-| `data/sync` | Cola de envío sin conexión con WorkManager |
-| `data/connectivity`, `data/location`, `data/photos` | Estado de la red; ubicación del teléfono y geocodificación; fotos |
-| `domain/` | Modelos del dominio |
-| `util/` | Formateadores y permisos |
+| `core/data/remote` | Cliente de la API (Ktor Client, DTO) y sesión que renueva el token con un 401 |
+| `core/data/local` | Sesión (rol, tokens y cuenta) y preferencias en DataStore, caché sin conexión en Room |
+| `core/data/repository` | Repositorios `Api*` sobre la API. Los envoltorios `Offline*` guardan una copia para usar sin conexión, y los `OnlineOnly*` ni lo intentan sin red |
+| `core/data/sync` | Cola de envío sin conexión con WorkManager |
+| `core/data/connectivity`, `location`, `photos`, `google` | Estado de la red; ubicación del teléfono y geocodificación; fotos; Credential Manager |
+| `domain/repository` | Interfaces que usan los ViewModels; `core/data/repository` las implementa |
+| `features/*` | Pantallas Compose y su estado de UI con `StateFlow` |
 
 **Stack:**
 - Kotlin 2.4, Jetpack Compose (BOM 2026.09) y Material 3.

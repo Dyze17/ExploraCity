@@ -8,12 +8,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import co.edu.uniquindio.exploracity.ui.ExploraApp
-import co.edu.uniquindio.exploracity.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.navigation.ExploraApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-
 class MainActivity : ComponentActivity() {
     /** El enlace del correo con que se abrió la app, o que llegó con ella abierta, hasta que la navegación lo abre. */
     private val emailLink = MutableStateFlow<String?>(null)

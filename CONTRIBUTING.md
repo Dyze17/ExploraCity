@@ -36,8 +36,10 @@ Al abrir el PR se carga la plantilla (`.github/pull_request_template.md`). El CI
 
 - **Diseño:** `design_handoff_exploracity/README.md` (fuera del repositorio). Los `.dc.html` son referencia visual,
   no código. Cada pantalla se nombra por su número del README.
-- **Arquitectura:** documento C4 (SAD v1.1). Paquete `co.edu.uniquindio.exploracity`; capas `ui/`, `navigation/`,
-  `viewmodel/`, `data/{remote,local,repository}`, `domain/` y `util/`.
+- **Arquitectura:** documento C4 (SAD v1.1). Paquete `co.edu.uniquindio.exploracity`, organizado por funcionalidad:
+  `features/<funcionalidad>/` (pantalla y ViewModel juntos), `core/{data,di,ui,util}/` para lo compartido,
+  `domain/{model,repository}/` para el dominio y `navigation/`. Una pantalla nueva va en la carpeta de su
+  funcionalidad; si otra funcionalidad necesita una pieza suya, esa pieza sube a `core/ui`.
 - **Sistema de diseño en código:** colores, tipografía y formas solo desde `MaterialTheme` y
   `MaterialTheme.exploraColors`; `ThemeContrastTest` exige 4,5:1 en texto y 3:1 en contenido no textual.
 - **Textos:** en `strings.xml` (español, `tools:locale="es"`), con plurales `one`, `many` y `other`.

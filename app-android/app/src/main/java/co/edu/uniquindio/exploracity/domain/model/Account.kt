@@ -1,5 +1,4 @@
 package co.edu.uniquindio.exploracity.domain.model
-
 /**
  * La cuenta de la sesión: lo que no es público del perfil. El correo solo lo ve la persona (28 y 29). [pendingEmail] es
  * el correo nuevo que espera confirmación por enlace («Cambiar correo»); hasta entonces se entra con [email]. Sin

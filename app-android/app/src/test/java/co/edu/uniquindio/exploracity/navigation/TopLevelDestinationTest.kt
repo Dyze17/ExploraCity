@@ -3,7 +3,6 @@ package co.edu.uniquindio.exploracity.navigation
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import org.junit.Assert.assertEquals
 import org.junit.Test
-
 class TopLevelDestinationTest {
 
     @Test
