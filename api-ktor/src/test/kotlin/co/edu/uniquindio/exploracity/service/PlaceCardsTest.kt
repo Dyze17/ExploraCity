@@ -10,12 +10,13 @@ import co.edu.uniquindio.exploracity.support.testConfig
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime
+import java.time.ZoneId
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** La tarjeta de un lugar: si está abierto según la hora de la ciudad y la frase del mapa. */
+/** La tarjeta de un lugar: si está abierto según la hora del lugar (o de la ciudad) y la frase del mapa. */
 class PlaceCardsTest {
 
     @Test
@@ -34,7 +35,12 @@ class PlaceCardsTest {
     private val clock = MutableClock(Instant.parse("2026-10-05T12:59:00Z"))
     private val cards = PlaceCards(testConfig().city, clock)
 
-    private fun row(days: Int? = 0b0011111, opens: LocalTime? = LocalTime.of(8, 0), closes: LocalTime? = LocalTime.of(18, 0)) = PlaceRow(
+    private fun row(
+        days: Int? = 0b0011111,
+        opens: LocalTime? = LocalTime.of(8, 0),
+        closes: LocalTime? = LocalTime.of(18, 0),
+        timeZone: ZoneId? = null,
+    ) = PlaceRow(
         id = UUID.randomUUID(),
         authorId = null,
         title = "Museo del Oro Quimbaya",
@@ -52,6 +58,7 @@ class PlaceCardsTest {
         hoursDays = days,
         opens = opens,
         closes = closes,
+        timeZone = timeZone,
     )
 
     @Test
@@ -66,6 +73,17 @@ class PlaceCardsTest {
         clock.now = Instant.parse("2026-10-03T17:00:00Z")
         assertEquals(false, cards.summaryOf(row()).openNow)
         assertNull(cards.summaryOf(row(days = null, opens = null, closes = null)).openNow)
+    }
+
+    @Test
+    fun `con su zona horaria, abre con la hora del lugar y no la de la ciudad`() {
+        // Lunes 7:59 en Armenia es 14:59 en Madrid y 7:59 en Austin (horario de verano).
+        assertEquals(true, cards.summaryOf(row(timeZone = ZoneId.of("Europe/Madrid"))).openNow)
+        assertEquals(false, cards.summaryOf(row(timeZone = ZoneId.of("America/Chicago"))).openNow)
+        assertEquals(false, cards.summaryOf(row(timeZone = ZoneId.of("America/Bogota"))).openNow)
+        // Lunes 18:30 en Armenia ya es martes en Madrid (01:30): cerrado.
+        clock.now = Instant.parse("2026-10-05T23:30:00Z")
+        assertEquals(false, cards.summaryOf(row(timeZone = ZoneId.of("Europe/Madrid"))).openNow)
     }
 
     @Test

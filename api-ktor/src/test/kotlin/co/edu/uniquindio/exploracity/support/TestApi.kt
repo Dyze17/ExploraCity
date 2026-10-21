@@ -20,6 +20,7 @@ import co.edu.uniquindio.exploracity.model.Role
 import co.edu.uniquindio.exploracity.model.SessionResponse
 import co.edu.uniquindio.exploracity.service.AccountMail
 import co.edu.uniquindio.exploracity.service.PasswordHasher
+import co.edu.uniquindio.exploracity.service.TimeZones
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
@@ -95,6 +96,8 @@ abstract class ApiTest : DatabaseTest() {
         classifier: CategoryClassifier = KeywordClassifier(),
         /** Con un Google de prueba ([TestApi.google]); sin él, la API no ofrece entrar con Google. */
         googleSignIn: Boolean = false,
+        /** ADR-17 · Sin zonas, todos los lugares abren con la hora de la ciudad. */
+        zones: TimeZones = TimeZones.NONE,
         block: suspend TestApi.() -> Unit,
     ) = testApplication {
         val settings = testConfig(moderators, devMailbox)
@@ -104,7 +107,7 @@ abstract class ApiTest : DatabaseTest() {
         val google = if (googleSignIn) TestGoogle(clock) else null
         environment { config = MapApplicationConfig() }
         application {
-            exploraModule(settings, database, clock, Integrations(mail, media, classifier, google = google?.verifier), PasswordHasher(cost = 4))
+            exploraModule(settings, database, clock, Integrations(mail, media, classifier, google = google?.verifier), PasswordHasher(cost = 4), zones)
         }
         TestApi(client, database, settings, clock, mail, media, google).block()
     }

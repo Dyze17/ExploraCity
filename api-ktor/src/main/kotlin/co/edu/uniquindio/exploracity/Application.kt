@@ -42,26 +42,37 @@ import co.edu.uniquindio.exploracity.service.PublicationService
 import co.edu.uniquindio.exploracity.service.PublicationViews
 import co.edu.uniquindio.exploracity.service.ReputationService
 import co.edu.uniquindio.exploracity.service.SecurityService
+import co.edu.uniquindio.exploracity.service.TimeZoneBackfill
+import co.edu.uniquindio.exploracity.service.TimeZones
+import co.edu.uniquindio.exploracity.service.TimeshapeZones
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.log
 import io.ktor.server.http.content.staticFiles
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.time.Clock
 
 fun main(args: Array<String>) = EngineMain.main(args)
 
-/** Arranque real: configuración de application.conf y base de datos migrada con Flyway. */
+/**
+ * Arranque real: configuración de application.conf, base de datos migrada con Flyway y las zonas horarias de Timeshape
+ * (ADR-17), que se cargan la primera vez que hacen falta.
+ */
 fun Application.module() {
     val config = AppConfig.load(environment.config)
-    exploraModule(config, DatabaseFactory.connect(config.database))
+    val database = DatabaseFactory.connect(config.database)
+    val zones = TimeshapeZones(this)
+    exploraModule(config, database, zones = zones)
+    // Sin demorar el arranque: los lugares que todavía no tienen zona horaria.
+    launch { TimeZoneBackfill(database, PublicationRepository(), zones).run() }
 }
 
 /**
  * La API con sus dependencias (inyección manual). Las pruebas la arman con su propia base de datos, reloj e
- * integraciones, y con un costo de BCrypt menor.
+ * integraciones, con un costo de BCrypt menor y, si no dicen otra cosa, sin zonas horarias (la hora de la ciudad).
  */
 fun Application.exploraModule(
     config: AppConfig,
@@ -69,6 +80,7 @@ fun Application.exploraModule(
     clock: Clock = Clock.systemUTC(),
     integrations: Integrations = Integrations.create(config, clock),
     passwords: PasswordHasher = PasswordHasher(),
+    zones: TimeZones = TimeZones.NONE,
 ) {
     monitor.subscribe(ApplicationStopped) { integrations.close() }
 
@@ -96,7 +108,7 @@ fun Application.exploraModule(
     val publicationRepository = PublicationRepository()
     val views = PublicationViews(publicationRepository, places, cards)
     val publicationService = PublicationService(
-        database, publicationRepository, places, users, reputation, views, integrations.classifier, integrations.media, clock,
+        database, publicationRepository, places, users, reputation, views, integrations.classifier, integrations.media, zones, clock,
     )
     val moderationService = ModerationService(
         database, publicationRepository, places, ModerationRepository(), notifications, reputation, views, config.city, clock,

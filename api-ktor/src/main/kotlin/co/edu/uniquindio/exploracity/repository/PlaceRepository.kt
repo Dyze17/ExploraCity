@@ -11,6 +11,7 @@ import co.edu.uniquindio.exploracity.model.UserPoints
 import co.edu.uniquindio.exploracity.model.Users
 import co.edu.uniquindio.exploracity.model.Visits
 import co.edu.uniquindio.exploracity.model.Votes
+import co.edu.uniquindio.exploracity.service.zoneOrNull
 import org.jetbrains.exposed.v1.core.DoubleColumnType
 import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.JoinType
@@ -30,6 +31,7 @@ import org.jetbrains.exposed.v1.jdbc.update
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -76,6 +78,8 @@ data class PlaceRow(
     val hoursDays: Int?,
     val opens: LocalTime?,
     val closes: LocalTime?,
+    /** ADR-17 · La zona horaria del lugar; null = la de la ciudad de la configuración. */
+    val timeZone: ZoneId? = null,
 )
 
 /** v1.3.0 · Un municipio con [places] lugares públicos; el centro es el promedio de sus coordenadas. */
@@ -333,6 +337,7 @@ class PlaceRepository {
         hoursDays = rs.getInt("hours_days").takeUnless { rs.wasNull() },
         opens = rs.getObject("hours_opens", LocalTime::class.java),
         closes = rs.getObject("hours_closes", LocalTime::class.java),
+        timeZone = rs.getString("time_zone")?.let(::zoneOrNull),
     )
 
     private companion object {
@@ -343,7 +348,7 @@ class PlaceRepository {
         const val PUBLIC = "('VERIFIED', 'FINALIZED')"
 
         const val COLUMNS = "p.id, p.author_id, p.title, p.description, p.category, p.status, p.latitude, p.longitude, " +
-            "p.price, p.address, p.hours_days, p.hours_opens, p.hours_closes, " +
+            "p.price, p.address, p.hours_days, p.hours_opens, p.hours_closes, p.time_zone, " +
             "(SELECT count(*) FROM votes v WHERE v.place_id = p.id) AS votes, " +
             "(SELECT count(*) FROM comments c WHERE c.place_id = p.id) AS comments, " +
             "(SELECT ph.url FROM photos ph WHERE ph.place_id = p.id ORDER BY ph.position LIMIT 1) AS cover"

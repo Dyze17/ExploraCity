@@ -46,6 +46,8 @@ dependencies {
 
     implementation(libs.bcrypt)
     implementation(libs.logback.classic)
+    // v1.3.0 · La zona horaria de cada lugar desde sus coordenadas, sin red (datos de timezone-boundary-builder).
+    implementation(libs.timeshape)
 
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.mock)

@@ -196,7 +196,7 @@ Los criterios van en la consulta:
 
 En cada lugar:
 - `photo` es la portada, la primera foto.
-- `openNow` sale del horario y de la hora de la ciudad; sin horario no viene.
+- `openNow` sale del horario y de la hora del lugar: cada lugar guarda la zona horaria de su pin (ADR-17). Sin zona, usa la de la ciudad; sin horario, no viene.
 - `summary` es la primera oración de la descripción, para la tarjeta del mapa.
 - En el detalle, `photos` trae todas las fotos en orden, y los días del horario van de `MONDAY` a `SUNDAY`. Si la cuenta que publicó el lugar se eliminó, no viene `author` y la app muestra «Usuario eliminado».
 

@@ -15,6 +15,7 @@ import co.edu.uniquindio.exploracity.model.PublicationStatus
 import co.edu.uniquindio.exploracity.model.RejectionReason
 import co.edu.uniquindio.exploracity.model.Users
 import co.edu.uniquindio.exploracity.model.Votes
+import co.edu.uniquindio.exploracity.service.zoneOrNull
 import org.jetbrains.exposed.v1.core.DoubleColumnType
 import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.JoinType
@@ -39,6 +40,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -59,7 +61,12 @@ data class PlaceFields(
     /** ADR-16 · El municipio y el departamento del pin; null = la ciudad de la configuración. */
     val municipality: String? = null,
     val region: String? = null,
+    /** ADR-17 · La zona horaria del pin; null = la de la ciudad de la configuración. */
+    val timeZone: ZoneId? = null,
 )
+
+/** ADR-17 · Un lugar y su pin, para buscarle la zona horaria. */
+data class PlaceLocation(val id: UUID, val latitude: Double, val longitude: Double)
 
 /** Un lugar en cualquier estado, como lo ven su autor (22–24) y la moderación (33). */
 data class OwnPlaceRow(
@@ -242,6 +249,15 @@ class PublicationRepository {
     }
 
     /** 17B · Los parecidos que el autor dijo que son otro lugar. */
+    /** ADR-17 · Los lugares sin zona horaria, en cualquier estado. */
+    fun withoutTimeZone(): List<PlaceLocation> = Places.select(Places.id, Places.latitude, Places.longitude)
+        .where { Places.timeZone.isNull() }
+        .map { PlaceLocation(it[Places.id], it[Places.latitude], it[Places.longitude]) }
+
+    /** ADR-17 · Solo si todavía no tiene: una edición que llegó mientras tanto ya trajo la suya. Devuelve si la puso. */
+    fun fillTimeZone(placeId: UUID, zone: ZoneId): Boolean =
+        Places.update({ (Places.id eq placeId) and Places.timeZone.isNull() }) { it[timeZone] = zone.id } > 0
+
     fun setSimilar(placeId: UUID, similarIds: Collection<UUID>) {
         PlaceSimilar.deleteWhere { PlaceSimilar.placeId eq placeId }
         PlaceSimilar.batchInsert(similarIds.filter { it != placeId }.distinct()) { similar ->
@@ -340,6 +356,7 @@ class PublicationRepository {
         it[Places.hoursDays] = fields.hoursDays?.toShort()
         it[Places.hoursOpens] = fields.opens
         it[Places.hoursCloses] = fields.closes
+        it[Places.timeZone] = fields.timeZone?.id
     }
 
     private fun ResultRow.toPhoto() = StoredPhoto(this[Photos.id], this[Photos.url], this[Photos.publicId], this[Photos.placeId])
@@ -360,6 +377,7 @@ class PublicationRepository {
             closes = this[Places.hoursCloses],
             municipality = this[Places.municipality],
             region = this[Places.region],
+            timeZone = this[Places.timeZone]?.let(::zoneOrNull),
         ),
         categoryOrigin = this[Places.categoryOrigin],
         status = this[Places.status],
