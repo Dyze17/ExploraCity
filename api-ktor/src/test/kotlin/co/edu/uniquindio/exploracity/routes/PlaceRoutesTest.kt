@@ -77,6 +77,30 @@ class PlaceRoutesTest : ApiTest() {
     }
 
     @Test
+    fun `toda la ciudad trae solo los del municipio de la persona`() = apiTest {
+        // Los de las fixtures no tienen municipio: son de Armenia, la ciudad de la configuración.
+        Fixtures.anaWithActivity(database)
+        Fixtures.place(database, Fixtures.LAURA, "Parque de Calarcá", Category.NATURE, latitude = 4.5196, longitude = -75.6436, municipality = "Calarcá", region = "Quindío")
+        Fixtures.place(database, Fixtures.LAURA, "Museo del Café", latitude = 4.535, longitude = -75.68, municipality = "Armenia", region = "Quindío")
+        Fixtures.place(database, Fixtures.LAURA, "Plaza de Armenia Mantequilla", latitude = 6.155, longitude = -75.785, municipality = "Armenia", region = "Antioquia")
+        Fixtures.place(database, Fixtures.LAURA, "Termales de Santa Rosa", latitude = 4.87, longitude = -75.62, municipality = "Santa Rosa de Cabal")
+
+        // Sin tildes ni mayúsculas, como lo escriba el Geocoder.
+        assertEquals(listOf("Parque de Calarcá"), titles("municipality=calarca&region=QUINDIO"))
+        assertEquals(listOf("Museo del Café", "Plaza de Bolívar", "Mirador de la Secreta"), titles("municipality=Armenia&region=Quind%C3%ADo"))
+        assertEquals(listOf("Plaza de Armenia Mantequilla"), titles("municipality=Armenia&region=Antioquia"))
+        // Un lugar sin departamento guardado sirve para cualquiera.
+        assertEquals(listOf("Termales de Santa Rosa"), titles("municipality=Santa%20Rosa%20de%20Cabal&region=Risaralda"))
+        assertEquals(emptyList(), titles("municipality=Bogot%C3%A1&region=Bogot%C3%A1"))
+        // Sin municipio, como la app de antes: todos.
+        assertEquals(6, titles("").size)
+        val count = get("/v1/places/count?near=$near&municipality=Armenia&region=Quind%C3%ADo&categories=CULTURE", accessToken(Fixtures.LAURA))
+        assertEquals(1, count.json().jsonObject["count"]!!.jsonPrimitive.int)
+        val tooLong = get("/v1/places?municipality=${"a".repeat(101)}", accessToken(Fixtures.LAURA))
+        assertEquals(HttpStatusCode.BadRequest, tooLong.status)
+    }
+
+    @Test
     fun `la búsqueda ignora mayúsculas y tildes, y toma el texto tal cual`() = apiTest {
         Fixtures.anaWithActivity(database)
         Fixtures.place(database, Fixtures.LAURA, "Café 100% de origen", Category.GASTRONOMY)

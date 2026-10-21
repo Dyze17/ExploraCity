@@ -102,7 +102,7 @@ class PublicationService(
      * que estaba y `false`.
      */
     suspend fun submit(userId: UUID, request: SubmissionRequest): Pair<SubmitResponse, Boolean> {
-        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.hours, request.price)
+        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.price)
         val urls = photoUrls(request.photos)
         val clientId = request.clientId?.let { uuidOrNull(it) ?: throw ApiException.badRequest() }
         val resubmitId = request.resubmitId?.let { uuidOrNull(it) ?: throw notFound() }
@@ -169,7 +169,7 @@ class PublicationService(
      */
     suspend fun update(userId: UUID, publicationId: String, request: ChangesRequest): PublicationResponse {
         val id = idOf(publicationId)
-        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.hours, request.price)
+        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.price)
         val urls = photoUrls(request.photos)
         var removed = emptyList<String>()
         val result = database.query {
@@ -182,8 +182,14 @@ class PublicationService(
             } else {
                 Duplicate(place.possibleDuplicate, publications.similarIds(id), place.duplicateNote)
             }
-            // Con el pin en su sitio y sin dirección nueva, queda la que tenía: la app no la conoce.
-            val kept = if (moved || fields.address != null) fields else fields.copy(address = place.fields.address)
+            // Con el pin en su sitio y sin dirección nueva, queda la que tenía: la app no la conoce. El municipio va con
+            // su departamento: si no llega uno nuevo, quedan los dos de antes.
+            val kept = if (moved) {
+                fields
+            } else {
+                val town = if (fields.municipality != null) fields else place.fields
+                fields.copy(address = fields.address ?: place.fields.address, municipality = town.municipality, region = town.region)
+            }
             val resubmittedAt = if (place.status == PublicationStatus.VERIFIED) clock.instant() else null
             publications.update(id, kept, PublicationStatus.PENDING, duplicate.flag, duplicate.note, resubmittedAt)
             if (moved) publications.setSimilar(id, duplicate.similarIds)
@@ -267,6 +273,8 @@ class PublicationService(
         category: Category,
         location: GeoPoint,
         address: String?,
+        municipality: String?,
+        region: String?,
         hours: HoursResponse?,
         price: PriceRange?,
     ): PlaceFields {
@@ -275,8 +283,15 @@ class PublicationService(
         if (cleanTitle.length !in TITLE_MIN..TITLE_MAX || cleanDescription.length !in DESCRIPTION_MIN..DESCRIPTION_MAX) throw invalid()
         if (location.latitude !in -90.0..90.0 || location.longitude !in -180.0..180.0) throw invalid()
         val cleanAddress = address?.trim()?.ifEmpty { null }?.take(ADDRESS_MAX)
+        val cleanMunicipality = municipality?.trim()?.ifEmpty { null }?.take(TOWN_MAX)
+        // Un departamento sin municipio no filtra nada: no se guarda.
+        val cleanRegion = region?.trim()?.ifEmpty { null }?.take(TOWN_MAX)?.takeIf { cleanMunicipality != null }
         val (days, opens, closes) = hours?.let(::hoursOf) ?: Triple(null, null, null)
-        return PlaceFields(cleanTitle, cleanDescription, category, location.latitude, location.longitude, cleanAddress, price, days, opens, closes)
+        return PlaceFields(
+            cleanTitle, cleanDescription, category, location.latitude, location.longitude, cleanAddress, price, days, opens, closes,
+            municipality = cleanMunicipality,
+            region = cleanRegion,
+        )
     }
 
     /** 18 · Al menos un día y el cierre después de la apertura. */
@@ -352,6 +367,9 @@ class PublicationService(
         const val NOTE_MAX = 200
 
         private const val ADDRESS_MAX = 200
+
+        /** ADR-16 · Municipio y departamento: el nombre más largo de Colombia cabe de sobra. */
+        const val TOWN_MAX = 100
 
         /** ADR-13 · Radio y máximo de parecidos (17A). */
         const val SIMILAR_RADIUS_METERS = 50.0

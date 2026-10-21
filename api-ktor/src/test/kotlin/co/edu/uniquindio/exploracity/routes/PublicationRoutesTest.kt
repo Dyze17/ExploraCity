@@ -102,6 +102,7 @@ class PublicationRoutesTest : ApiTest() {
             "/v1/publications",
             """{"clientId":"${UUID.randomUUID()}","title":"  Café de la Estación ","description":"Un café pequeño frente a la vieja estación del tren, con tostión propia.",""" +
                 """"category":"GASTRONOMY","categoryOrigin":"SUGGESTED","location":{"latitude":4.545,"longitude":-75.675},"address":"Calle 21 # 18-30, Armenia",""" +
+                """"municipality":" Armenia ","region":"Quindío",""" +
                 """"hours":{"days":["SATURDAY","MONDAY"],"opens":"07:00","closes":"19:00"},"price":"LOW","photos":["${photos[1]}","${photos[0]}"]}""",
             pedro.accessToken,
         )
@@ -114,6 +115,8 @@ class PublicationRoutesTest : ApiTest() {
             val place = Places.selectAll().where { Places.id eq id }.single()
             assertEquals("Café de la Estación", place[Places.title])
             assertEquals(PublicationStatus.PENDING, place[Places.status])
+            assertEquals("Armenia", place[Places.municipality])
+            assertEquals("Quindío", place[Places.region])
             // Lunes (1) y sábado (32).
             assertEquals(33, place[Places.hoursDays]?.toInt())
             val ordered = Photos.selectAll().where { Photos.placeId eq id }.orderBy(Photos.position).map { it[Photos.url] }
@@ -216,6 +219,12 @@ class PublicationRoutesTest : ApiTest() {
     @Test
     fun `editar una verificada la devuelve a verificación y sale del feed`() = apiTest {
         Fixtures.anaWithActivity(database)
+        transaction(database) {
+            Places.update({ Places.id eq Fixtures.MIRADOR }) {
+                it[municipality] = "Armenia"
+                it[region] = "Quindío"
+            }
+        }
         media.stored[Fixtures.MIRADOR_PHOTO_ID] = byteArrayOf(1)
         val newPhoto = uploadPhoto(accessToken(Fixtures.ANA))
         clock.advance(Duration.ofHours(1))
@@ -238,9 +247,12 @@ class PublicationRoutesTest : ApiTest() {
         assertEquals(HttpStatusCode.NotFound, get("/v1/places/${Fixtures.MIRADOR}", token).status)
         // La foto que salió ya no está en el almacén.
         assertTrue(!media.stored.containsKey(Fixtures.MIRADOR_PHOTO_ID))
-        // El pin no se movió: la dirección sigue.
+        // El pin no se movió: la dirección y el municipio siguen.
         transaction(database) {
-            assertEquals("Vía al Mirador, Armenia", Places.selectAll().where { Places.id eq Fixtures.MIRADOR }.single()[Places.address])
+            val place = Places.selectAll().where { Places.id eq Fixtures.MIRADOR }.single()
+            assertEquals("Vía al Mirador, Armenia", place[Places.address])
+            assertEquals("Armenia", place[Places.municipality])
+            assertEquals("Quindío", place[Places.region])
         }
     }
 

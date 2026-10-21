@@ -26,10 +26,10 @@ data class GeoBoundsDto(val southwest: GeoPointDto, val northeast: GeoPointDto) 
 }
 
 @Serializable
-data class CityDto(val name: String, val center: GeoPointDto, val bounds: GeoBoundsDto) {
-    fun toDomain() = City(name, center.toDomain(), bounds.toDomain())
+data class CityDto(val name: String, val center: GeoPointDto, val bounds: GeoBoundsDto, val region: String? = null) {
+    fun toDomain() = City(name, center.toDomain(), bounds.toDomain(), region)
 
     companion object {
-        fun of(city: City) = CityDto(city.name, GeoPointDto.of(city.center), GeoBoundsDto.of(city.bounds))
+        fun of(city: City) = CityDto(city.name, GeoPointDto.of(city.center), GeoBoundsDto.of(city.bounds), city.region)
     }
 }

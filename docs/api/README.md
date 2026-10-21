@@ -101,7 +101,7 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | Método y ruta | Acceso | Respuesta | Ejemplo |
 |---|---|---|---|
 | `GET /health` | Pública | `{ "status": "ok" }`, para Cloud Run | — |
-| `GET /v1/city` | Pública | La ciudad que atiende la app: nombre, centro del mapa y límites de la búsqueda por dirección (17.b) | [`city.json`](ejemplos/city.json) |
+| `GET /v1/city` | Pública | La ciudad que atiende la app: nombre, departamento (`region`), centro del mapa y límites de la búsqueda por dirección (17.b). Es la que se explora mientras el teléfono no sabe en qué municipio está (ADR-16) | [`city.json`](ejemplos/city.json) |
 
 ### Sesión (3 y 4)
 
@@ -186,6 +186,7 @@ La app pide la cuenta con Credential Manager («Sign in with Google») y manda e
 Los criterios van en la consulta:
 - `categories=NATURE,CULTURE`: una o varias categorías; sin ella, todas.
 - `scope=NEARBY`: a 5 km o menos del punto. `CITY`, el valor por omisión, es toda la ciudad.
+- `municipality=Calarcá&region=Quindío` (ADR-16): solo los de ese municipio y departamento, sin importar mayúsculas ni tildes. `region` es opcional, y un lugar guardado sin departamento sirve para cualquiera. Los lugares sin municipio cuentan como la ciudad de `/v1/city`. Sin `municipality` salen todos.
 - `verifiedOnly=true`: solo las verificadas. Sin él salen también las finalizadas.
 - `q=texto`: parte del título, sin importar mayúsculas ni tildes («cafe» encuentra «Café»).
 - `near=4.5339,-75.6811`: la ubicación de la persona. La distancia (`distanceMeters`) y el orden se miden desde ahí; sin ella, desde el centro de la ciudad.
@@ -250,13 +251,14 @@ Las insignias se revisan después de cada acción que mueve sus cifras: publicar
 La publicación lleva:
 - `title` (5 a 60), `description` (30 a 600), `category`, `categoryOrigin` (`SUGGESTED` o `CHOSEN`) y `location`.
 - `address`: la dirección aproximada del pin, opcional.
+- `municipality` y `region` (ADR-16): el municipio y el departamento del pin según el Geocoder del teléfono, opcionales (hasta 100). Sin municipio, el lugar cuenta como la ciudad de `/v1/city`.
 - `hours`: `{ "days": ["MONDAY", …], "opens": "08:00", "closes": "18:00" }`, con al menos un día y el cierre después de la apertura. Sin él, el lugar no tiene horario.
 - `price`, opcional.
 - `photos`: las direcciones de 1 a 5 fotos ya subidas, en orden; la primera es la portada.
 - `duplicateCheck`: la búsqueda de parecidos que se hizo en el teléfono: `location` (dónde estaba el pin), `similarIds` (los parecidos que la persona dijo que son otro lugar), `note` (hasta 200) y `failed`.
 - `clientId` y `resubmitId`, opcionales: con el primero, repetir un envío cuya respuesta se perdió (o uno de la cola) responde el mismo en vez de duplicarlo; el segundo reenvía una rechazada.
 
-Al editar (`PUT`) se manda lo mismo salvo `categoryOrigin`, `clientId` y `resubmitId`. Sin mover el pin y sin `address`, queda la dirección que tenía.
+Al editar (`PUT`) se manda lo mismo salvo `categoryOrigin`, `clientId` y `resubmitId`. Sin mover el pin y sin `address`, queda la dirección que tenía; sin `municipality`, quedan el municipio y el departamento que tenía.
 
 - **Puntos (D1):** la primera publicación de la persona gana **+20** al enviarla. Se pierden si se elimina, o si un moderador la rechaza sin permitir que se reenvíe.
 - **Posible duplicado (ADR-14):** con la búsqueda del teléfono para ese mismo pin, los parecidos que la persona dijo que son otro lugar marcan la publicación. Si no hubo búsqueda, falló o el pin se movió después, la API la repite. La advertencia nunca bloquea; el moderador ve la marca.

@@ -11,6 +11,7 @@ import co.edu.uniquindio.exploracity.core.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import co.edu.uniquindio.exploracity.domain.repository.DuplicateFinder
@@ -42,7 +43,7 @@ internal class FakeFinder : DuplicateFinder {
 
 /** Direcciones de prueba: todo punto está en Chapinero; la búsqueda encuentra lo que haya en [places]. */
 internal class FakeAddresses : AddressResolver {
-    val address = ApproximateAddress("Cl. 45 #19-32", "Chapinero", "Bogotá")
+    val address = ApproximateAddress("Cl. 45 #19-32", "Chapinero", "Bogotá", Municipality("Bogotá", "Bogotá D.C."))
     val places = mutableMapOf<String, GeoPoint>()
     var offline = false
 

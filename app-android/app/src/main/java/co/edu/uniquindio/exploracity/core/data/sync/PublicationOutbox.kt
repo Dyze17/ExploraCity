@@ -12,6 +12,7 @@ import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
@@ -121,6 +122,9 @@ internal data class QueuedPublication(
     val address: String? = null,
     /** Lo de antes de la API no lo traía: queda uno nuevo. */
     val clientId: String? = null,
+    /** ADR-16 · Lo de antes de la 1.2.0 no lo traía: el lugar queda en la ciudad de la API. */
+    val municipality: String? = null,
+    val region: String? = null,
 ) {
     fun toDomain(): PublicationSubmission {
         val location = GeoPoint(latitude, longitude)
@@ -143,6 +147,7 @@ internal data class QueuedPublication(
             resubmitId = resubmitId,
             address = address,
             clientId = clientId ?: UUID.randomUUID().toString(),
+            municipality = municipality?.let { Municipality(it, region) },
         )
     }
 }
@@ -172,4 +177,6 @@ private fun PublicationSubmission.toQueued() = QueuedPublication(
     resubmitId = resubmitId,
     address = address,
     clientId = clientId,
+    municipality = municipality?.name,
+    region = municipality?.region,
 )

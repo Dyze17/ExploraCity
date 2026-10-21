@@ -46,7 +46,15 @@ data class PlaceFilter(
     val authorId: UUID? = null,
     /** 8 · Solo los del área visible. */
     val bounds: GeoBounds? = null,
+    /** ADR-16 · «Toda la ciudad»: solo los del municipio donde está la persona. */
+    val municipality: MunicipalityFilter? = null,
 )
+
+/**
+ * ADR-16 · Los lugares del municipio [name] y, si llega, del departamento [region]; se comparan sin mayúsculas ni
+ * tildes. Con [includeUnassigned] entran también los que no tienen municipio, que son de la ciudad de la configuración.
+ */
+data class MunicipalityFilter(val name: String, val region: String? = null, val includeUnassigned: Boolean = false)
 
 /** Un lugar público con lo que muestran su tarjeta y su detalle. */
 data class PlaceRow(
@@ -268,6 +276,16 @@ class PlaceRepository {
             sql.append(") || '%' ESCAPE '\\'")
         }
         filter.authorId?.let { sql.append(" AND p.author_id = ").param(UUIDColumnType(), it) }
+        filter.municipality?.let { town ->
+            sql.append(" AND ((search_text(p.municipality) = search_text(").param(TextColumnType(), town.name).append(")")
+            // Sin departamento guardado (el Geocoder no lo dio) basta el municipio.
+            town.region?.let { region ->
+                sql.append(" AND (p.region IS NULL OR search_text(p.region) = search_text(").param(TextColumnType(), region).append("))")
+            }
+            sql.append(")")
+            if (town.includeUnassigned) sql.append(" OR p.municipality IS NULL")
+            sql.append(")")
+        }
         filter.bounds?.let { bounds ->
             sql.append(" AND p.latitude BETWEEN ").param(DoubleColumnType(), bounds.southwest.latitude)
             sql.append(" AND ").param(DoubleColumnType(), bounds.northeast.latitude)

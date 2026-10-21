@@ -83,6 +83,10 @@ object Places : Table("places") {
     val latitude = double("latitude")
     val longitude = double("longitude")
     val address = text("address").nullable()
+
+    /** ADR-16 · El municipio y el departamento del pin, del Geocoder del teléfono (V9); null = la ciudad de la configuración. */
+    val municipality = text("municipality").nullable()
+    val region = text("region").nullable()
     val price = enumerationByName<PriceRange>("price", ENUM_LENGTH).nullable()
 
     /** Días de atención como bits: lunes = 1 … domingo = 64. */

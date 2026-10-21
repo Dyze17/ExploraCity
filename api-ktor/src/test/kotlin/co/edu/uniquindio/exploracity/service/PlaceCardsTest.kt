@@ -2,6 +2,8 @@ package co.edu.uniquindio.exploracity.service
 
 import co.edu.uniquindio.exploracity.model.Category
 import co.edu.uniquindio.exploracity.model.PublicationStatus
+import co.edu.uniquindio.exploracity.repository.MunicipalityFilter
+import co.edu.uniquindio.exploracity.repository.PlaceFilter
 import co.edu.uniquindio.exploracity.repository.PlaceRow
 import co.edu.uniquindio.exploracity.support.MutableClock
 import co.edu.uniquindio.exploracity.support.testConfig
@@ -15,6 +17,18 @@ import kotlin.test.assertNull
 
 /** La tarjeta de un lugar: si está abierto según la hora de la ciudad y la frase del mapa. */
 class PlaceCardsTest {
+
+    @Test
+    fun `los lugares sin municipio son de la ciudad de la configuración`() {
+        fun unassigned(name: String, region: String?) =
+            cards.withUnassigned(PlaceFilter(municipality = MunicipalityFilter(name, region))).municipality!!.includeUnassigned
+
+        assertEquals(true, unassigned("armenia", "QUINDIO"))
+        assertEquals(true, unassigned("Armenia", null))
+        assertEquals(false, unassigned("Armenia", "Antioquia"))
+        assertEquals(false, unassigned("Calarcá", "Quindío"))
+        assertNull(cards.withUnassigned(PlaceFilter()).municipality)
+    }
 
     // Lunes 5 de octubre de 2026, 7:59 en Armenia.
     private val clock = MutableClock(Instant.parse("2026-10-05T12:59:00Z"))

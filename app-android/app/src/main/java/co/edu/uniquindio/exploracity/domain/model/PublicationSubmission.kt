@@ -21,6 +21,8 @@ data class PublicationSubmission(
     /** 17 · La dirección aproximada del pin, la de la tarjeta del mapa; null si no se encontró. */
     val address: String? = null,
     val clientId: String = UUID.randomUUID().toString(),
+    /** ADR-16 · El municipio del pin, con la dirección; null si no se encontró. */
+    val municipality: Municipality? = null,
 ) {
     val possibleDuplicate: Boolean get() = duplicateCheck?.possibleDuplicate == true
 
@@ -31,6 +33,7 @@ data class PublicationSubmission(
             resubmitId: String?,
             address: String? = null,
             clientId: String = UUID.randomUUID().toString(),
+            municipality: Municipality? = null,
         ): PublicationSubmission? {
             val category = draft.category ?: return null
             val location = draft.location ?: return null
@@ -50,6 +53,7 @@ data class PublicationSubmission(
                 resubmitId = resubmitId,
                 address = address,
                 clientId = clientId,
+                municipality = municipality,
             )
         }
     }

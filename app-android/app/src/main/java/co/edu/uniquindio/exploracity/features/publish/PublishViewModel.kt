@@ -500,8 +500,8 @@ class PublishViewModel(
                     (state.draft.photos.any(DraftPhoto::uploaded) || state.draft.photos.none { state.photoStatus.uploads[it.id] is PhotoUpload.Uploading })
             }
             val draft = ready.draft
-            val address = (ready.pin.address as? PinAddress.Found)?.address?.line?.ifEmpty { null }
-            val submission = PublicationSubmission.from(draft, resubmitId, address, clientId)
+            val found = (ready.pin.address as? PinAddress.Found)?.address
+            val submission = PublicationSubmission.from(draft, resubmitId, found?.line?.ifEmpty { null }, clientId, found?.municipality)
             if (submission == null) {
                 // La foto que se esperaba no se pudo leer: queda el resumen de 21.
                 _state.update { it.copy(sending = false, showErrors = true, errorFocusRequest = it.errorFocusRequest + 1) }

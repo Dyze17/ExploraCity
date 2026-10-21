@@ -6,10 +6,13 @@ import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.HoursResponse
 import co.edu.uniquindio.exploracity.model.PlaceSummaryResponse
 import co.edu.uniquindio.exploracity.repository.AuthorRow
+import co.edu.uniquindio.exploracity.repository.PlaceFilter
 import co.edu.uniquindio.exploracity.repository.PlaceRow
+import java.text.Normalizer
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDateTime
+import java.util.Locale
 
 /** Cómo se cuenta un lugar público en el feed (7), el mapa (8), el detalle (13) y el perfil público (31). */
 class PlaceCards(private val city: CitySettings, private val clock: Clock) {
@@ -38,6 +41,17 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
 
     /** Sin un punto en la petición, la distancia se mide desde el centro de la ciudad. */
     fun origin(near: GeoPoint?): GeoPoint = near ?: city.center
+
+    /**
+     * ADR-16 · Los lugares sin municipio (los de antes de v1.2 y los que se publicaron sin dirección) son de la ciudad
+     * de la configuración: entran cuando se pide esa ciudad.
+     */
+    fun withUnassigned(filter: PlaceFilter): PlaceFilter {
+        val town = filter.municipality ?: return filter
+        val cityRegion = city.region
+        val isCity = sameName(town.name, city.name) && (town.region == null || cityRegion == null || sameName(town.region, cityRegion))
+        return filter.copy(municipality = town.copy(includeUnassigned = isCity))
+    }
 
     /**
      * Según el horario y la hora de la ciudad. La franja no cruza la medianoche: el formulario pide que el cierre sea
@@ -76,3 +90,10 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
         fun authorOf(row: AuthorRow) = AuthorResponse(row.id.toString(), row.name, row.points)
     }
 }
+
+/** Como search_text() en SQL (V5): sin mayúsculas ni tildes. «Calarca» y «Calarcá» son el mismo municipio. */
+internal fun sameName(a: String, b: String): Boolean = plain(a) == plain(b)
+
+private val marks = Regex("\\p{M}+")
+
+private fun plain(text: String): String = Normalizer.normalize(text.trim(), Normalizer.Form.NFD).replace(marks, "").lowercase(Locale.ROOT)

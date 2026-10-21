@@ -127,6 +127,8 @@ data class PublicationChanges(
     val duplicateCheck: DuplicateCheck? = null,
     /** 17 · Solo si se movió el pin: la dirección aproximada del lugar nuevo, si se encontró. */
     val address: String? = null,
+    /** ADR-16 · Solo si se movió el pin: el municipio del lugar nuevo, si se encontró. */
+    val municipality: Municipality? = null,
 ) {
     val titleLength: Int get() = title.trim().length
 

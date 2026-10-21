@@ -33,6 +33,7 @@ fun testConfig(moderators: Set<String> = emptySet(), devMailbox: Boolean = false
     moderators = moderators,
     city = CitySettings(
         name = "Armenia",
+        region = "Quindío",
         center = GeoPoint(4.5339, -75.6811),
         southwest = GeoPoint(4.47, -75.76),
         northeast = GeoPoint(4.6, -75.62),

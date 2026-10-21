@@ -21,6 +21,7 @@ import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
@@ -150,6 +151,7 @@ class ApiPublicationRepositoryTest {
             duplicateCheck = DuplicateCheck(GeoPoint(4.545, -75.675), listOf(mirador), "  Es el de arriba. "),
             address = "Calle 21 # 18-30, Armenia",
             clientId = "envio-1",
+            municipality = Municipality("Armenia", "Quindío"),
         )
 
         val result = publications { example("submit.json", HttpStatusCode.Created) }.submit(submission)
@@ -164,7 +166,8 @@ class ApiPublicationRepositoryTest {
              "category":"GASTRONOMY","categoryOrigin":"SUGGESTED","location":{"latitude":4.545,"longitude":-75.675},
              "address":"Calle 21 # 18-30, Armenia","hours":{"days":["MONDAY","SATURDAY"],"opens":"07:00","closes":"19:00"},
              "price":"LOW","photos":["https://medios.test/lugares/f1.jpg"],
-             "duplicateCheck":{"location":{"latitude":4.545,"longitude":-75.675},"similarIds":["$mirador"],"note":"Es el de arriba.","failed":false}}
+             "duplicateCheck":{"location":{"latitude":4.545,"longitude":-75.675},"similarIds":["$mirador"],"note":"Es el de arriba.","failed":false},
+             "municipality":"Armenia","region":"Quindío"}
         """
         assertEquals(Json.parseToJsonElement(expected), sentJson())
     }

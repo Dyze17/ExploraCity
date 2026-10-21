@@ -29,7 +29,7 @@ class CityRepositoryTest {
         return CityRepository(CityApi(api.client()), store)
     }
 
-    private val armenia = City("Armenia", GeoPoint(4.5339, -75.6811), GeoBounds(GeoPoint(4.47, -75.76), GeoPoint(4.6, -75.62)))
+    private val armenia = City("Armenia", GeoPoint(4.5339, -75.6811), GeoBounds(GeoPoint(4.47, -75.76), GeoPoint(4.6, -75.62)), region = "Quindío")
 
     @Test
     fun `la primera vez la trae de la API y la guarda, y después no la vuelve a pedir`() = runTest {

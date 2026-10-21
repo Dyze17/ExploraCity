@@ -23,6 +23,7 @@ import co.edu.uniquindio.exploracity.domain.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.domain.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.domain.repository.PoiRepository
 import co.edu.uniquindio.exploracity.domain.repository.SavedPlaces
+import co.edu.uniquindio.exploracity.domain.repository.TownRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,6 +88,7 @@ enum class FeedMessage {
 }
 
 data class FeedUiState(
+    /** ADR-16 · El municipio que se explora: «Estás explorando …». */
     val areaName: String,
     val query: String = "",
     val filters: FeedFilters = FeedFilters.DEFAULT,
@@ -101,6 +103,8 @@ data class FeedUiState(
     val message: FeedMessage? = null,
     /** Deslizar para recargar: lo que se ve sigue ahí mientras llega lo nuevo. */
     val refreshing: Boolean = false,
+    /** ADR-16 · Primera vez en Explorar: la pantalla pide el permiso de ubicación para saber el municipio. */
+    val askLocation: Boolean = false,
 )
 
 /**
@@ -120,13 +124,16 @@ class FeedViewModel(
     private val poiRepository: PoiRepository,
     private val moderationRepository: ModerationRepository,
     private val connectivity: ConnectivityObserver,
-    areaName: String,
+    private val town: TownRepository,
     private val isModerator: Boolean,
     private val savedStateHandle: SavedStateHandle,
     private val firstPageTimeout: Duration = FIRST_PAGE_TIMEOUT,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(restoredState(areaName))
+    /** ADR-16 · El municipio de «Toda la ciudad». */
+    private var exploring = town.current.value
+
+    private val _state = MutableStateFlow(restoredState(exploring.name))
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
@@ -147,6 +154,33 @@ class FeedViewModel(
         }
         if (_state.value.filterSheet != null) recount(debounce = false)
         loadModeration()
+        viewModelScope.launch {
+            // ADR-16 · En otro municipio cambian el nombre y, con «Toda la ciudad», la lista y el conteo de la hoja.
+            town.current.collect { place ->
+                if (place == exploring) return@collect
+                exploring = place
+                _state.update { it.copy(areaName = place.name) }
+                if (_state.value.filters.scope == LocationScope.CITY) reload()
+                if (_state.value.filterSheet?.draft?.scope == LocationScope.CITY) recount(debounce = false)
+            }
+        }
+        viewModelScope.launch {
+            if (town.firstAsk()) _state.update { it.copy(askLocation = true) }
+            town.refresh()
+        }
+    }
+
+    /** Explorar vuelve a verse: la persona pudo llegar a otro municipio. */
+    fun onResume() {
+        viewModelScope.launch { town.refresh() }
+    }
+
+    /** La pantalla ya pidió el permiso de la primera vez. */
+    fun onLocationAsked() = _state.update { it.copy(askLocation = false) }
+
+    /** Se dio el permiso de ubicación para la ciudad: se busca el municipio sin esperar. */
+    fun onTownLocationAllowed() {
+        viewModelScope.launch { town.refresh(force = true) }
     }
 
     fun onQueryChange(text: String) {
@@ -228,6 +262,7 @@ class FeedViewModel(
     fun onRefresh() {
         if (_state.value.refreshing) return
         loadModeration()
+        onResume()
         reload(refreshing = true)
     }
 
@@ -283,7 +318,7 @@ class FeedViewModel(
         countJob?.cancel()
         val state = _state.value
         val sheet = state.filterSheet ?: return
-        val query = FeedQuery(sheet.draft, state.query.trim())
+        val query = FeedQuery(sheet.draft, state.query.trim(), exploring)
         countJob = viewModelScope.launch {
             if (debounce) delay(COUNT_DEBOUNCE)
             val count = runCatchingNonCancellation { poiRepository.count(query) }
@@ -339,7 +374,7 @@ class FeedViewModel(
 
     private suspend fun savedPlaces(): SavedPlaces? = runCatchingNonCancellation { poiRepository.savedPlaces() }
 
-    private fun currentQuery() = _state.value.let { FeedQuery(filters = it.filters, text = it.query.trim()) }
+    private fun currentQuery() = _state.value.let { FeedQuery(filters = it.filters, text = it.query.trim(), municipality = exploring) }
 
     private fun FeedPage.toContent(query: FeedQuery): FeedContent = when {
         total == 0 && query.hasCriteria -> FeedContent.NoResults(query)
@@ -367,7 +402,7 @@ class FeedViewModel(
                     container.poiRepository,
                     container.moderationRepository,
                     container.connectivity,
-                    container.city.current.name,
+                    container.town,
                     isModerator,
                     savedStateHandle = createSavedStateHandle(),
                 )

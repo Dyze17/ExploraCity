@@ -122,7 +122,10 @@ object Fixtures {
             }
         }
 
-    /** Un lugar más para las pruebas de búsqueda; por omisión verificado y en el centro de Armenia. */
+    /**
+     * Un lugar más para las pruebas de búsqueda; por omisión verificado y en el centro de Armenia, sin municipio (cuenta
+     * como la ciudad de la configuración, ADR-16).
+     */
     fun place(
         database: Database,
         author: UUID?,
@@ -132,6 +135,8 @@ object Fixtures {
         latitude: Double = 4.5339,
         longitude: Double = -75.6811,
         description: String = "Un lugar de la comunidad, con su historia y su gente.",
+        municipality: String? = null,
+        region: String? = null,
     ): UUID = transaction(database) {
         Places.insert {
             it[authorId] = author
@@ -142,6 +147,8 @@ object Fixtures {
             it[Places.status] = status
             it[Places.latitude] = latitude
             it[Places.longitude] = longitude
+            it[Places.municipality] = municipality
+            it[Places.region] = region
         }[Places.id]
     }
 
