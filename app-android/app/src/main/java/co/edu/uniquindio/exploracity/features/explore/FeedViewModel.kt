@@ -178,9 +178,16 @@ class FeedViewModel(
     /** La pantalla ya pidió el permiso de la primera vez. */
     fun onLocationAsked() = _state.update { it.copy(askLocation = false) }
 
-    /** Se dio el permiso de ubicación para la ciudad: se busca el municipio sin esperar. */
+    /**
+     * Se dio el permiso de ubicación para la ciudad: se busca el municipio sin esperar. Si es el mismo, la lista se
+     * recarga igual: se cargó antes del permiso y sus distancias se midieron desde el centro, no desde la persona.
+     */
     fun onTownLocationAllowed() {
-        viewModelScope.launch { town.refresh(force = true) }
+        viewModelScope.launch {
+            val before = town.current.value
+            town.refresh(force = true)
+            if (town.current.value == before) reload()
+        }
     }
 
     fun onQueryChange(text: String) {
