@@ -44,7 +44,10 @@ data class TownsResponse(val items: List<TownResponse>)
 @Serializable
 data class MapAreaResponse(val items: List<PlaceSummaryResponse>, val total: Int)
 
-/** 18 · Días de atención (MONDAY…SUNDAY) y la franja, en hora local («08:00»). */
+/**
+ * 18 · Un tramo del horario: días de atención (MONDAY…SUNDAY) y la franja, en hora local («08:00»). Si [closes] no es
+ * posterior a [opens], cierra al día siguiente (v1.3.0).
+ */
 @Serializable
 data class HoursResponse(val days: List<String>, val opens: String, val closes: String)
 
@@ -55,7 +58,12 @@ data class PlaceDetailsResponse(
     val description: String,
     val photos: List<String>,
     val address: String? = null,
+    /** El primer tramo del horario, para la app 1.2; la de ahora lee [schedule]. */
     val hours: HoursResponse? = null,
+    /** v1.3.0 · Todos los tramos, en orden; no viene sin horario. */
+    val schedule: List<HoursResponse>? = null,
+    /** v1.3.0 · Sin puertas ni horario: una plaza, un parque, una cascada. */
+    val alwaysOpen: Boolean = false,
     val author: AuthorResponse? = null,
     val voted: Boolean,
     val visited: Boolean,

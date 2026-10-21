@@ -156,7 +156,7 @@ class ApiPoiRepositoryTest {
         assertEquals(listOf(PoiPhoto("https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg", "Mirador de la Secreta")), details.photos)
         assertEquals("Vía al Mirador, Armenia", details.address)
         assertEquals(
-            OpeningHours(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY), LocalTime.of(8, 0), LocalTime.of(18, 0)),
+            OpeningHours.of(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY), LocalTime.of(8, 0), LocalTime.of(18, 0)),
             details.hours,
         )
         assertEquals(Author("3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14", "Ana Ríos", 40), details.author)

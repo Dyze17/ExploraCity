@@ -12,10 +12,14 @@ import co.edu.uniquindio.exploracity.core.data.repository.FakePublicationReposit
 import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyPublicationRepository
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
+import co.edu.uniquindio.exploracity.domain.model.DraftSchedule
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.HoursBlock
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.Municipality
+import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
@@ -564,21 +568,21 @@ class PublishViewModelTest {
     }
 
     @Test
-    fun `sin horario ni la casilla, continuar pide días y horas (21)`() = runTest(dispatcher) {
+    fun `sin horario, continuar pide días y horas (21)`() = runTest(dispatcher) {
         val vm = onScheduleStep()
 
         vm.onContinue()
 
         assertEquals(listOf(DraftField.DAYS, DraftField.OPENS, DraftField.CLOSES), vm.state.value.stepErrors)
-        assertTrue(vm.state.value.showScheduleError(DraftField.DAYS))
+        assertTrue(vm.state.value.showScheduleError(0, DraftField.DAYS))
         assertEquals(PublishStep.SCHEDULE, vm.state.value.step)
     }
 
     @Test
-    fun `no tengo el horario exacto libera el paso`() = runTest(dispatcher) {
+    fun `no sé el horario libera el paso`() = runTest(dispatcher) {
         val vm = onScheduleStep()
 
-        vm.onHoursUnknownChange(true)
+        vm.onHoursModeChange(HoursMode.UNKNOWN)
         vm.onContinue()
 
         assertEquals(PublishStep.PHOTOS, vm.state.value.step)
@@ -586,36 +590,94 @@ class PublishViewModelTest {
     }
 
     @Test
-    fun `el cierre debe ser posterior a la apertura, y se avisa sin esperar a continuar`() = runTest(dispatcher) {
+    fun `siempre abierto libera el paso y propone entrada libre, sin cambiar un precio ya elegido`() = runTest(dispatcher) {
         val vm = onScheduleStep()
-        vm.onDayToggle(DayOfWeek.MONDAY)
-        vm.onDayToggle(DayOfWeek.SATURDAY)
-        vm.onOpensChange(LocalTime.of(19, 0))
-        vm.onClosesChange(LocalTime.of(7, 0))
 
-        assertTrue(vm.state.value.closesBeforeOpens)
+        vm.onHoursModeChange(HoursMode.ALWAYS_OPEN)
+        assertEquals(PriceRange.FREE, vm.state.value.draft.price)
+        vm.onPriceChange(PriceRange.LOW)
+        vm.onHoursModeChange(HoursMode.UNKNOWN)
+        vm.onHoursModeChange(HoursMode.ALWAYS_OPEN)
+        assertEquals(PriceRange.LOW, vm.state.value.draft.price)
+        vm.onContinue()
+        advanceUntilIdle()
+
+        assertEquals(PublishStep.PHOTOS, vm.state.value.step)
+        assertEquals(OpeningHours.AlwaysOpen, drafts.saved[DraftKey.New]?.openingHours)
+    }
+
+    @Test
+    fun `un tramo puede cerrar pasada la medianoche, pero no a la misma hora en que abre`() = runTest(dispatcher) {
+        val vm = onScheduleStep()
+        vm.onDayToggle(0, DayOfWeek.MONDAY)
+        vm.onDayToggle(0, DayOfWeek.SATURDAY)
+        vm.onOpensChange(0, LocalTime.of(19, 0))
+        vm.onClosesChange(0, LocalTime.of(19, 0))
+
         vm.onContinue()
         assertEquals(listOf(DraftField.CLOSES), vm.state.value.stepErrors)
+        assertTrue(vm.state.value.draft.schedule.onlySameTimes())
 
-        vm.onOpensChange(LocalTime.of(7, 0))
-        vm.onClosesChange(LocalTime.of(19, 0))
+        vm.onClosesChange(0, LocalTime.of(2, 0))
+        assertTrue(vm.state.value.draft.schedule.blocks[0].pastMidnight)
         vm.onContinue()
         advanceUntilIdle()
         assertEquals(PublishStep.PHOTOS, vm.state.value.step)
-        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), drafts.saved[DraftKey.New]?.openingHours?.days)
+        val saved = drafts.saved[DraftKey.New]?.openingHours as OpeningHours.Blocks
+        assertEquals(HoursBlock(setOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), LocalTime.of(19, 0), LocalTime.of(2, 0)), saved.blocks.single())
+    }
+
+    @Test
+    fun `otros días con otro horario, cada día en un solo tramo, y se marca lo que falta en cada uno`() = runTest(dispatcher) {
+        val vm = onScheduleStep()
+        DayOfWeek.entries.take(5).forEach { vm.onDayToggle(0, it) }
+        vm.onOpensChange(0, LocalTime.of(16, 0))
+        vm.onClosesChange(0, LocalTime.of(2, 0))
+
+        vm.onAddBlock()
+        vm.onDayToggle(1, DayOfWeek.MONDAY)
+        assertTrue("El lunes ya es del primer tramo", vm.state.value.draft.schedule.blocks[1].days.isEmpty())
+        vm.onDayToggle(1, DayOfWeek.SATURDAY)
+        vm.onContinue()
+        assertTrue(vm.state.value.showScheduleError(1, DraftField.OPENS))
+        assertTrue("El primero está completo", !vm.state.value.showScheduleError(0, DraftField.OPENS))
+
+        vm.onDayToggle(1, DayOfWeek.SUNDAY)
+        assertTrue("Ya no quedan días", !vm.state.value.draft.schedule.canAddBlock)
+        vm.onOpensChange(1, LocalTime.of(22, 0))
+        vm.onClosesChange(1, LocalTime.of(3, 0))
+        vm.onAddBlock()
+        assertEquals(2, vm.state.value.draft.schedule.blocks.size)
+        vm.onContinue()
+        advanceUntilIdle()
+        assertEquals(PublishStep.PHOTOS, vm.state.value.step)
+        assertEquals(2, (drafts.saved[DraftKey.New]?.openingHours as OpeningHours.Blocks).blocks.size)
+    }
+
+    @Test
+    fun `quitar un tramo libera sus días`() = runTest(dispatcher) {
+        val vm = onScheduleStep()
+        vm.onDayToggle(0, DayOfWeek.MONDAY)
+        vm.onAddBlock()
+        vm.onDayToggle(1, DayOfWeek.SATURDAY)
+
+        vm.onRemoveBlock(1)
+        vm.onDayToggle(0, DayOfWeek.SATURDAY)
+
+        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), vm.state.value.draft.schedule.blocks.single().days)
     }
 
     @Test
     fun `tocar un día otra vez lo desmarca, y el precio elegido se quita igual`() = runTest(dispatcher) {
         val vm = onScheduleStep()
 
-        vm.onDayToggle(DayOfWeek.SUNDAY)
-        vm.onDayToggle(DayOfWeek.SUNDAY)
+        vm.onDayToggle(0, DayOfWeek.SUNDAY)
+        vm.onDayToggle(0, DayOfWeek.SUNDAY)
         vm.onPriceChange(PriceRange.LOW)
         assertEquals(PriceRange.LOW, vm.state.value.draft.price)
         vm.onPriceChange(PriceRange.LOW)
 
-        assertTrue(vm.state.value.draft.hours.days.isEmpty())
+        assertTrue(vm.state.value.draft.schedule.blocks.single().days.isEmpty())
         assertNull(vm.state.value.draft.price)
     }
 
@@ -625,7 +687,7 @@ class PublishViewModelTest {
         category = Category.GASTRONOMY,
         location = entrance,
         duplicateCheck = DuplicateCheck(entrance),
-        hoursUnknown = true,
+        schedule = DraftSchedule(HoursMode.UNKNOWN),
         step = PublishStep.PHOTOS,
     )
 
@@ -816,7 +878,7 @@ class PublishViewModelTest {
             description = "Mirador en la subida de La Peña con vista al centro. Se llega por un sendero corto.",
             category = Category.NATURE,
             location = GeoPoint(4.5906, -74.0591),
-            hoursUnknown = true,
+            schedule = DraftSchedule(HoursMode.UNKNOWN),
             step = PublishStep.PHOTOS,
         )
         val vm = onPhotosStep(rejected, resubmitId = "mirador-de-la-pena")

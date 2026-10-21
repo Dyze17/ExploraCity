@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.ModerationDecisions
 import co.edu.uniquindio.exploracity.model.Photos
+import co.edu.uniquindio.exploracity.model.PlaceHours
 import co.edu.uniquindio.exploracity.model.PlaceSimilar
 import co.edu.uniquindio.exploracity.model.Places
 import co.edu.uniquindio.exploracity.model.PriceRange
@@ -54,16 +55,34 @@ data class PlaceFields(
     val longitude: Double,
     val address: String?,
     val price: PriceRange?,
-    /** Días de atención como bits: lunes = 1 … domingo = 64; null sin horario. */
-    val hoursDays: Int?,
-    val opens: LocalTime?,
-    val closes: LocalTime?,
+    /** 18 · Los tramos del horario, en orden; vacío sin horario o siempre abierto. */
+    val schedule: List<HoursBlock>,
+    /** v1.3.0 · Sin puertas ni horario: siempre abierto. */
+    val alwaysOpen: Boolean = false,
     /** ADR-16 · El municipio y el departamento del pin; null = la ciudad de la configuración. */
     val municipality: String? = null,
     val region: String? = null,
     /** ADR-17 · La zona horaria del pin; null = la de la ciudad de la configuración. */
     val timeZone: ZoneId? = null,
 )
+
+/**
+ * 18 · Un tramo del horario: unos días (bits: lunes = 1 … domingo = 64) con la misma franja. Si [closes] no es posterior
+ * a [opens], cierra al día siguiente: «viernes y sábado, 22:00 a 3:00».
+ */
+data class HoursBlock(val days: Int, val opens: LocalTime, val closes: LocalTime) {
+    val pastMidnight: Boolean get() = !closes.isAfter(opens)
+}
+
+/** v1.3.0 · Los tramos del horario de cada lugar, en orden. Corre dentro de la transacción de quien llama. */
+internal fun schedulesOf(placeIds: Collection<UUID>): Map<UUID, List<HoursBlock>> = if (placeIds.isEmpty()) {
+    emptyMap()
+} else {
+    PlaceHours.selectAll()
+        .where { PlaceHours.placeId inList placeIds }
+        .orderBy(PlaceHours.position)
+        .groupBy({ it[PlaceHours.placeId] }, { HoursBlock(it[PlaceHours.days].toInt(), it[PlaceHours.opens], it[PlaceHours.closes]) })
+}
 
 /** ADR-17 · Un lugar y su pin, para buscarle la zona horaria. */
 data class PlaceLocation(val id: UUID, val latitude: Double, val longitude: Double)
@@ -185,7 +204,7 @@ class PublicationRepository {
         it[submittedAt] = at.atOffset(ZoneOffset.UTC)
         it[createdAt] = at.atOffset(ZoneOffset.UTC)
         write(it, fields)
-    }[Places.id]
+    }[Places.id].also { replaceSchedule(it, fields.schedule) }
 
     /** Cambia lo editable; con [resubmittedAt] vuelve a la cola como recién enviada. */
     fun update(
@@ -207,6 +226,7 @@ class PublicationRepository {
             clientId?.let { client -> it[Places.clientId] = client }
             resubmittedAt?.let { at -> it[submittedAt] = at.atOffset(ZoneOffset.UTC) }
         }
+        replaceSchedule(id, fields.schedule)
     }
 
     fun setStatus(id: UUID, status: PublicationStatus, resubmittedAt: Instant? = null) {
@@ -227,12 +247,12 @@ class PublicationRepository {
     fun find(id: UUID, lock: Boolean = false): OwnPlaceRow? = Places.selectAll()
         .where { Places.id eq id }
         .let { if (lock) it.forUpdate(ForUpdateOption.ForUpdate) else it }
+        .toOwnPlaces()
         .singleOrNull()
-        ?.toOwnPlace()
 
     /** 22 · Las de [authorId], de la más reciente a la más antigua. */
     fun byAuthor(authorId: UUID): List<OwnPlaceRow> =
-        Places.selectAll().where { Places.authorId eq authorId }.orderBy(Places.submittedAt, SortOrder.DESC).map { it.toOwnPlace() }
+        Places.selectAll().where { Places.authorId eq authorId }.orderBy(Places.submittedAt, SortOrder.DESC).toOwnPlaces()
 
     /**
      * 32 · Las pendientes de la más antigua a la más reciente, sin las de [excludeAuthor] (F1) ni las que se quedaron sin
@@ -241,7 +261,7 @@ class PublicationRepository {
     fun pending(excludeAuthor: UUID): List<OwnPlaceRow> = Places.selectAll()
         .where { (Places.status eq PublicationStatus.PENDING) and Places.authorId.isNotNull() }
         .orderBy(Places.submittedAt to SortOrder.ASC, Places.id to SortOrder.ASC)
-        .map { it.toOwnPlace() }
+        .toOwnPlaces()
         .filter { it.authorId != excludeAuthor }
 
     fun delete(id: UUID) {
@@ -353,15 +373,37 @@ class PublicationRepository {
         it[Places.municipality] = fields.municipality
         it[Places.region] = fields.region
         it[Places.price] = fields.price
-        it[Places.hoursDays] = fields.hoursDays?.toShort()
-        it[Places.hoursOpens] = fields.opens
-        it[Places.hoursCloses] = fields.closes
+        // El primer tramo también en las columnas de antes: si se vuelve a la versión anterior, el lugar tiene horario.
+        val first = fields.schedule.firstOrNull()
+        it[Places.hoursDays] = first?.days?.toShort()
+        it[Places.hoursOpens] = first?.opens
+        it[Places.hoursCloses] = first?.closes
+        it[Places.alwaysOpen] = fields.alwaysOpen
         it[Places.timeZone] = fields.timeZone?.id
+    }
+
+    /** v1.3.0 · Los tramos del horario se reemplazan enteros, como las fotos. */
+    private fun replaceSchedule(placeId: UUID, schedule: List<HoursBlock>) {
+        PlaceHours.deleteWhere { PlaceHours.placeId eq placeId }
+        PlaceHours.batchInsert(schedule.withIndex()) { (position, block) ->
+            this[PlaceHours.placeId] = placeId
+            this[PlaceHours.position] = position.toShort()
+            this[PlaceHours.days] = block.days.toShort()
+            this[PlaceHours.opens] = block.opens
+            this[PlaceHours.closes] = block.closes
+        }
+    }
+
+    /** Con el horario de todas en una sola consulta. */
+    private fun Query.toOwnPlaces(): List<OwnPlaceRow> {
+        val rows = toList()
+        val schedules = schedulesOf(rows.map { it[Places.id] })
+        return rows.map { it.toOwnPlace(schedules[it[Places.id]].orEmpty()) }
     }
 
     private fun ResultRow.toPhoto() = StoredPhoto(this[Photos.id], this[Photos.url], this[Photos.publicId], this[Photos.placeId])
 
-    private fun ResultRow.toOwnPlace() = OwnPlaceRow(
+    private fun ResultRow.toOwnPlace(schedule: List<HoursBlock>) = OwnPlaceRow(
         id = this[Places.id],
         authorId = this[Places.authorId],
         fields = PlaceFields(
@@ -372,9 +414,8 @@ class PublicationRepository {
             longitude = this[Places.longitude],
             address = this[Places.address],
             price = this[Places.price],
-            hoursDays = this[Places.hoursDays]?.toInt(),
-            opens = this[Places.hoursOpens],
-            closes = this[Places.hoursCloses],
+            schedule = schedule,
+            alwaysOpen = this[Places.alwaysOpen],
             municipality = this[Places.municipality],
             region = this[Places.region],
             timeZone = this[Places.timeZone]?.let(::zoneOrNull),

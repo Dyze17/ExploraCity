@@ -16,6 +16,7 @@ import co.edu.uniquindio.exploracity.core.util.catchingNonCancellation
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
@@ -107,19 +108,8 @@ data class EditPublicationUiState(
 
     val showDescriptionError: Boolean get() = descriptionTouched && (form?.descriptionMissing ?: 0) > 0
 
-    /** 18 · En 23 no hay «Continuar»: sin la casilla, lo que falta del horario se marca en cuanto se ve. */
-    fun showScheduleError(field: DraftField): Boolean {
-        val form = form ?: return false
-        if (form.hoursUnknown) return false
-        return when (field) {
-            DraftField.DAYS -> form.hours.days.isEmpty()
-            DraftField.OPENS -> form.hours.opens == null
-            DraftField.CLOSES -> form.hours.closes == null
-            else -> false
-        }
-    }
-
-    val closesBeforeOpens: Boolean get() = form?.let { !it.hoursUnknown && !it.hours.closesAfterOpens } == true
+    /** 18 · En 23 no hay «Continuar»: con «Tiene horario», lo que falta de cada tramo se marca en cuanto se ve. */
+    fun showScheduleError(block: Int, field: DraftField): Boolean = form?.schedule?.errors()?.contains(ScheduleError(block, field)) == true
 }
 
 /** Cómo termina la edición. */
@@ -215,16 +205,23 @@ class EditPublicationViewModel(
 
     // 18 · Horario y precio, como en el paso 4.
 
-    fun onDayToggle(day: DayOfWeek) = updateForm { form ->
-        val days = form.hours.days
-        form.copy(hours = form.hours.copy(days = if (day in days) days - day else days + day))
+    /**
+     * 18 · Tiene horario, siempre abierto o no se sabe. Siempre abierto propone «Entrada libre» si no había precio: un
+     * parque o una cascada casi nunca cobran.
+     */
+    fun onHoursModeChange(mode: HoursMode) = updateForm { form ->
+        form.copy(schedule = form.schedule.copy(mode = mode), price = form.price ?: PriceRange.FREE.takeIf { mode == HoursMode.ALWAYS_OPEN })
     }
 
-    fun onOpensChange(time: LocalTime) = updateForm { it.copy(hours = it.hours.copy(opens = time)) }
+    fun onDayToggle(block: Int, day: DayOfWeek) = updateForm { it.copy(schedule = it.schedule.toggleDay(block, day)) }
 
-    fun onClosesChange(time: LocalTime) = updateForm { it.copy(hours = it.hours.copy(closes = time)) }
+    fun onOpensChange(block: Int, time: LocalTime) = updateForm { it.copy(schedule = it.schedule.withBlock(block) { hours -> hours.copy(opens = time) }) }
 
-    fun onHoursUnknownChange(unknown: Boolean) = updateForm { it.copy(hoursUnknown = unknown) }
+    fun onClosesChange(block: Int, time: LocalTime) = updateForm { it.copy(schedule = it.schedule.withBlock(block) { hours -> hours.copy(closes = time) }) }
+
+    fun onAddBlock() = updateForm { it.copy(schedule = it.schedule.addBlock()) }
+
+    fun onRemoveBlock(block: Int) = updateForm { it.copy(schedule = it.schedule.removeBlock(block)) }
 
     /** El precio es opcional: tocar el elegido lo quita. */
     fun onPriceChange(price: PriceRange) = updateForm { it.copy(price = if (it.price == price) null else price) }
@@ -508,8 +505,7 @@ private fun PublicationChanges.toDraft() = PublicationDraft(
     categoryOrigin = CategoryOrigin.CHOSEN,
     location = location,
     duplicateCheck = duplicateCheck,
-    hours = hours,
-    hoursUnknown = hoursUnknown,
+    schedule = schedule,
     price = price,
     photos = photos,
 )
@@ -517,5 +513,5 @@ private fun PublicationChanges.toDraft() = PublicationDraft(
 private fun PublicationDraft.toChanges(): PublicationChanges? {
     val category = category ?: return null
     val location = location ?: return null
-    return PublicationChanges(title, category, description, location, hours, hoursUnknown, price, photos, duplicateCheck)
+    return PublicationChanges(title, category, description, location, schedule, price, photos, duplicateCheck)
 }

@@ -8,8 +8,10 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DraftHours
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
+import co.edu.uniquindio.exploracity.domain.model.DraftSchedule
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
@@ -86,8 +88,10 @@ internal data class SavedDraft(
     val categoryOrigin: CategoryOrigin? = null,
     val location: SavedPoint? = null,
     val duplicateCheck: SavedDuplicateCheck? = null,
+    /** Lo que guardó la 1.2: un tramo y la casilla «No tengo el horario exacto». Desde la 1.3.0 se usa [schedule]. */
     val hours: SavedDraftHours? = null,
     val hoursUnknown: Boolean = false,
+    val schedule: SavedDraftSchedule? = null,
     val price: PriceRange? = null,
     val photos: List<SavedDraftPhoto> = emptyList(),
     val step: PublishStep = PublishStep.BASICS,
@@ -96,6 +100,10 @@ internal data class SavedDraft(
 /** Días como 1 (lunes) a 7 (domingo) y horas en minutos desde la medianoche: sin tipos de java.time en el JSON. */
 @Serializable
 internal data class SavedDraftHours(val days: List<Int> = emptyList(), val opensMinute: Int? = null, val closesMinute: Int? = null)
+
+/** v1.3.0 · Cómo se cuenta el horario y sus tramos, cada uno a medio elegir. */
+@Serializable
+internal data class SavedDraftSchedule(val mode: HoursMode = HoursMode.HOURS, val blocks: List<SavedDraftHours> = emptyList())
 
 @Serializable
 internal data class SavedDraftPhoto(val id: String, val path: String, val name: String, val remoteUrl: String? = null)
@@ -145,8 +153,7 @@ private fun PublicationDraft.toSaved() = SavedDraft(
     categoryOrigin = categoryOrigin,
     location = location?.toSaved(),
     duplicateCheck = duplicateCheck?.let { SavedDuplicateCheck(it.location.toSaved(), it.similarIds, it.note, it.failed) },
-    hours = hours.takeUnless { it.isEmpty }?.let { h -> SavedDraftHours(h.days.map { it.value }.sorted(), h.opens?.toMinute(), h.closes?.toMinute()) },
-    hoursUnknown = hoursUnknown,
+    schedule = SavedDraftSchedule(schedule.mode, schedule.blocks.map { h -> SavedDraftHours(h.days.map { it.value }.sorted(), h.opens?.toMinute(), h.closes?.toMinute()) }),
     price = price,
     photos = photos.map { SavedDraftPhoto(it.id, it.path, it.name, it.remoteUrl) },
     step = step,
@@ -159,9 +166,11 @@ private fun SavedDraft.toDomain() = PublicationDraft(
     categoryOrigin = categoryOrigin,
     location = location?.toDomain(),
     duplicateCheck = duplicateCheck?.let { DuplicateCheck(it.location.toDomain(), it.similarIds, it.note, it.failed) },
-    hours = hours?.let { h -> DraftHours(h.days.map(DayOfWeek::of).toSet(), h.opensMinute?.toTime(), h.closesMinute?.toTime()) } ?: DraftHours(),
-    hoursUnknown = hoursUnknown,
+    schedule = schedule?.let { saved -> DraftSchedule(saved.mode, saved.blocks.map { it.toDomain() }.ifEmpty { listOf(DraftHours()) }) }
+        ?: DraftSchedule(if (hoursUnknown) HoursMode.UNKNOWN else HoursMode.HOURS, listOf(hours?.toDomain() ?: DraftHours())),
     price = price,
     photos = photos.map { DraftPhoto(it.id, it.path, it.name, it.remoteUrl) },
     step = step,
 )
+
+private fun SavedDraftHours.toDomain() = DraftHours(days.map(DayOfWeek::of).toSet(), opensMinute?.toTime(), closesMinute?.toTime())

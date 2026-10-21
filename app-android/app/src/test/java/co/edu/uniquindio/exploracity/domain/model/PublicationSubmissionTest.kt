@@ -1,5 +1,8 @@
 package co.edu.uniquindio.exploracity.domain.model
 
+import co.edu.uniquindio.exploracity.domain.model.DraftSchedule
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
+import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -17,7 +20,7 @@ class PublicationSubmissionTest {
         category = Category.GASTRONOMY,
         categoryOrigin = CategoryOrigin.SUGGESTED,
         location = here,
-        hours = DraftHours(setOf(DayOfWeek.MONDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)),
+        schedule = DraftSchedule(blocks = listOf(DraftHours(setOf(DayOfWeek.MONDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)))),
         photos = listOf(DraftPhoto("f1", "/fotos/f1.jpg", "patio.jpg")),
     )
 
@@ -26,14 +29,14 @@ class PublicationSubmissionTest {
         val submission = PublicationSubmission.from(complete, resubmitId = null, address = "Cl. 45 #19-32, Chapinero", clientId = "envio-1")
 
         assertEquals("Café Las Acacias", submission?.title)
-        assertEquals(OpeningHours(setOf(DayOfWeek.MONDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)), submission?.hours)
+        assertEquals(OpeningHours.of(setOf(DayOfWeek.MONDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)), submission?.hours)
         assertEquals("Cl. 45 #19-32, Chapinero", submission?.address)
         assertEquals("envio-1", submission?.clientId)
     }
 
     @Test
     fun `sin horario exacto no lleva horario, aunque se hubiera empezado a elegir`() {
-        val submission = PublicationSubmission.from(complete.copy(hoursUnknown = true, hours = DraftHours(opens = LocalTime.of(9, 0))), null)
+        val submission = PublicationSubmission.from(complete.copy(schedule = DraftSchedule(HoursMode.UNKNOWN, listOf(DraftHours(opens = LocalTime.of(9, 0))))), null)
 
         assertNull(submission?.hours)
     }
@@ -42,7 +45,22 @@ class PublicationSubmissionTest {
     fun `sin fotos, sin pin o con el horario a medias no se puede enviar`() {
         assertNull(PublicationSubmission.from(complete.copy(photos = emptyList()), null))
         assertNull(PublicationSubmission.from(complete.copy(location = null), null))
-        assertNull(PublicationSubmission.from(complete.copy(hours = DraftHours(setOf(DayOfWeek.MONDAY))), null))
+        assertNull(PublicationSubmission.from(complete.copy(schedule = DraftSchedule(blocks = listOf(DraftHours(setOf(DayOfWeek.MONDAY))))), null))
+    }
+
+    @Test
+    fun `por tramos van todos, y siempre abierto no lleva tramos`() {
+        val weekdays = DraftHours(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), LocalTime.of(16, 0), LocalTime.of(2, 0))
+        val weekend = DraftHours(setOf(DayOfWeek.SATURDAY), LocalTime.of(22, 0), LocalTime.of(3, 0))
+
+        val club = PublicationSubmission.from(complete.copy(schedule = DraftSchedule(blocks = listOf(weekdays, weekend))), null)
+        val park = PublicationSubmission.from(complete.copy(schedule = DraftSchedule(HoursMode.ALWAYS_OPEN, listOf(weekdays))), null)
+        val sameTimes = weekdays.copy(closes = LocalTime.of(16, 0))
+
+        assertEquals(OpeningHours.Blocks(listOf(weekdays.complete!!, weekend.complete!!)), club?.hours)
+        assertEquals(OpeningHours.AlwaysOpen, park?.hours)
+        assertNull("Abre y cierra a la misma hora", PublicationSubmission.from(complete.copy(schedule = DraftSchedule(blocks = listOf(sameTimes))), null))
+        assertNull("Un tramo a medias", PublicationSubmission.from(complete.copy(schedule = DraftSchedule(blocks = listOf(weekdays, DraftHours()))), null))
     }
 
     @Test

@@ -115,7 +115,6 @@ import co.edu.uniquindio.exploracity.core.ui.theme.LocalDarkTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
-import co.edu.uniquindio.exploracity.core.util.HoursWords
 import co.edu.uniquindio.exploracity.core.util.formatDistance
 import co.edu.uniquindio.exploracity.core.util.formatOpeningHours
 import co.edu.uniquindio.exploracity.core.util.hasMapsApiKey
@@ -468,7 +467,7 @@ private fun Fact(@DrawableRes icon: Int, text: String, spoken: String) {
 @Composable
 private fun InfoBox(details: PoiDetails) {
     val hoursText = details.hours?.let {
-        formatOpeningHours(it, HoursWords(stringResource(R.string.hours_every_day), stringResource(R.string.hours_to), stringResource(R.string.list_and)))
+        formatOpeningHours(it)
     }
     val openText = when (details.poi.openNow) {
         true -> stringResource(R.string.detail_open_now)

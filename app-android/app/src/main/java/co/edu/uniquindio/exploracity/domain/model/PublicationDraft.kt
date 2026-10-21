@@ -50,10 +50,8 @@ data class PublicationDraft(
     val location: GeoPoint? = null,
     /** 17A/17B · La búsqueda de parecidos de la última ubicación confirmada. */
     val duplicateCheck: DuplicateCheck? = null,
-    /** 18 · Días y horas, tal como se van eligiendo. */
-    val hours: DraftHours = DraftHours(),
-    /** 18 · «No tengo el horario exacto»: libera el paso sin horario. */
-    val hoursUnknown: Boolean = false,
+    /** 18 · El horario, tal como se va eligiendo: por tramos, siempre abierto o sin saberlo. */
+    val schedule: DraftSchedule = DraftSchedule(),
     /** 18 · Opcional: el feed muestra el lugar sin precio. */
     val price: PriceRange? = null,
     /** 19 · En el orden en que se agregaron; la primera es la portada. */
@@ -65,8 +63,8 @@ data class PublicationDraft(
 
     val descriptionMissing: Int get() = PublicationLimits.descriptionMissing(description)
 
-    /** 18 · El horario que se publica: null con «No tengo el horario exacto» o si aún no está completo. */
-    val openingHours: OpeningHours? get() = if (hoursUnknown) null else hours.complete
+    /** 18 · El horario que se publica: null con «No sé el horario» o si aún no está completo. */
+    val openingHours: OpeningHours? get() = schedule.complete
 
     /** 19 · Cuántas fotos más caben. */
     val photosLeft: Int get() = (PhotoRules.MAX - photos.size).coerceAtLeast(0)
@@ -83,7 +81,7 @@ data class PublicationDraft(
     /** Hay algo que valga la pena guardar: sin nada escrito ni elegido, cerrar no pregunta (15A). */
     val hasContent: Boolean
         get() = title.isNotBlank() || description.isNotBlank() || category != null || location != null ||
-            !hours.isEmpty || hoursUnknown || price != null || photos.isNotEmpty()
+            !schedule.isEmpty || price != null || photos.isNotEmpty()
 
     companion object {
         /**
@@ -99,8 +97,7 @@ data class PublicationDraft(
                 category = changes.category,
                 categoryOrigin = CategoryOrigin.CHOSEN,
                 location = changes.location,
-                hours = changes.hours,
-                hoursUnknown = changes.hoursUnknown,
+                schedule = changes.schedule,
                 price = changes.price,
                 photos = changes.photos,
                 duplicateCheck = if (publication.possibleDuplicate) {
@@ -160,7 +157,19 @@ object DuplicateRules {
     const val NOTE_MAX = 200
 }
 
-/** 18 · El horario mientras se elige: cada parte puede faltar todavía. */
+/** 18 · Cómo se cuenta el horario en el paso 4 (v1.3.0). */
+enum class HoursMode {
+    /** Por tramos de días, cada uno con su franja. */
+    HOURS,
+
+    /** «Siempre abierto · acceso libre»: sin puertas ni horario, como una plaza, un parque o una cascada. */
+    ALWAYS_OPEN,
+
+    /** «No sé el horario»: el lugar se publica sin horario. */
+    UNKNOWN,
+}
+
+/** 18 · Un tramo del horario mientras se elige: cada parte puede faltar todavía. */
 data class DraftHours(
     val days: Set<DayOfWeek> = emptySet(),
     val opens: LocalTime? = null,
@@ -168,16 +177,73 @@ data class DraftHours(
 ) {
     val isEmpty: Boolean get() = days.isEmpty() && opens == null && closes == null
 
-    /** README · «hora de cierre posterior a la de apertura». Mientras falte una de las dos, no hay error. */
-    val closesAfterOpens: Boolean get() = opens == null || closes == null || closes > opens
+    /** No abre y cierra a la misma hora. Mientras falte una de las dos, no hay error. */
+    val timesDiffer: Boolean get() = opens == null || closes == null || closes != opens
 
-    /** El horario completo y válido; null si falta algo o el cierre no es posterior a la apertura. */
-    val complete: OpeningHours?
+    /** v1.3.0 · Cierra antes de abrir: es al día siguiente («22:00 a 3:00»). */
+    val pastMidnight: Boolean get() = opens != null && closes != null && closes < opens
+
+    /** El tramo completo y válido; null si falta algo o abre y cierra a la misma hora. */
+    val complete: HoursBlock?
         get() {
             val opens = opens ?: return null
             val closes = closes ?: return null
-            return if (days.isNotEmpty() && closes > opens) OpeningHours(days, opens, closes) else null
+            return if (days.isNotEmpty() && closes != opens) HoursBlock(days, opens, closes) else null
         }
+}
+
+/**
+ * 18 · El horario mientras se elige: cómo se cuenta ([mode]) y sus tramos. Los tramos se conservan al cambiar de modo,
+ * por si la persona vuelve a «Tiene horario».
+ */
+data class DraftSchedule(val mode: HoursMode = HoursMode.HOURS, val blocks: List<DraftHours> = listOf(DraftHours())) {
+    /** Todavía no se eligió nada. */
+    val isEmpty: Boolean get() = mode == HoursMode.HOURS && blocks.all { it.isEmpty }
+
+    /** El horario que se publica: null sin saberlo o si a algún tramo le falta algo. */
+    val complete: OpeningHours?
+        get() = when (mode) {
+            HoursMode.UNKNOWN -> null
+            HoursMode.ALWAYS_OPEN -> OpeningHours.AlwaysOpen
+            HoursMode.HOURS -> OpeningHours.Blocks(blocks.map { it.complete ?: return null })
+        }
+
+    /** Se puede publicar: sin saberlo o siempre abierto, sí; por tramos, con todos completos. */
+    val isValid: Boolean get() = mode != HoursMode.HOURS || complete != null
+
+    /** Quedan días sin tramo y cabe otro. */
+    val canAddBlock: Boolean get() = blocks.size < MAX_BLOCKS && blocks.sumOf { it.days.size } < DayOfWeek.entries.size
+
+    /** Los días que ya tiene otro tramo: en el tramo [index] no se pueden elegir. */
+    fun takenByOthers(index: Int): Set<DayOfWeek> = blocks.filterIndexed { i, _ -> i != index }.flatMapTo(mutableSetOf()) { it.days }
+
+    fun withBlock(index: Int, transform: (DraftHours) -> DraftHours): DraftSchedule =
+        copy(blocks = blocks.mapIndexed { i, block -> if (i == index) transform(block) else block })
+
+    /** Marca o desmarca [day] en el tramo [index]; un día de otro tramo no cambia. */
+    fun toggleDay(index: Int, day: DayOfWeek): DraftSchedule {
+        if (day in takenByOthers(index)) return this
+        return withBlock(index) { block -> block.copy(days = if (day in block.days) block.days - day else block.days + day) }
+    }
+
+    fun addBlock(): DraftSchedule = if (canAddBlock) copy(blocks = blocks + DraftHours()) else this
+
+    /** El último que queda no se quita: se vacía. */
+    fun removeBlock(index: Int): DraftSchedule = copy(blocks = blocks.filterIndexed { i, _ -> i != index }.ifEmpty { listOf(DraftHours()) })
+
+    /** Como se guarda y como se compara: con otro modo, sin los tramos a medio elegir. */
+    fun trimmed(): DraftSchedule = if (mode == HoursMode.HOURS) this else DraftSchedule(mode)
+
+    companion object {
+        /** Un tramo por día, como mucho. */
+        const val MAX_BLOCKS = 7
+
+        fun of(hours: OpeningHours?): DraftSchedule = when (hours) {
+            null -> DraftSchedule(HoursMode.UNKNOWN)
+            OpeningHours.AlwaysOpen -> DraftSchedule(HoursMode.ALWAYS_OPEN)
+            is OpeningHours.Blocks -> DraftSchedule(HoursMode.HOURS, hours.blocks.map { DraftHours(it.days, it.opens, it.closes) })
+        }
+    }
 }
 
 /**

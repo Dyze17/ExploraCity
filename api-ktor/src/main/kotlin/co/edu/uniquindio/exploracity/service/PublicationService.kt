@@ -21,6 +21,7 @@ import co.edu.uniquindio.exploracity.model.SubmissionRequest
 import co.edu.uniquindio.exploracity.model.SubmitResponse
 import co.edu.uniquindio.exploracity.model.SuggestionResponse
 import co.edu.uniquindio.exploracity.plugins.ApiException
+import co.edu.uniquindio.exploracity.repository.HoursBlock
 import co.edu.uniquindio.exploracity.repository.OwnPlaceRow
 import co.edu.uniquindio.exploracity.repository.PlaceFields
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
@@ -103,7 +104,7 @@ class PublicationService(
      * que estaba y `false`.
      */
     suspend fun submit(userId: UUID, request: SubmissionRequest): Pair<SubmitResponse, Boolean> {
-        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.price)
+        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.schedule, request.alwaysOpen, request.price)
             .copy(timeZone = zoneOf(request.location))
         val urls = photoUrls(request.photos)
         val clientId = request.clientId?.let { uuidOrNull(it) ?: throw ApiException.badRequest() }
@@ -171,7 +172,7 @@ class PublicationService(
      */
     suspend fun update(userId: UUID, publicationId: String, request: ChangesRequest): PublicationResponse {
         val id = idOf(publicationId)
-        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.price)
+        val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.schedule, request.alwaysOpen, request.price)
             .copy(timeZone = zoneOf(request.location))
         val urls = photoUrls(request.photos)
         var removed = emptyList<String>()
@@ -284,6 +285,8 @@ class PublicationService(
         municipality: String?,
         region: String?,
         hours: HoursResponse?,
+        schedule: List<HoursResponse>?,
+        alwaysOpen: Boolean,
         price: PriceRange?,
     ): PlaceFields {
         val cleanTitle = title.trim()
@@ -294,21 +297,34 @@ class PublicationService(
         val cleanMunicipality = municipality?.trim()?.ifEmpty { null }?.take(TOWN_MAX)
         // Un departamento sin municipio no filtra nada: no se guarda.
         val cleanRegion = region?.trim()?.ifEmpty { null }?.take(TOWN_MAX)?.takeIf { cleanMunicipality != null }
-        val (days, opens, closes) = hours?.let(::hoursOf) ?: Triple(null, null, null)
         return PlaceFields(
-            cleanTitle, cleanDescription, category, location.latitude, location.longitude, cleanAddress, price, days, opens, closes,
+            cleanTitle, cleanDescription, category, location.latitude, location.longitude, cleanAddress, price,
+            schedule = scheduleOf(hours, schedule, alwaysOpen),
+            alwaysOpen = alwaysOpen,
             municipality = cleanMunicipality,
             region = cleanRegion,
         )
     }
 
-    /** 18 · Al menos un día y el cierre después de la apertura. */
-    private fun hoursOf(hours: HoursResponse): Triple<Int, LocalTime, LocalTime> {
-        val days = hours.days.map { name -> DayOfWeek.entries.firstOrNull { it.name == name } ?: throw invalid() }.toSet()
-        val opens = time(hours.opens)
-        val closes = time(hours.closes)
-        if (days.isEmpty() || !closes.isAfter(opens)) throw invalid()
-        return Triple(days.sumOf { 1 shl it.ordinal }, opens, closes)
+    /**
+     * 18 · Los tramos del horario: [schedule] (v1.3.0) o, sin él, [hours] (app 1.2). Cada tramo con al menos un día y el
+     * cierre distinto de la apertura (si es antes, cierra al día siguiente); un día no se repite entre tramos. Siempre
+     * abierto no lleva tramos.
+     */
+    private fun scheduleOf(hours: HoursResponse?, schedule: List<HoursResponse>?, alwaysOpen: Boolean): List<HoursBlock> {
+        val requested = schedule ?: listOfNotNull(hours)
+        if (alwaysOpen && requested.isNotEmpty()) throw invalid()
+        if (requested.size > SCHEDULE_MAX) throw invalid()
+        var taken = 0
+        return requested.map { block ->
+            val days = block.days.map { name -> DayOfWeek.entries.firstOrNull { it.name == name } ?: throw invalid() }.toSet()
+            val opens = time(block.opens)
+            val closes = time(block.closes)
+            val bits = days.sumOf { 1 shl it.ordinal }
+            if (days.isEmpty() || closes == opens || bits and taken != 0) throw invalid()
+            taken = taken or bits
+            HoursBlock(bits, opens, closes)
+        }
     }
 
     private fun time(text: String): LocalTime = try {
@@ -381,6 +397,9 @@ class PublicationService(
 
         /** ADR-16 · Municipio y departamento: el nombre más largo de Colombia cabe de sobra. */
         const val TOWN_MAX = 100
+
+        /** 18 · Un tramo por día, como mucho. */
+        const val SCHEDULE_MAX = 7
 
         /** ADR-13 · Radio y máximo de parecidos (17A). */
         const val SIMILAR_RADIUS_METERS = 50.0

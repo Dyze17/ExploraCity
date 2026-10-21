@@ -32,6 +32,19 @@
     "opens": "08:00",
     "closes": "18:00"
   },
+  "schedule": [
+    {
+      "days": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "opens": "08:00",
+      "closes": "18:00"
+    }
+  ],
   "author": {
     "id": "3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14",
     "name": "Ana Ríos",

@@ -48,11 +48,13 @@
             "descripcion": "Un mirador con vista a toda la ciudad, ideal al atardecer.",
             "latitud": 4.5521,
             "longitud": -75.6589,
-            "horario": {
-                "dias": ["lunes", "martes", "miércoles", "jueves", "viernes"],
-                "abre": "08:00",
-                "cierra": "18:00"
-            },
+            "horario": [
+                {
+                    "dias": ["lunes", "martes", "miércoles", "jueves", "viernes"],
+                    "abre": "08:00",
+                    "cierra": "18:00"
+                }
+            ],
             "precio": "Entrada libre",
             "fotos": ["https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"],
             "enviada": "2026-09-01T14:00:00Z",

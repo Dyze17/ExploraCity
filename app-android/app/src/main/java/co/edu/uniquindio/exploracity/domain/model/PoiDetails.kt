@@ -19,8 +19,27 @@ enum class PriceRange {
     HIGH,
 }
 
-/** Horario del paso 4: días de atención y una franja; sin horario exacto, el lugar no lo tiene (null). */
-data class OpeningHours(val days: Set<DayOfWeek>, val opens: LocalTime, val closes: LocalTime)
+/**
+ * 18 · Un tramo del horario: unos días con la misma franja. Si [closes] no es posterior a [opens], cierra al día
+ * siguiente: «viernes y sábado, 22:00 a 3:00» (v1.3.0).
+ */
+data class HoursBlock(val days: Set<DayOfWeek>, val opens: LocalTime, val closes: LocalTime) {
+    val pastMidnight: Boolean get() = !closes.isAfter(opens)
+}
+
+/** 18 · El horario de un lugar; sin horario exacto, el lugar no lo tiene (null). */
+sealed interface OpeningHours {
+    /** Por tramos de días, en orden: «lunes a jueves, 16:00 a 2:00» y «viernes y sábado, 22:00 a 3:00». */
+    data class Blocks(val blocks: List<HoursBlock>) : OpeningHours
+
+    /** v1.3.0 · Sin puertas ni horario: una plaza, un parque, una cascada. */
+    data object AlwaysOpen : OpeningHours
+
+    companion object {
+        /** Un solo tramo, como los horarios de antes de la 1.3.0. */
+        fun of(days: Set<DayOfWeek>, opens: LocalTime, closes: LocalTime): OpeningHours = Blocks(listOf(HoursBlock(days, opens, closes)))
+    }
+}
 
 /**
  * Niveles de reputación (README · LevelChip) según los puntos. El primero es «Recién llegado» y no «Turista», que se

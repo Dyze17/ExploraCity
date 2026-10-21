@@ -25,6 +25,7 @@ import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.PhotoRules
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
@@ -197,16 +198,8 @@ data class PublishUiState(
             )
             PublishStep.CATEGORY -> listOfNotNull(DraftField.CATEGORY.takeIf { draft.category == null })
             PublishStep.LOCATION -> listOfNotNull(DraftField.LOCATION.takeIf { draft.location == null })
-            // 18 · «No tengo el horario exacto» libera el paso; si no, días y horas, con el cierre después de la apertura.
-            PublishStep.SCHEDULE -> if (draft.hoursUnknown) {
-                emptyList()
-            } else {
-                listOfNotNull(
-                    DraftField.DAYS.takeIf { draft.hours.days.isEmpty() },
-                    DraftField.OPENS.takeIf { draft.hours.opens == null },
-                    DraftField.CLOSES.takeIf { draft.hours.closes == null || !draft.hours.closesAfterOpens },
-                )
-            }
+            // 18 · Sin horario o siempre abierto se pasa; por tramos, cada uno con días y dos horas distintas.
+            PublishStep.SCHEDULE -> draft.schedule.errors().map { it.field }
             // Una foto que se está preparando ya cuenta: «Enviar» la espera.
             PublishStep.PHOTOS -> listOfNotNull(DraftField.PHOTOS.takeIf { draft.photos.size < PhotoRules.MIN && photoStatus.preparing == 0 })
         }
@@ -219,11 +212,9 @@ data class PublishUiState(
 
     val showLocationError: Boolean get() = showErrors && step == PublishStep.LOCATION && draft.location == null
 
-    /** 18 · Los errores de días y horas junto a cada campo, tras tocar «Continuar». */
-    fun showScheduleError(field: DraftField): Boolean = showErrors && step == PublishStep.SCHEDULE && field in stepErrors
-
-    /** 18 · «La hora de cierre debe ser posterior»: se ve en cuanto las dos horas están, sin esperar a «Continuar». */
-    val closesBeforeOpens: Boolean get() = !draft.hoursUnknown && !draft.hours.closesAfterOpens
+    /** 18 · Los errores de días y horas junto a cada campo de cada tramo, tras tocar «Continuar». */
+    fun showScheduleError(block: Int, field: DraftField): Boolean =
+        showErrors && step == PublishStep.SCHEDULE && ScheduleError(block, field) in draft.schedule.errors()
 
     val showPhotosError: Boolean get() = showErrors && step == PublishStep.PHOTOS && draft.photos.size < PhotoRules.MIN
 }
@@ -397,18 +388,25 @@ class PublishViewModel(
 
     fun onBackFromPlace() = pin.onBackFromPlace()
 
-    /** 18 · Un día de atención: tocarlo lo marca o lo desmarca. */
-    fun onDayToggle(day: DayOfWeek) = updateDraft { draft ->
-        val days = draft.hours.days
-        draft.copy(hours = draft.hours.copy(days = if (day in days) days - day else days + day))
+    /**
+     * 18 · Tiene horario, siempre abierto o no se sabe. Siempre abierto propone «Entrada libre» si no había precio: un
+     * parque o una cascada casi nunca cobran.
+     */
+    fun onHoursModeChange(mode: HoursMode) = updateDraft { draft ->
+        draft.copy(schedule = draft.schedule.copy(mode = mode), price = draft.price ?: PriceRange.FREE.takeIf { mode == HoursMode.ALWAYS_OPEN })
     }
 
-    fun onOpensChange(time: LocalTime) = updateDraft { it.copy(hours = it.hours.copy(opens = time)) }
+    /** 18 · Un día del tramo [block]: tocarlo lo marca o lo desmarca; uno que ya tiene otro tramo no cambia. */
+    fun onDayToggle(block: Int, day: DayOfWeek) = updateDraft { it.copy(schedule = it.schedule.toggleDay(block, day)) }
 
-    fun onClosesChange(time: LocalTime) = updateDraft { it.copy(hours = it.hours.copy(closes = time)) }
+    fun onOpensChange(block: Int, time: LocalTime) = updateDraft { it.copy(schedule = it.schedule.withBlock(block) { hours -> hours.copy(opens = time) }) }
 
-    /** 18 · «No tengo el horario exacto»: días y horas dejan de hacer falta (se conservan por si la desmarca). */
-    fun onHoursUnknownChange(unknown: Boolean) = updateDraft { it.copy(hoursUnknown = unknown) }
+    fun onClosesChange(block: Int, time: LocalTime) = updateDraft { it.copy(schedule = it.schedule.withBlock(block) { hours -> hours.copy(closes = time) }) }
+
+    /** 18 · «Agregar otros días con otro horario»: un tramo vacío al final. */
+    fun onAddBlock() = updateDraft { it.copy(schedule = it.schedule.addBlock()) }
+
+    fun onRemoveBlock(block: Int) = updateDraft { it.copy(schedule = it.schedule.removeBlock(block)) }
 
     /** 18 · El precio es opcional: tocar el elegido lo quita. */
     fun onPriceChange(price: PriceRange) = updateDraft { it.copy(price = if (it.price == price) null else price) }

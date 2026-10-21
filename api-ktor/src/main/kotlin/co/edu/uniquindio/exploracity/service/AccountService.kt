@@ -214,11 +214,8 @@ class AccountService(
             description = description,
             latitude = latitude,
             longitude = longitude,
-            hours = if (hoursDays != null && opens != null && closes != null) {
-                ExportHours(days = days(hoursDays), opens = opens.toString(), closes = closes.toString())
-            } else {
-                null
-            },
+            hours = schedule.map { ExportHours(days = days(it.days), opens = it.opens.toString(), closes = it.closes.toString()) }.ifEmpty { null },
+            alwaysOpen = alwaysOpen.takeIf { it },
             price = price?.let(ExportLabels::of),
             photos = photos,
             submittedAt = submittedAt.iso(),

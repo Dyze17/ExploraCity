@@ -56,7 +56,12 @@ data class SubmissionRequest(
     /** ADR-16 · El municipio y el departamento del pin, del Geocoder del teléfono; sin ellos cuenta como la ciudad. */
     val municipality: String? = null,
     val region: String? = null,
+    /** El horario de la app 1.2, un solo tramo; la de ahora manda [schedule]. */
     val hours: HoursResponse? = null,
+    /** v1.3.0 · Los tramos, en orden; con él no se lee [hours]. */
+    val schedule: List<HoursResponse>? = null,
+    /** v1.3.0 · Sin puertas ni horario: sin tramos. */
+    val alwaysOpen: Boolean = false,
     val price: PriceRange? = null,
     val photos: List<String>,
     val duplicateCheck: DuplicateCheckRequest? = null,
@@ -77,7 +82,12 @@ data class ChangesRequest(
     val address: String? = null,
     val municipality: String? = null,
     val region: String? = null,
+    /** El horario de la app 1.2, un solo tramo; la de ahora manda [schedule]. */
     val hours: HoursResponse? = null,
+    /** v1.3.0 · Los tramos, en orden; con él no se lee [hours]. */
+    val schedule: List<HoursResponse>? = null,
+    /** v1.3.0 · Sin puertas ni horario: sin tramos. */
+    val alwaysOpen: Boolean = false,
     val price: PriceRange? = null,
     val photos: List<String>,
     val duplicateCheck: DuplicateCheckRequest? = null,
@@ -117,7 +127,11 @@ data class PublicationResponse(
     val submittedAt: String,
     val description: String,
     val photo: String? = null,
+    /** El primer tramo del horario, para la app 1.2; la de ahora lee [schedule]. */
     val hours: HoursResponse? = null,
+    /** v1.3.0 · Todos los tramos, en orden; no viene sin horario. */
+    val schedule: List<HoursResponse>? = null,
+    val alwaysOpen: Boolean = false,
     val price: PriceRange? = null,
     val votes: Int,
     val comments: Int,
@@ -158,7 +172,11 @@ data class ReviewItemResponse(
     val categoryOrigin: CategoryOrigin,
     val description: String,
     val photos: List<PhotoResponse>,
+    /** El primer tramo del horario, para la app 1.2; la de ahora lee [schedule]. */
     val hours: HoursResponse? = null,
+    /** v1.3.0 · Todos los tramos, en orden; no viene sin horario. */
+    val schedule: List<HoursResponse>? = null,
+    val alwaysOpen: Boolean = false,
     val price: PriceRange? = null,
     val address: String? = null,
     val location: GeoPoint,

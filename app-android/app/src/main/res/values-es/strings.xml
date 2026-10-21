@@ -230,6 +230,7 @@
     <!-- Horario: «Lunes a sábado, 7:00 a 19:00» -->
     <string name="hours_every_day">Todos los días</string>
     <string name="hours_to">a</string>
+    <string name="hours_always_open">Siempre abierto · acceso libre</string>
 
     <!-- Detalle del POI (13) -->
     <string name="detail_share">Compartir</string>
@@ -579,7 +580,19 @@
     <string name="publish_address_search_failed">La búsqueda no respondió. Intenta otra vez o mueve el pin a mano.</string>
     <!-- 18 · Paso 4, horario y precio -->
     <string name="publish_schedule_heading">¿Cuándo se puede visitar?</string>
-    <string name="publish_schedule_intro">Si no conoces el horario exacto, puedes seguir sin él.</string>
+    <string name="publish_schedule_intro">Si el horario cambia según el día, agrega uno para cada grupo de días.</string>
+    <string name="publish_schedule_mode">Horario</string>
+    <string name="publish_schedule_mode_hours">Tiene horario</string>
+    <string name="publish_schedule_mode_hours_body">Elige los días y las horas.</string>
+    <string name="publish_schedule_mode_always">Siempre abierto · acceso libre</string>
+    <string name="publish_schedule_mode_always_body">Plazas, parques, cascadas: sin puertas ni horario.</string>
+    <string name="publish_schedule_mode_unknown">No sé el horario</string>
+    <string name="publish_schedule_mode_unknown_body">Se publica sin horario.</string>
+    <string name="publish_schedule_block">Horario %1$d</string>
+    <string name="publish_schedule_remove_block">Quitar el horario %1$d</string>
+    <string name="publish_schedule_add_block">Agregar otros días con otro horario</string>
+    <string name="publish_schedule_day_taken">en otro horario</string>
+    <string name="publish_schedule_past_midnight">Cierra al día siguiente.</string>
     <string name="publish_schedule_days">Días de atención</string>
     <string name="publish_schedule_day_selected">seleccionado</string>
     <string name="publish_schedule_day_not_selected">no seleccionado</string>
@@ -591,13 +604,12 @@
     <string name="publish_schedule_pick_closes">Hora de cierre</string>
     <string name="publish_schedule_opens_missing">Elige la hora de apertura.</string>
     <string name="publish_schedule_closes_missing">Elige la hora de cierre.</string>
-    <string name="publish_schedule_closes_before">Debe ser después de la hora de apertura.</string>
-    <string name="publish_schedule_unknown">No tengo el horario exacto</string>
+    <string name="publish_schedule_same_time">Debe ser distinta de la hora de apertura.</string>
     <string name="publish_schedule_price">Rango de precio</string>
     <string name="publish_schedule_accept">Aceptar</string>
     <string name="publish_schedule_cancel">Cancelar</string>
-    <string name="publish_errors_hours">Elige los días y las horas, o marca «No tengo el horario exacto».</string>
-    <string name="publish_errors_hours_order">La hora de cierre debe ser posterior a la de apertura.</string>
+    <string name="publish_errors_hours">Elige los días y las horas de cada grupo, o elige «No sé el horario».</string>
+    <string name="publish_errors_hours_same">La hora de cierre debe ser distinta de la de apertura.</string>
     <!-- 19 · Paso 5, fotografías -->
     <string name="publish_photos_heading">Muestra el lugar</string>
     <string name="publish_photos_intro">Necesitas al menos una foto. Puedes subir hasta 5.</string>
@@ -701,7 +713,7 @@
     <string name="edit_save_fix_title">corrige el título</string>
     <string name="edit_save_fix_description">corrige la descripción</string>
     <string name="edit_save_fix_both">corrige el título y la descripción</string>
-    <string name="edit_save_fix_hours">completa el horario o marca «No tengo el horario exacto»</string>
+    <string name="edit_save_fix_hours">completa el horario o elige «No sé el horario»</string>
     <string name="edit_save_fix_photos">agrega al menos una foto</string>
     <string name="edit_save_photos">Una foto nueva no terminó de subir. Reinténtala o quítala para guardar.</string>
     <string name="edit_section_location">Ubicación</string>

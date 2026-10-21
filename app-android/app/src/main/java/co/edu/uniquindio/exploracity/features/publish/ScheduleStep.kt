@@ -1,5 +1,7 @@
 package co.edu.uniquindio.exploracity.features.publish
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +22,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimeInput
@@ -31,6 +34,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,7 +60,6 @@ import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
-import co.edu.uniquindio.exploracity.core.ui.components.ExploraCheckbox
 import co.edu.uniquindio.exploracity.core.ui.components.labelRes
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.components.spokenRes
@@ -66,6 +69,8 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.core.util.localeFormats
 import co.edu.uniquindio.exploracity.domain.model.DraftHours
+import co.edu.uniquindio.exploracity.domain.model.DraftSchedule
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -75,115 +80,114 @@ import java.time.format.TextStyle
 /** El orden de la semana en Colombia, como el resto de la app: empieza el lunes. */
 private val week = DayOfWeek.entries
 
-
 /** Cuál de las dos horas se está eligiendo. */
 private enum class TimeField { OPENS, CLOSES }
 
-/** Lo que se hace con el horario y el precio (paso 4 del formulario y edición, 23). */
+/** 18 · Un campo de un tramo del horario que falta o está mal. */
+internal data class ScheduleError(val block: Int, val field: DraftField)
+
+/**
+ * 18 · Lo que falta en cada tramo, en el orden de la pantalla: días, apertura y cierre (distinto de la apertura). Sin
+ * horario o siempre abierto, nada.
+ */
+internal fun DraftSchedule.errors(): List<ScheduleError> = if (mode != HoursMode.HOURS) {
+    emptyList()
+} else {
+    blocks.flatMapIndexed { index, block ->
+        listOfNotNull(
+            ScheduleError(index, DraftField.DAYS).takeIf { block.days.isEmpty() },
+            ScheduleError(index, DraftField.OPENS).takeIf { block.opens == null },
+            ScheduleError(index, DraftField.CLOSES).takeIf { block.closes == null || !block.timesDiffer },
+        )
+    }
+}
+
+/** 18 · Lo único que falla es que algún tramo abre y cierra a la misma hora. */
+internal fun DraftSchedule.onlySameTimes(): Boolean {
+    val errors = errors()
+    return errors.isNotEmpty() && errors.all { it.field == DraftField.CLOSES && blocks[it.block].closes != null }
+}
+
+/** Lo que se hace con el horario y el precio (paso 4 del formulario y edición, 23). El [Int] es el tramo. */
 class ScheduleCallbacks(
-    val onDayToggle: (DayOfWeek) -> Unit = {},
-    val onOpensChange: (LocalTime) -> Unit = {},
-    val onClosesChange: (LocalTime) -> Unit = {},
-    val onHoursUnknownChange: (Boolean) -> Unit = {},
+    val onModeChange: (HoursMode) -> Unit = {},
+    val onDayToggle: (Int, DayOfWeek) -> Unit = { _, _ -> },
+    val onOpensChange: (Int, LocalTime) -> Unit = { _, _ -> },
+    val onClosesChange: (Int, LocalTime) -> Unit = { _, _ -> },
+    val onAddBlock: () -> Unit = {},
+    val onRemoveBlock: (Int) -> Unit = {},
     val onPriceChange: (PriceRange) -> Unit = {},
 )
 
 /**
- * 18 · Horario y rango de precio. El horario es sugerido: «No tengo el horario exacto» libera el paso. El cierre debe
- * ser posterior a la apertura, con el mensaje junto al campo. El precio es opcional y se quita tocándolo otra vez.
+ * 18 · Horario y rango de precio. El horario va por tramos de días (cada uno con su franja, que puede cerrar pasada la
+ * medianoche), siempre abierto o sin saberlo; los dos últimos liberan el paso. El precio es opcional y se quita
+ * tocándolo otra vez.
  */
 @Composable
 internal fun ScheduleStep(state: PublishUiState, callbacks: ScheduleCallbacks) {
     StepHeading(stringResource(R.string.publish_schedule_heading), stringResource(R.string.publish_schedule_intro))
-    if (state.showErrors && state.stepErrors.isNotEmpty()) ErrorSummary(state.stepErrors, closesBeforeOpens = state.closesBeforeOpens)
     val draft = state.draft
+    if (state.showErrors && state.stepErrors.isNotEmpty()) ErrorSummary(state.stepErrors, sameTimes = draft.schedule.onlySameTimes())
     ScheduleFields(
-        hours = draft.hours,
-        hoursUnknown = draft.hoursUnknown,
+        schedule = draft.schedule,
         price = draft.price,
         showError = state::showScheduleError,
-        closesBeforeOpens = state.closesBeforeOpens,
-        firstError = state.stepErrors.firstOrNull(),
+        firstError = draft.schedule.errors().firstOrNull(),
         errorFocusRequest = state.errorFocusRequest,
         callbacks = callbacks,
     )
 }
 
 /**
- * Días, horas, «No tengo el horario exacto» y rango de precio. [showError] dice qué campos marcar en rojo; el foco va a
- * [firstError] cada vez que cambia [errorFocusRequest].
+ * Cómo se cuenta el horario, sus tramos y el rango de precio. [showError] dice qué campos de qué tramo marcar en rojo;
+ * el foco va a [firstError] cada vez que cambia [errorFocusRequest].
  */
 @Composable
 internal fun ScheduleFields(
-    hours: DraftHours,
-    hoursUnknown: Boolean,
+    schedule: DraftSchedule,
     price: PriceRange?,
-    showError: (DraftField) -> Boolean,
-    closesBeforeOpens: Boolean,
+    showError: (Int, DraftField) -> Boolean,
     callbacks: ScheduleCallbacks,
-    firstError: DraftField? = null,
+    firstError: ScheduleError? = null,
     errorFocusRequest: Int = 0,
 ) {
-    val enabled = !hoursUnknown
-    val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
+    var pickingBlock by rememberSaveable { mutableIntStateOf(0) }
     var picking by rememberSaveable { mutableStateOf<TimeField?>(null) }
-    val daysFocus = remember { FocusRequester() }
-    val opensFocus = remember { FocusRequester() }
-    val closesFocus = remember { FocusRequester() }
-    LaunchedEffect(errorFocusRequest) {
-        if (errorFocusRequest == 0) return@LaunchedEffect
-        when (firstError) {
-            DraftField.DAYS -> daysFocus.requestFocus()
-            DraftField.OPENS -> opensFocus.requestFocus()
-            DraftField.CLOSES -> closesFocus.requestFocus()
-            else -> Unit
+
+    Section(stringResource(R.string.publish_schedule_mode)) {
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            HoursMode.entries.forEach { mode -> ModeOption(mode, selected = schedule.mode == mode, onClick = { callbacks.onModeChange(mode) }) }
         }
     }
 
-    Section(stringResource(R.string.publish_schedule_days)) {
-        DayToggles(hours.days, enabled, showError(DraftField.DAYS), daysFocus, callbacks.onDayToggle)
-    }
-
-    val opens = @Composable { modifier: Modifier ->
-        TimeField(
-            label = stringResource(R.string.publish_schedule_opens),
-            time = hours.opens,
-            enabled = enabled,
-            error = if (showError(DraftField.OPENS)) stringResource(R.string.publish_schedule_opens_missing) else null,
-            pickLabel = stringResource(R.string.publish_schedule_pick_opens),
-            onPick = { picking = TimeField.OPENS },
-            modifier = modifier.focusRequester(opensFocus),
-        )
-    }
-    val closesError = when {
-        !enabled -> null
-        closesBeforeOpens -> stringResource(R.string.publish_schedule_closes_before)
-        showError(DraftField.CLOSES) -> stringResource(R.string.publish_schedule_closes_missing)
-        else -> null
-    }
-    val closes = @Composable { modifier: Modifier ->
-        TimeField(
-            label = stringResource(R.string.publish_schedule_closes),
-            time = hours.closes,
-            enabled = enabled,
-            error = closesError,
-            pickLabel = stringResource(R.string.publish_schedule_pick_closes),
-            onPick = { picking = TimeField.CLOSES },
-            modifier = modifier.focusRequester(closesFocus),
-        )
-    }
-    if (stacked) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            opens(Modifier.fillMaxWidth())
-            closes(Modifier.fillMaxWidth())
+    if (schedule.mode == HoursMode.HOURS) {
+        schedule.blocks.forEachIndexed { index, block ->
+            BlockFields(
+                index = index,
+                count = schedule.blocks.size,
+                block = block,
+                taken = schedule.takenByOthers(index),
+                showError = { field -> showError(index, field) },
+                focusOn = firstError?.takeIf { it.block == index }?.field,
+                errorFocusRequest = errorFocusRequest,
+                callbacks = callbacks,
+                onPick = { field ->
+                    pickingBlock = index
+                    picking = field
+                },
+            )
         }
-    } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            opens(Modifier.weight(1f))
-            closes(Modifier.weight(1f))
+        if (schedule.canAddBlock) {
+            ExploraButton(
+                stringResource(R.string.publish_schedule_add_block),
+                onClick = callbacks.onAddBlock,
+                modifier = Modifier.fillMaxWidth(),
+                style = ExploraButtonStyle.SECONDARY,
+                icon = R.drawable.ic_add,
+            )
         }
     }
-    UnknownHours(hoursUnknown, callbacks.onHoursUnknownChange)
 
     Section(stringResource(R.string.publish_schedule_price)) {
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -191,26 +195,177 @@ internal fun ScheduleFields(
         }
     }
 
-    when (picking) {
+    val picked = schedule.blocks.getOrNull(pickingBlock)?.takeIf { schedule.mode == HoursMode.HOURS }
+    when (picking.takeIf { picked != null }) {
         TimeField.OPENS -> TimeDialog(
             title = stringResource(R.string.publish_schedule_pick_opens),
-            initial = hours.opens ?: LocalTime.of(8, 0),
+            initial = picked?.opens ?: LocalTime.of(8, 0),
             onDismiss = { picking = null },
             onPick = {
-                callbacks.onOpensChange(it)
+                callbacks.onOpensChange(pickingBlock, it)
                 picking = null
             },
         )
         TimeField.CLOSES -> TimeDialog(
             title = stringResource(R.string.publish_schedule_pick_closes),
-            initial = hours.closes ?: LocalTime.of(18, 0),
+            initial = picked?.closes ?: LocalTime.of(18, 0),
             onDismiss = { picking = null },
             onPick = {
-                callbacks.onClosesChange(it)
+                callbacks.onClosesChange(pickingBlock, it)
                 picking = null
             },
         )
         null -> Unit
+    }
+}
+
+/** «Tiene horario», «Siempre abierto · acceso libre» o «No sé el horario», como radio: elegido = relleno, borde y check. */
+@Composable
+private fun ModeOption(mode: HoursMode, selected: Boolean, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val explora = MaterialTheme.exploraColors
+    val shape = RoundedCornerShape(12.dp)
+    val (title, body, icon) = when (mode) {
+        HoursMode.HOURS -> Triple(R.string.publish_schedule_mode_hours, R.string.publish_schedule_mode_hours_body, R.drawable.ic_schedule)
+        HoursMode.ALWAYS_OPEN -> Triple(R.string.publish_schedule_mode_always, R.string.publish_schedule_mode_always_body, R.drawable.ic_forest)
+        HoursMode.UNKNOWN -> Triple(R.string.publish_schedule_mode_unknown, R.string.publish_schedule_mode_unknown_body, R.drawable.ic_info)
+    }
+    val content = if (selected) explora.onPrimaryContainerAccent else scheme.onSurface
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(shape)
+            .background(if (selected) scheme.primaryContainer else Color.Transparent)
+            .border(1.dp, if (selected) scheme.primary else scheme.outline, shape)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(if (selected) R.drawable.ic_check else icon), null, tint = content, modifier = Modifier.size(20.dp.scaledWithFont()))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                stringResource(title),
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, fontWeight = if (selected) FontWeight.W700 else FontWeight.W600),
+                color = content,
+            )
+            Text(
+                stringResource(body),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 18.sp),
+                color = if (selected) explora.onPrimaryContainerAccent else explora.textSecondary,
+            )
+        }
+    }
+}
+
+/**
+ * Un tramo: con varios, va en su propia tarjeta con su número («Horario 2») y el botón para quitarlo. Los días que ya
+ * tiene otro tramo no se pueden elegir. Si cierra antes de abrir, avisa que es al día siguiente.
+ */
+@Composable
+private fun BlockFields(
+    index: Int,
+    count: Int,
+    block: DraftHours,
+    taken: Set<DayOfWeek>,
+    showError: (DraftField) -> Boolean,
+    focusOn: DraftField?,
+    errorFocusRequest: Int,
+    callbacks: ScheduleCallbacks,
+    onPick: (TimeField) -> Unit,
+) {
+    val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
+    val daysFocus = remember { FocusRequester() }
+    val opensFocus = remember { FocusRequester() }
+    val closesFocus = remember { FocusRequester() }
+    LaunchedEffect(errorFocusRequest) {
+        if (errorFocusRequest == 0) return@LaunchedEffect
+        when (focusOn) {
+            DraftField.DAYS -> daysFocus.requestFocus()
+            DraftField.OPENS -> opensFocus.requestFocus()
+            DraftField.CLOSES -> closesFocus.requestFocus()
+            else -> Unit
+        }
+    }
+    val shape = RoundedCornerShape(16.dp)
+    val card = if (count > 1) {
+        Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape).padding(12.dp)
+    } else {
+        Modifier
+    }
+    Column(card.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (count > 1) BlockHeader(index, onRemove = { callbacks.onRemoveBlock(index) })
+        Section(stringResource(R.string.publish_schedule_days)) {
+            DayToggles(block.days, taken, showError(DraftField.DAYS), daysFocus) { callbacks.onDayToggle(index, it) }
+        }
+        val opens = @Composable { modifier: Modifier ->
+            TimeField(
+                label = stringResource(R.string.publish_schedule_opens),
+                time = block.opens,
+                error = if (showError(DraftField.OPENS)) stringResource(R.string.publish_schedule_opens_missing) else null,
+                pickLabel = stringResource(R.string.publish_schedule_pick_opens),
+                onPick = { onPick(TimeField.OPENS) },
+                modifier = modifier.focusRequester(opensFocus),
+            )
+        }
+        val closesError = when {
+            !block.timesDiffer -> stringResource(R.string.publish_schedule_same_time)
+            showError(DraftField.CLOSES) -> stringResource(R.string.publish_schedule_closes_missing)
+            else -> null
+        }
+        val closes = @Composable { modifier: Modifier ->
+            TimeField(
+                label = stringResource(R.string.publish_schedule_closes),
+                time = block.closes,
+                error = closesError,
+                pickLabel = stringResource(R.string.publish_schedule_pick_closes),
+                onPick = { onPick(TimeField.CLOSES) },
+                modifier = modifier.focusRequester(closesFocus),
+            )
+        }
+        if (stacked) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                opens(Modifier.fillMaxWidth())
+                closes(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                opens(Modifier.weight(1f))
+                closes(Modifier.weight(1f))
+            }
+        }
+        if (block.pastMidnight) Note(R.drawable.ic_schedule, R.string.publish_schedule_past_midnight)
+    }
+}
+
+/** «Horario 2» y el botón para quitarlo, que el lector dice «Quitar el horario 2». */
+@Composable
+private fun BlockHeader(index: Int, onRemove: () -> Unit) {
+    val number = index + 1
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(R.string.publish_schedule_block, number),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.W700),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f).semantics { heading() },
+        )
+        IconButton(onClick = onRemove) {
+            Icon(
+                painterResource(R.drawable.ic_delete),
+                contentDescription = stringResource(R.string.publish_schedule_remove_block, number),
+                tint = MaterialTheme.exploraColors.iconSecondary,
+            )
+        }
+    }
+}
+
+/** Una aclaración junto al campo, sin ser un error: «Cierra al día siguiente.». */
+@Composable
+private fun Note(@DrawableRes icon: Int, @StringRes text: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(painterResource(icon), null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(16.dp.scaledWithFont()))
+        Text(stringResource(text), style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 18.sp), color = MaterialTheme.exploraColors.textSecondary)
     }
 }
 
@@ -230,19 +385,24 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
-/** Días de 48 dp: elegido = relleno, borde y texto en negrita; el lector dice «lunes, seleccionado». */
+/**
+ * Días de 48 dp: elegido = relleno, borde y texto en negrita; el lector dice «lunes, seleccionado». Un día de otro tramo
+ * se ve apagado, no se puede tocar y el lector dice «en otro horario».
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DayToggles(days: Set<DayOfWeek>, enabled: Boolean, error: Boolean, focusRequester: FocusRequester, onToggle: (DayOfWeek) -> Unit) {
+private fun DayToggles(days: Set<DayOfWeek>, taken: Set<DayOfWeek>, error: Boolean, focusRequester: FocusRequester, onToggle: (DayOfWeek) -> Unit) {
     val locale = appLocale()
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
     val selectedText = stringResource(R.string.publish_schedule_day_selected)
     val notSelectedText = stringResource(R.string.publish_schedule_day_not_selected)
+    val takenText = stringResource(R.string.publish_schedule_day_taken)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             week.forEachIndexed { index, day ->
                 val selected = day in days
+                val enabled = day !in taken
                 val shape = RoundedCornerShape(12.dp)
                 val content = when {
                     !enabled -> explora.textPlaceholder
@@ -255,10 +415,10 @@ private fun DayToggles(days: Set<DayOfWeek>, enabled: Boolean, error: Boolean, f
                         .then(if (index == 0) Modifier.focusRequester(focusRequester) else Modifier)
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                         .clip(shape)
-                        .background(if (selected && enabled) scheme.primaryContainer else Color.Transparent)
+                        .background(if (selected) scheme.primaryContainer else Color.Transparent)
                         .border(1.dp, if (!enabled) scheme.outlineVariant else if (selected) scheme.primary else if (error) scheme.error else scheme.outline, shape)
                         .toggleable(value = selected, enabled = enabled, onValueChange = { onToggle(day) })
-                        .semantics { stateDescription = if (selected) selectedText else notSelectedText }
+                        .semantics { stateDescription = if (!enabled) takenText else if (selected) selectedText else notSelectedText }
                         .padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -280,7 +440,6 @@ private fun DayToggles(days: Set<DayOfWeek>, enabled: Boolean, error: Boolean, f
 private fun TimeField(
     label: String,
     time: LocalTime?,
-    enabled: Boolean,
     error: String?,
     pickLabel: String,
     onPick: () -> Unit,
@@ -298,9 +457,9 @@ private fun TimeField(
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
                 .clip(shape)
-                .background(if (enabled) scheme.surfaceContainerLowest else Color.Transparent)
-                .border(if (error != null) 2.dp else 1.dp, if (!enabled) scheme.outlineVariant else if (error != null) scheme.error else scheme.outline, shape)
-                .clickable(enabled = enabled, role = Role.Button, onClickLabel = pickLabel, onClick = onPick)
+                .background(scheme.surfaceContainerLowest)
+                .border(if (error != null) 2.dp else 1.dp, if (error != null) scheme.error else scheme.outline, shape)
+                .clickable(role = Role.Button, onClickLabel = pickLabel, onClick = onPick)
                 .semantics {
                     contentDescription = "$label, ${value ?: ""}".trimEnd(',', ' ')
                     if (error != null) error(error)
@@ -311,7 +470,7 @@ private fun TimeField(
             Text(
                 value ?: stringResource(R.string.publish_schedule_time_empty),
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                color = if (!enabled || value == null) explora.textPlaceholder else scheme.onSurface,
+                color = if (value == null) explora.textPlaceholder else scheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
             Icon(painterResource(R.drawable.ic_schedule), null, tint = explora.iconSecondary, modifier = Modifier.size(20.dp.scaledWithFont()))
@@ -325,22 +484,6 @@ private fun FieldError(text: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(painterResource(R.drawable.ic_error), null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp.scaledWithFont()))
         Text(text, style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 18.sp), color = MaterialTheme.colorScheme.error)
-    }
-}
-
-/** «No tengo el horario exacto»: casilla de 24 dp en una fila de 48. */
-@Composable
-private fun UnknownHours(checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ExploraCheckbox(checked)
-        Text(stringResource(R.string.publish_schedule_unknown), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp), color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

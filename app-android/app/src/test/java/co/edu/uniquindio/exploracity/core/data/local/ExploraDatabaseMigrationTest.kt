@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.core.data.local
 
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
+import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -16,6 +17,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
+import java.time.DayOfWeek
+import java.time.LocalTime
 
 /**
  * Actualizar la app no puede borrar lo guardado ni la cola: cada versión migra desde la anterior. La base vieja se crea
@@ -83,6 +86,29 @@ class ExploraDatabaseMigrationTest {
             assertEquals(2000L, database.notificationsDao().savedAt())
             assertEquals(emptyList<SavedReviewEntity>(), database.reviewsDao().all())
             assertNull(database.reviewsDao().savedAt())
+        }
+        database.close()
+    }
+
+    @Test
+    fun `de la 6 a la actual conserva el horario de un lugar guardado por la 1_2`() {
+        createVersion(6) {
+            execSQL(
+                "INSERT INTO saved_pois (id, position, title, category, status, latitude, longitude, distanceMeters, votes, comments) " +
+                    "VALUES ('mirador', 0, 'Mirador de la Secreta', 'NATURE', 'VERIFIED', 4.55, -75.65, 0, 0, 0)",
+            )
+            execSQL(
+                "INSERT INTO saved_details (poiId, description, photos, address, openDays, opensAt, closesAt, authorId, authorName, " +
+                    "authorPoints, voted, visited, savedAtMillis) VALUES ('mirador', 'Vista a la ciudad.', '[]', 'Vía al Mirador', " +
+                    "'MONDAY,FRIDAY', '08:00', '18:00', 'ana-rios', 'Ana Ríos', 40, 0, 0, 1000)",
+            )
+        }
+
+        val database = Room.databaseBuilder(context, ExploraDatabase::class.java, NAME).allowMainThreadQueries().build()
+        runBlocking {
+            val dao = database.savedPlacesDao()
+            val details = checkNotNull(dao.details("mirador")).toDomain(checkNotNull(dao.place("mirador")))
+            assertEquals(OpeningHours.of(setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), LocalTime.of(8, 0), LocalTime.of(18, 0)), details.hours)
         }
         database.close()
     }

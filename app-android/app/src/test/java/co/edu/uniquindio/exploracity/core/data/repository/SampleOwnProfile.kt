@@ -53,7 +53,7 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 // A unos 30 m del Chorro de Quevedo: es el parecido que Ana descartó en 17B.
                 location = GeoPoint(4.59675, -74.06995),
                 photos = samplePublishedPhotos("panaderia-la-candelaria", 3),
-                hours = OpeningHours(DayOfWeek.entries.toSet() - DayOfWeek.SUNDAY, LocalTime.of(6, 0), LocalTime.of(19, 0)),
+                hours = OpeningHours.of(DayOfWeek.entries.toSet() - DayOfWeek.SUNDAY, LocalTime.of(6, 0), LocalTime.of(19, 0)),
                 price = PriceRange.LOW,
                 submittedAt = ago(2.hours),
                 description = "Pan de yuca y almojábanas recién horneadas desde las 6 de la mañana, en la esquina del Chorro de Quevedo.",
@@ -109,7 +109,7 @@ internal fun sampleHiddenPublications(now: Instant): List<PublicationSeed> {
                 status = PublicationStatus.REJECTED,
                 location = GeoPoint(4.59791, -74.0746),
                 photos = samplePublishedPhotos("puerta-falsa-tamales", 1),
-                hours = OpeningHours(DayOfWeek.entries.toSet(), LocalTime.of(7, 0), LocalTime.of(22, 0)),
+                hours = OpeningHours.of(DayOfWeek.entries.toSet(), LocalTime.of(7, 0), LocalTime.of(22, 0)),
                 price = PriceRange.LOW,
                 submittedAt = ago(1.days),
                 description = "Los tamales santafereños y el chocolate con queso de siempre, en la esquina de la catedral.",

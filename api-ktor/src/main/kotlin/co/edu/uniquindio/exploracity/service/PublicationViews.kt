@@ -43,7 +43,9 @@ class PublicationViews(
             submittedAt = place.submittedAt.iso(),
             description = place.fields.description,
             photo = photos.firstOrNull()?.url,
-            hours = hoursOf(place.fields),
+            hours = place.fields.schedule.firstOrNull()?.let(PlaceCards::hoursOf),
+            schedule = place.fields.schedule.map(PlaceCards::hoursOf).ifEmpty { null },
+            alwaysOpen = place.fields.alwaysOpen,
             price = place.fields.price,
             votes = publications.votes(place.id),
             comments = publications.comments(place.id),
@@ -66,7 +68,9 @@ class PublicationViews(
             categoryOrigin = place.categoryOrigin,
             description = place.fields.description,
             photos = publications.photosOf(place.id).map { PhotoResponse(it.id.toString(), it.url) },
-            hours = hoursOf(place.fields),
+            hours = place.fields.schedule.firstOrNull()?.let(PlaceCards::hoursOf),
+            schedule = place.fields.schedule.map(PlaceCards::hoursOf).ifEmpty { null },
+            alwaysOpen = place.fields.alwaysOpen,
             price = place.fields.price,
             address = place.fields.address,
             location = place.location(),
@@ -92,12 +96,6 @@ class PublicationViews(
             )
         }
 
-    fun hoursOf(fields: PlaceFields): HoursResponse? {
-        val bits = fields.hoursDays ?: return null
-        val opens = fields.opens ?: return null
-        val closes = fields.closes ?: return null
-        return HoursResponse(PlaceCards.days(bits).map { it.name }, opens.toString(), closes.toString())
-    }
 
     private fun rejectionOf(place: OwnPlaceRow): RejectionResponse? {
         val decision = publications.latestDecision(place.id)?.takeIf { it.action == DecisionAction.REJECTED } ?: return null

@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.HoursResponse
 import co.edu.uniquindio.exploracity.model.PlaceSummaryResponse
 import co.edu.uniquindio.exploracity.repository.AuthorRow
+import co.edu.uniquindio.exploracity.repository.HoursBlock
 import co.edu.uniquindio.exploracity.repository.PlaceFilter
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.PlaceRow
@@ -34,13 +35,6 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
         summary = shortSummary(row.description),
     )
 
-    fun hoursOf(row: PlaceRow): HoursResponse? {
-        val bits = row.hoursDays ?: return null
-        val opens = row.opens ?: return null
-        val closes = row.closes ?: return null
-        return HoursResponse(days(bits).map { it.name }, opens.toString(), closes.toString())
-    }
-
     /** Sin un punto en la petición, la distancia se mide desde el centro de la ciudad. */
     fun origin(near: GeoPoint?): GeoPoint = near ?: city.center
 
@@ -59,16 +53,25 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
     fun towns(places: PlaceRepository): List<TownRow> = places.towns(city.name, city.region, TOWNS_LIMIT)
 
     /**
-     * Según el horario y la hora del lugar (ADR-17); sin su zona, la de la ciudad. La franja no cruza la medianoche: el
-     * formulario pide que el cierre sea después de la apertura (18).
+     * Según el horario y la hora del lugar (ADR-17); sin su zona, la de la ciudad. Siempre abierto, lo está; sin horario,
+     * no se sabe (null).
      */
     private fun openNow(row: PlaceRow): Boolean? {
-        val bits = row.hoursDays ?: return null
-        val opens = row.opens ?: return null
-        val closes = row.closes ?: return null
+        if (row.alwaysOpen) return true
+        if (row.schedule.isEmpty()) return null
         val now = LocalDateTime.ofInstant(clock.instant(), row.timeZone ?: city.timeZone)
+        return row.schedule.any { it.isOpenAt(now) }
+    }
+
+    /** Un tramo que cierra después de medianoche sigue abierto la madrugada del día siguiente (v1.3.0). */
+    private fun HoursBlock.isOpenAt(now: LocalDateTime): Boolean {
         val time = now.toLocalTime()
-        return now.dayOfWeek in days(bits) && !time.isBefore(opens) && time.isBefore(closes)
+        val open = days(days)
+        return if (pastMidnight) {
+            (now.dayOfWeek in open && !time.isBefore(opens)) || (now.dayOfWeek.minus(1) in open && time.isBefore(closes))
+        } else {
+            now.dayOfWeek in open && !time.isBefore(opens) && time.isBefore(closes)
+        }
     }
 
     companion object {
@@ -82,6 +85,9 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
 
         /** Bits de lunes (1) a domingo (64). */
         fun days(bits: Int): List<DayOfWeek> = DayOfWeek.entries.filter { bits and (1 shl it.ordinal) != 0 }
+
+        /** 18 · Un tramo como lo lee la app: los días de lunes a domingo y las horas «08:00». */
+        fun hoursOf(block: HoursBlock) = HoursResponse(days(block.days).map { it.name }, block.opens.toString(), block.closes.toString())
 
         /**
          * La frase de la tarjeta del mapa: la primera oración de la descripción. Si es muy larga, se corta en la última

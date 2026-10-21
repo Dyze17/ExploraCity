@@ -97,7 +97,7 @@ internal fun previewDetails(poi: Poi): PoiDetails = PoiDetails(
     description = "${poi.summary.orEmpty()} Vale la pena llegar temprano: después del mediodía se llena.",
     photos = (1..3).map { PoiPhoto(url = null, description = "${poi.title}. Foto $it de 3") },
     address = "Cra. 14 #12-30, Armenia",
-    hours = OpeningHours(DayOfWeek.entries.filter { it != DayOfWeek.SUNDAY }.toSet(), LocalTime.of(7, 0), LocalTime.of(19, 0)),
+    hours = OpeningHours.of(DayOfWeek.entries.filter { it != DayOfWeek.SUNDAY }.toSet(), LocalTime.of(7, 0), LocalTime.of(19, 0)),
     author = previewOther,
     voted = false,
     visited = false,

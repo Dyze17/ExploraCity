@@ -105,7 +105,6 @@ import co.edu.uniquindio.exploracity.core.ui.theme.LocalDarkTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.ScrimAlpha
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
-import co.edu.uniquindio.exploracity.core.util.HoursWords
 import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.core.util.formatOpeningHours
 import co.edu.uniquindio.exploracity.core.util.hasMapsApiKey
@@ -417,7 +416,7 @@ private fun OriginTag(origin: CategoryOrigin) {
 @Composable
 private fun InfoCard(item: ReviewItem) {
     val hours = item.hours?.let {
-        formatOpeningHours(it, HoursWords(stringResource(R.string.hours_every_day), stringResource(R.string.hours_to), stringResource(R.string.list_and)))
+        formatOpeningHours(it)
     } ?: stringResource(R.string.review_no_hours)
     val price = item.price?.let { stringResource(it.labelRes) } ?: stringResource(R.string.review_no_price)
     val locale = appLocale()

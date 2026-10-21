@@ -45,6 +45,19 @@
       "opens": "08:00",
       "closes": "18:00"
     },
+    "schedule": [
+      {
+        "days": [
+          "MONDAY",
+          "TUESDAY",
+          "WEDNESDAY",
+          "THURSDAY",
+          "FRIDAY"
+        ],
+        "opens": "08:00",
+        "closes": "18:00"
+      }
+    ],
     "price": "FREE",
     "votes": 1,
     "comments": 0,

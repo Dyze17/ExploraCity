@@ -9,6 +9,8 @@ import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyPublicationR
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.HoursBlock
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
@@ -223,7 +225,7 @@ class EditPublicationViewModelTest {
         advanceUntilIdle()
 
         assertEquals(murales, vm.form.location)
-        assertTrue("Murales no tiene horario", vm.form.hoursUnknown)
+        assertEquals("Murales no tiene horario", HoursMode.UNKNOWN, vm.form.schedule.mode)
         assertEquals(PriceRange.FREE, vm.form.price)
         assertEquals(4, vm.form.photos.size)
         assertTrue(vm.form.photos.all { it.uploaded })
@@ -235,13 +237,20 @@ class EditPublicationViewModelTest {
         val vm = viewModel()
         advanceUntilIdle()
 
-        vm.onHoursUnknownChange(false)
+        vm.onHoursModeChange(HoursMode.HOURS)
         assertTrue("Sin días ni horas no se puede guardar", !vm.state.value.canSave)
-        assertTrue(vm.state.value.showScheduleError(DraftField.DAYS))
-        vm.onDayToggle(DayOfWeek.SATURDAY)
-        vm.onDayToggle(DayOfWeek.SUNDAY)
-        vm.onOpensChange(LocalTime.of(9, 0))
-        vm.onClosesChange(LocalTime.of(17, 0))
+        assertTrue(vm.state.value.showScheduleError(0, DraftField.DAYS))
+        vm.onDayToggle(0, DayOfWeek.SATURDAY)
+        vm.onDayToggle(0, DayOfWeek.SUNDAY)
+        vm.onOpensChange(0, LocalTime.of(9, 0))
+        vm.onClosesChange(0, LocalTime.of(17, 0))
+        vm.onAddBlock()
+        assertTrue("El tramo nuevo está vacío", !vm.state.value.canSave)
+        vm.onDayToggle(1, DayOfWeek.SATURDAY)
+        assertEquals("El sábado ya es del primero", emptySet<DayOfWeek>(), vm.form.schedule.blocks[1].days)
+        vm.onDayToggle(1, DayOfWeek.FRIDAY)
+        vm.onOpensChange(1, LocalTime.of(20, 0))
+        vm.onClosesChange(1, LocalTime.of(2, 0))
         vm.onPriceChange(PriceRange.LOW)
         assertTrue(vm.state.value.canSave)
 
@@ -249,8 +258,29 @@ class EditPublicationViewModelTest {
         advanceUntilIdle()
 
         val saved = requireNotNull(server.publication("murales-calle-26"))
-        assertEquals(OpeningHours(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), LocalTime.of(9, 0), LocalTime.of(17, 0)), saved.hours)
+        val expected = OpeningHours.Blocks(
+            listOf(
+                HoursBlock(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), LocalTime.of(9, 0), LocalTime.of(17, 0)),
+                HoursBlock(setOf(DayOfWeek.FRIDAY), LocalTime.of(20, 0), LocalTime.of(2, 0)),
+            ),
+        )
+        assertEquals(expected, saved.hours)
         assertEquals(PriceRange.LOW, saved.price)
+    }
+
+    @Test
+    fun `siempre abierto propone entrada libre y quita el horario`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onPriceChange(PriceRange.FREE)
+        assertEquals("Tocar el precio elegido lo quita", null, vm.form.price)
+
+        vm.onHoursModeChange(HoursMode.ALWAYS_OPEN)
+        assertEquals(PriceRange.FREE, vm.form.price)
+        vm.onSave()
+        advanceUntilIdle()
+
+        assertEquals(OpeningHours.AlwaysOpen, server.publication("murales-calle-26")?.hours)
     }
 
     @Test

@@ -30,10 +30,9 @@ data class OwnPlace(
     val description: String,
     val latitude: Double,
     val longitude: Double,
-    /** Días de atención como bits: lunes = 1 … domingo = 64. */
-    val hoursDays: Int?,
-    val opens: LocalTime?,
-    val closes: LocalTime?,
+    /** 18 · Los tramos del horario, en orden. */
+    val schedule: List<HoursBlock>,
+    val alwaysOpen: Boolean,
     val price: PriceRange?,
     val photos: List<String>,
     val submittedAt: Instant,
@@ -61,6 +60,7 @@ class PersonalDataRepository {
             .groupBy({ it[Photos.placeId] }, { it[Photos.url] })
         val votes = countBy(Votes.placeId, ids)
         val comments = countBy(Comments.placeId, ids)
+        val schedules = schedulesOf(ids)
         return rows.map { row ->
             val id = row[Places.id]
             OwnPlace(
@@ -71,9 +71,8 @@ class PersonalDataRepository {
                 description = row[Places.description],
                 latitude = row[Places.latitude],
                 longitude = row[Places.longitude],
-                hoursDays = row[Places.hoursDays]?.toInt(),
-                opens = row[Places.hoursOpens],
-                closes = row[Places.hoursCloses],
+                schedule = schedules[id].orEmpty(),
+                alwaysOpen = row[Places.alwaysOpen],
                 price = row[Places.price],
                 photos = photos[id].orEmpty(),
                 submittedAt = row[Places.submittedAt].toInstant(),

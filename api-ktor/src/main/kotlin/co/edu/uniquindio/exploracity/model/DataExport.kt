@@ -55,7 +55,9 @@ data class ExportPublication(
     @SerialName("descripcion") val description: String,
     @SerialName("latitud") val latitude: Double,
     @SerialName("longitud") val longitude: Double,
-    @SerialName("horario") val hours: ExportHours?,
+    /** v1.3.0 · Los tramos del horario, en orden. */
+    @SerialName("horario") val hours: List<ExportHours>?,
+    @SerialName("siempreAbierto") val alwaysOpen: Boolean? = null,
     @SerialName("precio") val price: String?,
     @SerialName("fotos") val photos: List<String>,
     @SerialName("enviada") val submittedAt: String,
