@@ -1012,7 +1012,6 @@
     <string name="settings_section_permissions">Permisos</string>
     <string name="settings_section_personal_data">Datos personales</string>
     <string name="settings_section_account">Cuenta</string>
-    <string name="settings_section_development">Desarrollo</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Oscuro</string>
@@ -1024,10 +1023,6 @@
     <string name="settings_location_precise">Permitida mientras usas la app</string>
     <string name="settings_location_approximate">Solo aproximada · «Usar mi ubicación» no queda exacto</string>
     <string name="settings_location_denied">Sin permiso · sin «Cercanos» ni «Usar mi ubicación»</string>
-    <string name="settings_permission_camera">Cámara</string>
-    <string name="settings_camera_status">No hace falta · usas la app de cámara del teléfono</string>
-    <string name="settings_permission_photos">Fotos</string>
-    <string name="settings_photos_status">No hace falta · eliges cada foto en el selector de Android</string>
     <string name="settings_permission_change">Cambiar</string>
     <string name="settings_permission_change_action">cambiar el permiso en los ajustes del teléfono</string>
     <string name="settings_policy">Política de tratamiento de datos</string>
@@ -1043,7 +1038,6 @@
     <string name="settings_email_google">Es el de tu cuenta de Google. Para cambiarlo, primero crea una contraseña con «¿Olvidaste tu contraseña?».</string>
     <string name="settings_logout">Cerrar sesión</string>
     <string name="settings_delete_account">Eliminar mi cuenta</string>
-    <string name="settings_design_catalog">Muestrario del sistema de diseño</string>
     <string name="change_email_title">Cambiar correo</string>
 
     <!-- 29A · Cerrar sesión -->

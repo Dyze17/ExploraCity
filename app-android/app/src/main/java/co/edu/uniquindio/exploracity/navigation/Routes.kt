@@ -152,5 +152,3 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 /** Sin lienzo (E1): las publicaciones ya decididas; una verificada o finalizada abre 36. */
 @Serializable data object ResolvedPublications
 
-/** Solo desarrollo: muestrario del sistema de diseño, accesible desde Ajustes. */
-@Serializable data object DesignSystemCatalog

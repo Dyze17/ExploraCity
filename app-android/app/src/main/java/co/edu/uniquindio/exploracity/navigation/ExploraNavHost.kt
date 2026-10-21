@@ -1,6 +1,5 @@
 package co.edu.uniquindio.exploracity.navigation
 
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -17,7 +16,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.core.ui.catalog.DesignCatalog
 import co.edu.uniquindio.exploracity.domain.model.SentSummary
 import co.edu.uniquindio.exploracity.domain.model.UserRole
 import co.edu.uniquindio.exploracity.features.access.ExpiredLinkScreen
@@ -452,7 +450,6 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionN
                 onChangeEmail = { nav.navigate(ChangeEmail()) },
                 onDeleteAccount = { nav.navigate(DeleteAccount) },
                 onSignedOut = { onLogout(SessionNotice.SIGNED_OUT) },
-                onOpenDesignCatalog = { nav.navigate(DesignSystemCatalog) },
                 emailChanged = emailChanged,
                 onEmailChangedShown = { entry.savedStateHandle[EMAIL_CHANGED_KEY] = null },
             )
@@ -488,7 +485,6 @@ private fun NavGraphBuilder.profileGraph(nav: NavController, onLogout: (SessionN
         composable<DeleteAccount> {
             DeleteAccountRoute(onBack = nav.back(), onDeleted = { onLogout(SessionNotice.ACCOUNT_DELETED) })
         }
-        composable<DesignSystemCatalog> { DesignCatalog(Modifier.safeDrawingPadding()) }
     }
 }
 
