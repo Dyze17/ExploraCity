@@ -952,7 +952,6 @@
     <string name="settings_section_permissions">Permissions</string>
     <string name="settings_section_personal_data">Personal data</string>
     <string name="settings_section_account">Account</string>
-    <string name="settings_section_development">Development</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
@@ -966,10 +965,6 @@
     <string name="settings_location_precise">Allowed while you use the app</string>
     <string name="settings_location_approximate">Approximate only · “Use my location” isn’t exact</string>
     <string name="settings_location_denied">Not allowed · no “Nearby” or “Use my location”</string>
-    <string name="settings_permission_camera">Camera</string>
-    <string name="settings_camera_status">Not needed · you use the phone’s camera app</string>
-    <string name="settings_permission_photos">Photos</string>
-    <string name="settings_photos_status">Not needed · you choose each photo in the Android picker</string>
     <string name="settings_permission_change">Change</string>
     <string name="settings_permission_change_action">change the permission in the phone’s settings</string>
     <string name="settings_policy">Data processing policy</string>
@@ -985,7 +980,6 @@
     <string name="settings_email_google">It’s the one from your Google account. To change it, first create a password with “Forgot your password?”.</string>
     <string name="settings_logout">Sign out</string>
     <string name="settings_delete_account">Delete my account</string>
-    <string name="settings_design_catalog">Design system catalog</string>
     <string name="change_email_title">Change email</string>
 
     <!-- 29A · Sign out -->

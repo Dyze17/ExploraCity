@@ -65,7 +65,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import co.edu.uniquindio.exploracity.BuildConfig
 import co.edu.uniquindio.exploracity.R
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButton
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
@@ -96,7 +95,6 @@ fun SettingsRoute(
     onChangeEmail: () -> Unit,
     onDeleteAccount: () -> Unit,
     onSignedOut: () -> Unit,
-    onOpenDesignCatalog: () -> Unit,
     emailChanged: String? = null,
     onEmailChangedShown: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory),
@@ -142,7 +140,6 @@ fun SettingsRoute(
         state = state,
         location = location,
         language = language,
-        showDevelopment = BuildConfig.DEBUG,
         callbacks = SettingsCallbacks(
             onBack = onBack,
             onThemeChange = viewModel::onThemeChange,
@@ -160,7 +157,6 @@ fun SettingsRoute(
             onDismissLogout = viewModel::onDismissLogout,
             onConfirmLogout = viewModel::onConfirmLogout,
             onDeleteAccount = onDeleteAccount,
-            onOpenDesignCatalog = onOpenDesignCatalog,
         ),
     )
 }
@@ -181,13 +177,11 @@ class SettingsCallbacks(
     val onDismissLogout: () -> Unit = {},
     val onConfirmLogout: () -> Unit = {},
     val onDeleteAccount: () -> Unit = {},
-    val onOpenDesignCatalog: () -> Unit = {},
 )
 
 /**
- * 29.a · Apariencia, permisos, datos personales y cuenta, con ítems de 56 dp o más. Cada permiso dice su estado en
- * texto y qué se pierde sin él. «Eliminar mi cuenta» va al final, aparte y en tono destructivo. Con [showDevelopment]
- * (compilación de desarrollo) aparece además el muestrario del sistema de diseño.
+ * 29.a · Apariencia, permisos, datos personales y cuenta, con ítems de 56 dp o más. Los permisos son solo los que la
+ * app pide (la ubicación), con su estado en texto. «Eliminar mi cuenta» va al final, aparte y en tono destructivo.
  */
 @Composable
 fun SettingsScreen(
@@ -195,7 +189,6 @@ fun SettingsScreen(
     location: LocationAccess,
     callbacks: SettingsCallbacks,
     modifier: Modifier = Modifier,
-    showDevelopment: Boolean = false,
     language: AppLanguage = AppLanguage.SYSTEM,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -234,13 +227,7 @@ fun SettingsScreen(
                     }
                 }
                 Section(stringResource(R.string.settings_section_permissions)) {
-                    SettingsCard {
-                        LocationRow(location, callbacks.onChangeLocationPermission)
-                        RowDivider()
-                        PermissionRow(R.drawable.ic_photo_camera, stringResource(R.string.settings_permission_camera), stringResource(R.string.settings_camera_status))
-                        RowDivider()
-                        PermissionRow(R.drawable.ic_photo_library, stringResource(R.string.settings_permission_photos), stringResource(R.string.settings_photos_status))
-                    }
+                    SettingsCard { LocationRow(location, callbacks.onChangeLocationPermission) }
                 }
                 Section(stringResource(R.string.settings_section_personal_data)) {
                     SettingsCard {
@@ -258,11 +245,6 @@ fun SettingsScreen(
                         LinkRow(R.drawable.ic_logout, stringResource(R.string.settings_logout), callbacks.onLogout, chevron = false)
                     }
                     DeleteAccountRow(callbacks.onDeleteAccount)
-                }
-                if (showDevelopment) {
-                    Section(stringResource(R.string.settings_section_development)) {
-                        SettingsCard { LinkRow(R.drawable.ic_palette, stringResource(R.string.settings_design_catalog), callbacks.onOpenDesignCatalog) }
-                    }
                 }
             }
         }
@@ -375,10 +357,7 @@ private fun LocationRow(access: LocationAccess, onChange: () -> Unit) {
     }
 }
 
-/**
- * Cámara y fotos no piden permiso: la app usa la cámara del teléfono y el selector de Android. La fila lo dice, sin
- * «Cambiar», en lugar de mostrar un permiso que nunca se pide.
- */
+/** Un permiso con su estado y, a la derecha (o debajo con fuente grande), la acción para cambiarlo. */
 @Composable
 private fun PermissionRow(
     @DrawableRes icon: Int,
@@ -619,7 +598,7 @@ private val previewState = SettingsUiState(themeMode = ThemeMode.DARK, email = "
 @Preview(name = "29.a · claro", widthDp = 360, heightDp = 1100)
 @Composable
 private fun SettingsLightPreview() {
-    ExploraCityTheme(ThemeMode.LIGHT) { SettingsScreen(previewState, LocationAccess.PRECISE, SettingsCallbacks(), showDevelopment = true) }
+    ExploraCityTheme(ThemeMode.LIGHT) { SettingsScreen(previewState, LocationAccess.PRECISE, SettingsCallbacks()) }
 }
 
 @Preview(name = "29.a · oscuro", widthDp = 360, heightDp = 1100)
