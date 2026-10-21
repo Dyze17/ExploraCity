@@ -59,14 +59,14 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
     fun towns(places: PlaceRepository): List<TownRow> = places.towns(city.name, city.region, TOWNS_LIMIT)
 
     /**
-     * Según el horario y la hora de la ciudad. La franja no cruza la medianoche: el formulario pide que el cierre sea
-     * después de la apertura (18).
+     * Según el horario y la hora del lugar (ADR-17); sin su zona, la de la ciudad. La franja no cruza la medianoche: el
+     * formulario pide que el cierre sea después de la apertura (18).
      */
     private fun openNow(row: PlaceRow): Boolean? {
         val bits = row.hoursDays ?: return null
         val opens = row.opens ?: return null
         val closes = row.closes ?: return null
-        val now = LocalDateTime.ofInstant(clock.instant(), city.timeZone)
+        val now = LocalDateTime.ofInstant(clock.instant(), row.timeZone ?: city.timeZone)
         val time = now.toLocalTime()
         return now.dayOfWeek in days(bits) && !time.isBefore(opens) && time.isBefore(closes)
     }

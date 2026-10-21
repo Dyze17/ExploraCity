@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.model.Notifications
 import co.edu.uniquindio.exploracity.model.Photos
 import co.edu.uniquindio.exploracity.model.Places
 import co.edu.uniquindio.exploracity.model.PublicationStatus
+import co.edu.uniquindio.exploracity.service.TimeZones
 import co.edu.uniquindio.exploracity.support.ApiTest
 import co.edu.uniquindio.exploracity.support.Fixtures
 import co.edu.uniquindio.exploracity.support.JPEG
@@ -16,15 +17,18 @@ import co.edu.uniquindio.exploracity.support.assertMatchesContract
 import co.edu.uniquindio.exploracity.support.json
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Duration
+import java.time.ZoneId
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -91,6 +95,34 @@ class PublicationRoutesTest : ApiTest() {
         assertEquals(listOf("Café Las Acacias"), ownPending.json().jsonArray.map { it.jsonObject["title"]!!.jsonPrimitive.content })
         val excluded = get("/v1/places/similar?title=Cafe%20Acacias&near=4.5402,-75.6721&excludeId=${Fixtures.CAFE}", accessToken(Fixtures.ANA))
         assertEquals("[]", excluded.bodyAsText())
+    }
+
+    @Test
+    fun `cada lugar guarda la zona horaria de su pin y abre con la hora de donde está`() = apiTest(zones = testZones) {
+        val pedro = register("pedro@correo.com", name = "Pedro Pérez")
+        // Sábado 3 de octubre, 15:00 UTC: 17:00 en Madrid y 10:00 en Armenia.
+        val saturday = ""","hours":{"days":["SATURDAY"],"opens":"16:00","closes":"20:00"}"""
+        val madrid = UUID.fromString(publish(pedro.accessToken, title = "Chocolatería de San Ginés", latitude = 40.4168, longitude = -3.7038, extra = saturday))
+        val armenia = UUID.fromString(publish(pedro.accessToken, extra = saturday))
+        fun zone(id: UUID) = transaction(database) { Places.selectAll().where { Places.id eq id }.single()[Places.timeZone] }
+        assertEquals("Europe/Madrid", zone(madrid))
+        assertEquals("America/Bogota", zone(armenia))
+        transaction(database) { Places.update({ Places.id inList listOf(madrid, armenia) }) { it[status] = PublicationStatus.VERIFIED } }
+
+        suspend fun openNow() = get("/v1/places?pageSize=50", pedro.accessToken).json().jsonObject["items"]!!.jsonArray
+            .associate { it.jsonObject["id"]!!.jsonPrimitive.content to it.jsonObject["openNow"]?.jsonPrimitive?.boolean }
+        assertEquals(true, openNow()[madrid.toString()], "17:00 en Madrid")
+        assertEquals(false, openNow()[armenia.toString()], "10:00 en Armenia")
+
+        // Mover el pin a Armenia le cambia la zona.
+        val moved = put(
+            "/v1/publications/$madrid",
+            """{"title":"Chocolatería de San Ginés","category":"GASTRONOMY","description":"Un café pequeño frente a la vieja estación del tren, con tostión propia.",""" +
+                """"location":{"latitude":4.5339,"longitude":-75.6811}$saturday,"photos":["${uploadPhoto(pedro.accessToken)}"]}""",
+            pedro.accessToken,
+        )
+        assertEquals(HttpStatusCode.OK, moved.status, moved.bodyAsText())
+        assertEquals("America/Bogota", zone(madrid))
     }
 
     @Test
@@ -327,3 +359,6 @@ class PublicationRoutesTest : ApiTest() {
         override suspend fun classify(title: String, description: String): Category? = throw ClassifierException("sin respuesta")
     }
 }
+
+/** ADR-17 · Al este del Atlántico, Madrid; al oeste, Colombia. */
+private val testZones = TimeZones { _, longitude -> ZoneId.of(if (longitude > -30) "Europe/Madrid" else "America/Bogota") }

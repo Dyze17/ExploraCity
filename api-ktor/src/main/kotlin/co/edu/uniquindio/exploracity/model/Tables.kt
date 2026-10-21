@@ -100,6 +100,9 @@ object Places : Table("places") {
     val hoursDays = short("hours_days").nullable()
     val hoursOpens = time("hours_opens").nullable()
     val hoursCloses = time("hours_closes").nullable()
+
+    /** ADR-17 · La zona horaria del pin («America/Bogota», V12); null = la de la ciudad de la configuración. */
+    val timeZone = text("time_zone").nullable()
     val possibleDuplicate = bool("possible_duplicate").default(false)
     val duplicateNote = text("duplicate_note").nullable()
     val pointsEarned = integer("points_earned").default(0)

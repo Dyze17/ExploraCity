@@ -50,6 +50,7 @@ class PublicationService(
     private val views: PublicationViews,
     private val classifier: CategoryClassifier,
     private val media: MediaStore,
+    private val zones: TimeZones,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(PublicationService::class.java)
@@ -103,6 +104,7 @@ class PublicationService(
      */
     suspend fun submit(userId: UUID, request: SubmissionRequest): Pair<SubmitResponse, Boolean> {
         val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.price)
+            .copy(timeZone = zoneOf(request.location))
         val urls = photoUrls(request.photos)
         val clientId = request.clientId?.let { uuidOrNull(it) ?: throw ApiException.badRequest() }
         val resubmitId = request.resubmitId?.let { uuidOrNull(it) ?: throw notFound() }
@@ -170,6 +172,7 @@ class PublicationService(
     suspend fun update(userId: UUID, publicationId: String, request: ChangesRequest): PublicationResponse {
         val id = idOf(publicationId)
         val fields = fieldsOf(request.title, request.description, request.category, request.location, request.address, request.municipality, request.region, request.hours, request.price)
+            .copy(timeZone = zoneOf(request.location))
         val urls = photoUrls(request.photos)
         var removed = emptyList<String>()
         val result = database.query {
@@ -188,7 +191,12 @@ class PublicationService(
                 fields
             } else {
                 val town = if (fields.municipality != null) fields else place.fields
-                fields.copy(address = fields.address ?: place.fields.address, municipality = town.municipality, region = town.region)
+                fields.copy(
+                    address = fields.address ?: place.fields.address,
+                    municipality = town.municipality,
+                    region = town.region,
+                    timeZone = fields.timeZone ?: place.fields.timeZone,
+                )
             }
             val resubmittedAt = if (place.status == PublicationStatus.VERIFIED) clock.instant() else null
             publications.update(id, kept, PublicationStatus.PENDING, duplicate.flag, duplicate.note, resubmittedAt)
@@ -317,6 +325,9 @@ class PublicationService(
     }
 
     /** Dentro de una transacción. La cuenta del token ya no existe: la sesión no vale (401). */
+    /** ADR-17 · La zona horaria del pin, antes de abrir la transacción: la primera vez espera a que carguen las zonas. */
+    private suspend fun zoneOf(location: GeoPoint) = zones.of(location.latitude, location.longitude)
+
     private fun user(userId: UUID) = users.findById(userId) ?: throw ApiException.unauthorized()
 
     /** Dentro de una transacción: la publicación de [userId]; 404 si no existe o es de otra persona. */
