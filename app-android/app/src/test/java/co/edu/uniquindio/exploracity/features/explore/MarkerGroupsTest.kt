@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.features.explore
 
 import co.edu.uniquindio.exploracity.core.data.repository.samplePois
+import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -75,5 +76,20 @@ class MarkerGroupsTest {
 
         assertTrue(pois.take(3).all { it.location in group.bounds })
         assertEquals(pois.take(3).map { it.location.latitude }.average(), group.center.latitude, 1e-9)
+    }
+
+    @Test
+    fun `el anillo del grupo cuenta cada categoría en el orden habitual y omite las que no tiene`() {
+        val group = MapMarker.Group(
+            listOf(
+                pois[0].copy(category = Category.HISTORY),
+                pois[1].copy(category = Category.GASTRONOMY),
+                pois[2].copy(category = Category.HISTORY),
+                pois[3].copy(category = Category.NATURE),
+            ),
+        )
+
+        assertEquals(listOf(Category.GASTRONOMY, Category.NATURE, Category.HISTORY), group.categoryCounts.keys.toList())
+        assertEquals(listOf(1, 1, 2), group.categoryCounts.values.toList())
     }
 }

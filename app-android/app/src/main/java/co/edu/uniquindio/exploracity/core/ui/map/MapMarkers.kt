@@ -20,8 +20,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -32,6 +34,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.edu.uniquindio.exploracity.R
+import co.edu.uniquindio.exploracity.core.ui.components.colors
 import co.edu.uniquindio.exploracity.core.ui.components.iconRes
 import co.edu.uniquindio.exploracity.core.ui.theme.CategoryColors
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
@@ -138,19 +141,59 @@ private fun DropPin(
     }
 }
 
-/** Grupo: círculo con el número de lugares (48 dp; 56 dp desde 100). Crece con la fuente para no cortar la cifra. */
+/** Borde blanco del grupo: lo separa del mapa y de los marcadores vecinos. */
+private val GroupBorder = 2.dp
+
+/** Grosor del anillo de categorías del grupo. */
+private val GroupRing = 5.dp
+
+/** Separación entre los tramos del anillo, para que dos colores vecinos no se confundan. */
+private const val GROUP_RING_GAP_DEGREES = 6f
+
+/**
+ * Grupo: círculo con el número de lugares (48 dp; 56 dp desde 100) y un anillo con el color de sus categorías, cada
+ * tramo en proporción a cuántos lugares tiene ([categories], sin ceros). El número va sobre el centro oscuro, que
+ * contrasta con todos: el blanco sobre el ámbar de Entretenimiento no llega a 4,5:1. El color no es la única pista:
+ * la descripción del marcador nombra las categorías. Crece con la fuente para no cortar la cifra.
+ */
 @Composable
-fun GroupPin(count: Int) {
+fun GroupPin(categories: Map<Category, Int>) {
     val colors = MaterialTheme.exploraColors
+    val count = categories.values.sum()
     val large = count >= 100
     val minSize: Dp = if (large) 56.dp else 48.dp
+    val segments = categories.map { (category, places) -> category.colors.marker to places }
     Box(
         Modifier
             .sizeIn(minWidth = minSize, minHeight = minSize)
             .aspectRatio(1f)
-            .background(colors.mapCluster.container, CircleShape)
-            .border(3.dp, colors.mapClusterBorder, CircleShape)
-            .padding(6.dp),
+            .drawBehind {
+                val outer = size.minDimension / 2
+                val border = GroupBorder.toPx()
+                val ring = GroupRing.toPx()
+                drawCircle(colors.mapClusterBorder, radius = outer)
+                val ringRadius = outer - border - ring / 2
+                val arcTopLeft = Offset(center.x - ringRadius, center.y - ringRadius)
+                val arcSize = Size(ringRadius * 2, ringRadius * 2)
+                // Con un solo tramo el anillo se cierra; con varios, el blanco de fondo asoma entre ellos.
+                val gap = if (segments.size > 1) GROUP_RING_GAP_DEGREES else 0f
+                var start = -90f
+                segments.forEach { (color, places) ->
+                    val sweep = 360f * places / count
+                    drawArc(
+                        color = color,
+                        startAngle = start + gap / 2,
+                        sweepAngle = (sweep - gap).coerceAtLeast(1f),
+                        useCenter = false,
+                        topLeft = arcTopLeft,
+                        size = arcSize,
+                        style = Stroke(width = ring),
+                    )
+                    start += sweep
+                }
+                drawCircle(colors.mapCluster.container, radius = outer - border - ring)
+            }
+            .padding(GroupBorder + GroupRing + 4.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -183,8 +226,8 @@ private fun MarkersPreview() {
         Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
             PlacePin(Category.NATURE, palette.nature, selected = false, border = border)
             PlacePin(Category.GASTRONOMY, palette.gastronomy, selected = true, border = border)
-            GroupPin(24)
-            GroupPin(137)
+            GroupPin(mapOf(Category.NATURE to 24))
+            GroupPin(mapOf(Category.GASTRONOMY to 60, Category.CULTURE to 41, Category.ENTERTAINMENT to 22, Category.HISTORY to 14))
             UserPin()
             NewPlacePin()
             NumberPin(1)
