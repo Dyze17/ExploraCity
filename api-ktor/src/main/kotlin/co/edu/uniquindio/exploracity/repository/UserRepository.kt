@@ -3,12 +3,14 @@ package co.edu.uniquindio.exploracity.repository
 import co.edu.uniquindio.exploracity.model.ReportReason
 import co.edu.uniquindio.exploracity.model.Residency
 import co.edu.uniquindio.exploracity.model.Role
+import co.edu.uniquindio.exploracity.model.TownRef
 import co.edu.uniquindio.exploracity.model.UserReports
 import co.edu.uniquindio.exploracity.model.Users
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.core.notInList
@@ -41,6 +43,9 @@ data class UserRecord(
     val createdAt: Instant,
     val clientId: UUID? = null,
     val googleSub: String? = null,
+    /** v1.3.0 · La ciudad de la persona y su departamento; null si todavía no se sabe. */
+    val town: String? = null,
+    val townRegion: String? = null,
 )
 
 /** Ya hay una cuenta con ese correo (índice único sobre lower(email)). */
@@ -138,6 +143,22 @@ class UserRepository(private val database: Database) {
         }
     }
 
+    /** v1.3.0 · Cambia la ciudad de la persona; null la quita. Desde ahí la app ya no la llena sola. */
+    fun updateTown(id: UUID, town: String?, region: String?) {
+        Users.update({ Users.id eq id }) {
+            it[Users.town] = town
+            it[townRegion] = region.takeIf { town != null }
+            it[townSet] = true
+        }
+    }
+
+    /** v1.3.0 · La ciudad que supo la app, solo si nunca se puso una (ni se quitó). Devuelve si la guardó. */
+    fun fillTown(id: UUID, town: String, region: String?): Boolean = Users.update({ (Users.id eq id) and (Users.townSet eq false) }) {
+        it[Users.town] = town
+        it[townRegion] = region
+        it[townSet] = true
+    } > 0
+
     fun updatePhoto(id: UUID, url: String?, publicId: String?) {
         Users.update({ Users.id eq id }) {
             it[photoUrl] = url
@@ -181,6 +202,8 @@ class UserRepository(private val database: Database) {
         createdAt = this[Users.createdAt].toInstant(),
         clientId = this[Users.clientId],
         googleSub = this[Users.googleSub],
+        town = this[Users.town],
+        townRegion = this[Users.townRegion],
     )
 
     private companion object {
@@ -188,3 +211,6 @@ class UserRepository(private val database: Database) {
         const val UNIQUE_VIOLATION = "23505"
     }
 }
+
+/** v1.3.0 · La ciudad de la persona para el perfil; null si todavía no se sabe. */
+fun UserRecord.townRef(): TownRef? = town?.let { TownRef(it, townRegion) }

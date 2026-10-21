@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.data.local.ProfileDao
 import co.edu.uniquindio.exploracity.core.data.local.toDomain
 import co.edu.uniquindio.exploracity.core.data.local.toEntity
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
@@ -49,6 +50,18 @@ class OfflineUserRepository(
     override suspend fun updateProfile(update: ProfileUpdate): OwnProfile {
         requireOnline()
         val fresh = remote.updateProfile(update)
+        dao.save(fresh.toEntity(clock.millis()))
+        return fresh
+    }
+
+    /**
+     * v1.3.0 · Si lo guardado ya tiene ciudad no hace falta preguntar: el servidor tampoco la cambiaría. Lo que responde
+     * queda guardado, así la próxima vez ya se sabe.
+     */
+    override suspend fun fillTown(town: Municipality): OwnProfile {
+        saved()?.takeIf { it.town != null }?.let { return it }
+        requireOnline()
+        val fresh = remote.fillTown(town)
         dao.save(fresh.toEntity(clock.millis()))
         return fresh
     }

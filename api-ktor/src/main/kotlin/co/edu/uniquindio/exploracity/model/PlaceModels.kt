@@ -131,7 +131,10 @@ data class NotificationsResponse(val items: List<NotificationResponse>, val unre
 data class PublicProfileResponse(
     val author: AuthorResponse,
     val residency: Residency,
+    /** La ciudad de la persona o, si no tiene, la de la configuración (app 1.2); la app de ahora usa [town]. */
     val city: String,
+    /** v1.3.0 · La ciudad de la persona; no viene si todavía no se sabe. */
+    val town: TownRef? = null,
     val bio: String? = null,
     val photo: String? = null,
     val places: List<PlaceSummaryResponse>,

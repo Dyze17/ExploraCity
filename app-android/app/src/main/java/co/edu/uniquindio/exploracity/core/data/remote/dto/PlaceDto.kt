@@ -208,11 +208,12 @@ data class NotificationsDto(val items: List<NotificationDto>, val unread: Int)
 data class PublicProfileDto(
     val author: AuthorDto,
     val residency: Residency,
-    val city: String,
+    /** v1.3.0 · La ciudad de la persona; no viene si no tiene. */
+    val town: TownRefDto? = null,
     val bio: String? = null,
     val photo: String? = null,
     val places: List<PlaceDto>,
     val badges: Int,
 ) {
-    fun toDomain() = PublicProfile(author.toDomain(), residency, city, bio, places.map { it.toDomain() }, badges, photo)
+    fun toDomain() = PublicProfile(author.toDomain(), residency, town?.toDomain(), bio, places.map { it.toDomain() }, badges, photo)
 }

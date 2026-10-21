@@ -164,8 +164,9 @@ La app pide la cuenta con Credential Manager («Sign in with Google») y manda e
 
 | Método y ruta | Acceso | Cuerpo | Respuesta | Ejemplo |
 |---|---|---|---|---|
-| `GET /v1/profile` | Token | — | El perfil propio: autor con puntos, residencia, ciudad, mes de registro, publicaciones por estado e insignias con su avance | [`profile.json`](ejemplos/profile.json) |
-| `PUT /v1/profile` | Token | `{ "name", "bio", "residency" }` | `200` con el perfil. «Sobre mí» vacío se guarda como `null` | [`profile.json`](ejemplos/profile.json) |
+| `GET /v1/profile` | Token | — | El perfil propio: autor con puntos, residencia, su ciudad (`town`, con departamento; no viene si no tiene), mes de registro, publicaciones por estado e insignias con su avance. `city` es `town` o, sin ella, la de `/v1/city`: la lee la app 1.2 | [`profile.json`](ejemplos/profile.json) |
+| `PUT /v1/profile` | Token | `{ "name", "bio", "residency", "town", "townChanged" }` | `200` con el perfil. «Sobre mí» vacío se guarda como `null`. La ciudad solo cambia con `"townChanged": true` (sin `town` se quita); sin él, como en la app 1.2, se queda | [`profile.json`](ejemplos/profile.json) |
+| `POST /v1/profile/town` | Token | `{ "name", "region" }` | v1.3.0 · `200` con el perfil. La ciudad que supo la app (ubicación o elegida a mano) se guarda solo si la persona nunca tuvo una: si la cambió o la quitó en Editar perfil, no se toca. `400 invalid_town` sin nombre o de más de 80 caracteres | [`profile.json`](ejemplos/profile.json) |
 | `PUT /v1/profile/photo` | Token | `multipart/form-data` con la foto en una parte de archivo | `200` con el perfil. JPEG, PNG o WebP de hasta 8 MB; la anterior sale del almacén | [`profile.json`](ejemplos/profile.json) |
 | `DELETE /v1/profile/photo` | Token | — | `200` con el perfil, sin `photo` | [`profile.json`](ejemplos/profile.json) |
 | `POST /v1/users/{id}/reports` | Token | `{ "reason" }` | `204`. Reporte anónimo para la moderación (`IMPERSONATION`, `INAPPROPRIATE_CONTENT` o `SPAM`) | — |
@@ -182,7 +183,7 @@ La app pide la cuenta con Credential Manager («Sign in with Google») y manda e
 | `GET /v1/places/map` | Token | Los del área visible (`bounds`), los más cercanos primero, como máximo `limit` (200), y cuántos hay en el área | [`map-area.json`](ejemplos/map-area.json) |
 | `GET /v1/places/towns` | Token | v1.3.0 · Las ciudades con lugares públicos (verificados y finalizados), para elegir una a mano: nombre, departamento, cuántos lugares tiene y su centro (el promedio). Las 50 que más tienen; los lugares sin municipio cuentan como la ciudad de `/v1/city`, y las variantes de un nombre son la misma ciudad | [`towns.json`](ejemplos/towns.json) |
 | `GET /v1/places/{id}` | Token | El detalle: fotos, dirección, horario, autor con sus puntos y si quien lo abre ya votó o lo visitó | [`place.json`](ejemplos/place.json) |
-| `GET /v1/users/{id}` | Token | El perfil público: sin correo, sus lugares verificados y finalizados con el formato del feed y cuántas insignias tiene | [`public-profile.json`](ejemplos/public-profile.json) |
+| `GET /v1/users/{id}` | Token | El perfil público: sin correo, su ciudad (`town`, si tiene; `city` como en el propio), sus lugares verificados y finalizados con el formato del feed y cuántas insignias tiene | [`public-profile.json`](ejemplos/public-profile.json) |
 
 Los criterios van en la consulta:
 - `categories=NATURE,CULTURE`: una o varias categorías; sin ella, todas.

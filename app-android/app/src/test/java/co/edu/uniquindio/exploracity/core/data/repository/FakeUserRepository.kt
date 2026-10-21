@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.core.data.repository
 
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PhotoChange
 import co.edu.uniquindio.exploracity.domain.model.Poi
@@ -39,12 +40,13 @@ class FakeUserRepository(
     // Lo que cambie la persona de la sesión en 28 vive aquí, encima de las semillas de prueba.
     private val seeds = sampleProfiles.toMutableMap()
     private val photos = mutableMapOf<String, String>()
+    private var townSet = false
 
     override suspend fun publicProfile(userId: String): PublicProfile? {
         delay(latency)
         val seed = seeds[userId] ?: return null
         val places = placesBy(userId).filter { it.status in publicStatuses }
-        return PublicProfile(seed.author, seed.residency, seed.city, seed.bio, places, seed.badges, photos[userId])
+        return PublicProfile(seed.author, seed.residency, seed.town, seed.bio, places, seed.badges, photos[userId])
     }
 
     override suspend fun reportUser(userId: String, reason: ReportReason) {
@@ -72,7 +74,22 @@ class FakeUserRepository(
             is PhotoChange.Replace -> photos[currentUser.id] = photoHost(photo.path)
         }
         val seed = seeds.getValue(currentUser.id)
-        seeds[currentUser.id] = seed.copy(author = seed.author.copy(name = update.name), residency = update.residency, bio = update.bio)
+        seeds[currentUser.id] = seed.copy(
+            author = seed.author.copy(name = update.name),
+            residency = update.residency,
+            bio = update.bio,
+            town = if (update.townChanged) update.town else seed.town,
+        )
+        if (update.townChanged) townSet = true
+        return currentProfile()
+    }
+
+    /** Como la API: solo si la persona nunca tuvo ciudad; quitarla en 28 también cuenta. */
+    override suspend fun fillTown(town: Municipality): OwnProfile {
+        delay(actionLatency)
+        val seed = seeds.getValue(currentUser.id)
+        if (!townSet && seed.town == null) seeds[currentUser.id] = seed.copy(town = town)
+        townSet = true
         return currentProfile()
     }
 
@@ -81,6 +98,7 @@ class FakeUserRepository(
         photos.remove(currentUser.id)
         photoRemover()
         seeds[currentUser.id] = sampleProfiles.getValue(currentUser.id)
+        townSet = false
     }
 
     /** Sus lugares del feed más los que el feed no muestra (pendientes y rechazados). */
@@ -90,7 +108,7 @@ class FakeUserRepository(
         return OwnProfile(
             author = seed.author,
             residency = seed.residency,
-            city = seed.city,
+            town = seed.town,
             memberSince = sampleMemberSince,
             publications = PublicationCounts.of(statuses),
             badges = sampleBadges,

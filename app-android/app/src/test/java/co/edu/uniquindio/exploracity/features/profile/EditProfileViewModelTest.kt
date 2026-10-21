@@ -6,12 +6,15 @@ import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.data.photos.PhotoStore
 import co.edu.uniquindio.exploracity.core.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.core.data.repository.FakeUserRepository
+import co.edu.uniquindio.exploracity.core.data.repository.sampleTown
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.PhotoChange
 import co.edu.uniquindio.exploracity.domain.model.ProfileForm
 import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.repository.UserRepository
+import co.edu.uniquindio.exploracity.features.explore.FakeTownRepository
+import co.edu.uniquindio.exploracity.features.explore.calarca
 import co.edu.uniquindio.exploracity.features.publish.FakePhotos
 import co.edu.uniquindio.exploracity.features.settings.FakeAccounts
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +53,7 @@ class EditProfileViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(users: UserRepository = server, savedState: SavedStateHandle = SavedStateHandle(), photoStore: PhotoStore = photos) =
-        EditProfileViewModel(users, FakeAccounts(), photoStore, connectivity, savedState)
+        EditProfileViewModel(users, FakeAccounts(), photoStore, FakeTownRepository(), connectivity, savedState)
 
     private val EditProfileViewModel.form: ProfileForm
         get() = requireNotNull(state.value.form) { "El formulario debería estar cargado: ${state.value.content}" }
@@ -62,7 +65,7 @@ class EditProfileViewModelTest {
         advanceUntilIdle()
 
         assertEquals(EditProfileContent.LOADED, vm.state.value.content)
-        assertEquals(ProfileForm("Ana Ríos", "", Residency.RESIDENT), vm.form)
+        assertEquals(ProfileForm("Ana Ríos", "", Residency.RESIDENT, town = sampleTown), vm.form)
         assertEquals("ana.rios@correo.com", vm.state.value.email)
         assertFalse(vm.state.value.changed)
         assertFalse("Sin cambios no se guarda", vm.state.value.canSave)
@@ -108,7 +111,34 @@ class EditProfileViewModelTest {
         assertEquals("Ana María Ríos", profile.author.name)
         assertEquals("Busco cafés con patio y miradores.", profile.bio)
         assertEquals(Residency.VISITOR, profile.residency)
+        assertEquals("La ciudad no cambió y se queda", sampleTown, profile.town)
         assertEquals("También en el perfil público (31)", "Busco cafés con patio y miradores.", server.publicProfile("ana-rios")?.bio)
+    }
+
+    @Test
+    fun `la ciudad se elige en Elegir ciudad o se quita, y se guarda con el perfil`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onOpenTownPicker()
+        advanceUntilIdle()
+        assertEquals(listOf(calarca), vm.townPicker.state.value?.withPlaces)
+        vm.onTownChosen(calarca)
+        assertNull("Elegir cierra la hoja", vm.townPicker.state.value)
+        assertEquals(calarca.municipality, vm.form.town)
+        assertTrue(vm.state.value.canSave)
+        vm.onSave()
+        advanceUntilIdle()
+        assertEquals(calarca.municipality, server.ownProfile().town)
+        assertEquals("También en el perfil público (31)", calarca.municipality, server.publicProfile("ana-rios")?.town)
+
+        val again = viewModel()
+        advanceUntilIdle()
+        again.onRemoveTown()
+        assertTrue(again.state.value.changed)
+        again.onSave()
+        advanceUntilIdle()
+        assertNull(server.ownProfile().town)
     }
 
     @Test
@@ -259,11 +289,12 @@ class EditProfileViewModelTest {
         vm.onPhotoPicked("content://galeria/yo.jpg")
         advanceUntilIdle()
         vm.onNameBlur()
+        vm.onTownChosen(calarca)
 
         val recreated = viewModel(savedState = savedState)
         advanceUntilIdle()
 
-        assertEquals(ProfileForm("Ana María", "", Residency.VISITOR, "/fotos/foto-1.jpg"), recreated.form)
+        assertEquals(ProfileForm("Ana María", "", Residency.VISITOR, "/fotos/foto-1.jpg", calarca.municipality), recreated.form)
         assertTrue(recreated.state.value.nameTouched)
         assertTrue(recreated.state.value.changed)
     }

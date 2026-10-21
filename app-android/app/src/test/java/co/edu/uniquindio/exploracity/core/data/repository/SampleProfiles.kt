@@ -1,14 +1,18 @@
 package co.edu.uniquindio.exploracity.core.data.repository
 
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.Residency
 
 // Temporal hasta que exista la API: lo público de los autores de prueba y de la persona de la sesión. Camilo R. trae
 // la biografía del lienzo 31.a; su nivel sigue siendo Aventurero (320 puntos), como en el detalle (13.a).
 
-internal data class ProfileSeed(val author: Author, val residency: Residency, val city: String, val bio: String?, val badges: Int)
+internal data class ProfileSeed(val author: Author, val residency: Residency, val town: Municipality?, val bio: String?, val badges: Int)
 
-private fun seed(author: Author, residency: Residency, bio: String?, badges: Int) = ProfileSeed(author, residency, "Bogotá", bio, badges)
+/** «Residente · Bogotá» (26.a y 31.a). */
+internal val sampleTown = Municipality("Bogotá", "Bogotá D.C.")
+
+private fun seed(author: Author, residency: Residency, bio: String?, badges: Int) = ProfileSeed(author, residency, sampleTown, bio, badges)
 
 private val authorsById = sampleAuthors.associateBy { it.id }
 

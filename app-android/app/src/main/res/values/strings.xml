@@ -379,6 +379,7 @@
         <item quantity="other">%d points</item>
     </plurals>
     <string name="profile_summary">%1$s · %2$s · %3$s</string>
+    <string name="profile_summary_short">%1$s · %2$s</string>
     <plurals name="profile_stat_verified">
         <item quantity="one">Verified place</item>
         <item quantity="other">Verified places</item>
@@ -1035,6 +1036,11 @@
     <string name="profile_residency_title">How do you introduce yourself?</string>
     <string name="profile_field_email">Email</string>
     <string name="profile_email_locked">For security, the email is changed in Settings.</string>
+    <string name="profile_town_title">Your city</string>
+    <string name="profile_town_choose">Choose your city</string>
+    <string name="profile_town_change">Change city</string>
+    <string name="profile_town_remove">Remove city</string>
+    <string name="profile_town_hint">It shows on your profile, next to how you introduce yourself.</string>
     <string name="profile_save_no_changes">there are no changes yet</string>
     <string name="profile_save_fix_name">fix the name</string>
     <string name="profile_save_fix_bio">fix “About me”</string>

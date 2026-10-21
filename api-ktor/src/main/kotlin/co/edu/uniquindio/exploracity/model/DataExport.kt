@@ -22,7 +22,8 @@ data class ExportAccount(
     @SerialName("correo") val email: String,
     @SerialName("nombre") val name: String,
     @SerialName("comoSePresenta") val residency: String,
-    @SerialName("ciudad") val city: String,
+    // v1.3.0 · La ciudad de la persona; no viene si todavía no se sabe.
+    @SerialName("ciudad") val city: String? = null,
     @SerialName("miembroDesde") val memberSince: String,
     /** ADR-15 · Si la cuenta también entra con Google. Sin el identificador: no le sirve a la persona. */
     @SerialName("entraConGoogle") val googleLinked: Boolean,

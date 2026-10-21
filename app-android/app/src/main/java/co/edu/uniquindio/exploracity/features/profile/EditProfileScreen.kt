@@ -5,15 +5,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,9 +27,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,10 +40,16 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,10 +66,13 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.core.ui.components.InitialsAvatar
 import co.edu.uniquindio.exploracity.core.ui.components.ResidencyPicker
 import co.edu.uniquindio.exploracity.core.ui.components.SkeletonBlock
+import co.edu.uniquindio.exploracity.core.ui.components.TownPickerSheet
 import co.edu.uniquindio.exploracity.core.ui.components.onBlur
 import co.edu.uniquindio.exploracity.core.ui.components.rememberShimmerBrush
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.ProfileForm
 import co.edu.uniquindio.exploracity.domain.model.ProfileLimits
 import co.edu.uniquindio.exploracity.domain.model.Residency
@@ -71,6 +86,7 @@ fun EditProfileRoute(
     viewModel: EditProfileViewModel = viewModel(factory = EditProfileViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val picker by viewModel.townPicker.state.collectAsStateWithLifecycle()
     val currentOnLeave by rememberUpdatedState(onLeave)
     val currentOnSaved by rememberUpdatedState(onSaved)
     LaunchedEffect(state.done) {
@@ -100,9 +116,18 @@ fun EditProfileRoute(
             onNameBlur = viewModel::onNameBlur,
             onBioChange = viewModel::onBioChange,
             onResidencyChange = viewModel::onResidencyChange,
+            onChooseTown = viewModel::onOpenTownPicker,
+            onRemoveTown = viewModel::onRemoveTown,
             onDiscard = viewModel::onDiscard,
             onKeepEditing = viewModel::onKeepEditing,
         ),
+    )
+    TownPickerSheet(
+        state = picker,
+        followsLocation = false,
+        onChoose = viewModel::onTownChosen,
+        onQueryChange = viewModel::onTownQueryChange,
+        onDismissRequest = viewModel::onDismissTownPicker,
     )
 }
 
@@ -118,13 +143,15 @@ class EditProfileCallbacks(
     val onNameBlur: () -> Unit = {},
     val onBioChange: (String) -> Unit = {},
     val onResidencyChange: (Residency) -> Unit = {},
+    val onChooseTown: () -> Unit = {},
+    val onRemoveTown: () -> Unit = {},
     val onDiscard: () -> Unit = {},
     val onKeepEditing: () -> Unit = {},
 )
 
 /**
- * 28.a · Foto, nombre (2–40), «Sobre mí» (hasta 150, con contador), cómo se presenta y el correo, bloqueado con su
- * motivo. Pasarse de un límite se avisa al momento; «Guardar» queda deshabilitado mientras haya un error y dice por qué.
+ * 28.a · Foto, nombre (2–40), «Sobre mí» (hasta 150, con contador), cómo se presenta, la ciudad (v1.3.0) y el correo,
+ * bloqueado con su motivo. Pasarse de un límite se avisa al momento; «Guardar» queda deshabilitado mientras haya un error y dice por qué.
  */
 @Composable
 fun EditProfileScreen(state: EditProfileUiState, callbacks: EditProfileCallbacks, modifier: Modifier = Modifier) {
@@ -186,6 +213,7 @@ private fun EditProfileForm(author: Author, form: ProfileForm, state: EditProfil
         NameField(form, state.showNameError, callbacks)
         BioField(form, state.showBioError, callbacks.onBioChange)
         ResidencyPicker(form.residency, callbacks.onResidencyChange)
+        TownField(form.town, callbacks.onChooseTown, callbacks.onRemoveTown)
         EmailField(state.email)
     }
 }
@@ -249,6 +277,53 @@ private fun BioField(form: ProfileForm, showError: Boolean, onChange: (String) -
         minLines = 3,
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/**
+ * v1.3.0 · «Tu ciudad», la del perfil (26 y 31). La llena sola la primera ciudad que sabe la app; aquí se cambia en
+ * «Elegir ciudad» o se quita, y desde ahí la app ya no la toca.
+ */
+@Composable
+private fun TownField(town: Municipality?, onChoose: () -> Unit, onRemove: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            stringResource(R.string.profile_town_title),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { heading() },
+        )
+        if (town == null) {
+            ExploraButton(
+                stringResource(R.string.profile_town_choose),
+                onClick = onChoose,
+                style = ExploraButtonStyle.SECONDARY,
+                icon = R.drawable.ic_location_city,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            val shape = RoundedCornerShape(12.dp)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clip(shape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+                    .clickable(onClickLabel = stringResource(R.string.profile_town_change), role = Role.Button, onClick = onChoose)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(painterResource(R.drawable.ic_location_city), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Column(Modifier.weight(1f)) {
+                    Text(town.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.W600), color = MaterialTheme.colorScheme.onSurface)
+                    town.region?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary) }
+                }
+                Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+            ExploraButton(stringResource(R.string.profile_town_remove), onClick = onRemove, style = ExploraButtonStyle.TEXT)
+        }
+        Text(stringResource(R.string.profile_town_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.exploraColors.textSecondary)
+    }
 }
 
 /** El correo no se edita aquí: candado y el motivo, que lleva a Ajustes › Cuenta (29). */
@@ -343,6 +418,7 @@ private val previewForm = ProfileForm(
     name = "Ana Ríos",
     bio = "Camino Armenia buscando cafés con patio y miradores poco conocidos, siempre con mi cámara y una libreta para anotar lo que encuentro en cada esquina del centro",
     residency = Residency.RESIDENT,
+    town = Municipality("Armenia", "Quindío"),
 )
 private val previewState = EditProfileUiState(
     content = EditProfileContent.LOADED,

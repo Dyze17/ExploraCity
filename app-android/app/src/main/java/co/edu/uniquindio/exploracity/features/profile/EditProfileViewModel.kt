@@ -12,15 +12,19 @@ import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.core.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.data.photos.PhotoStore
+import co.edu.uniquindio.exploracity.core.ui.components.TownPicker
 import co.edu.uniquindio.exploracity.core.util.catchingNonCancellation
 import co.edu.uniquindio.exploracity.core.util.runCatchingNonCancellation
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.PhotoChange
 import co.edu.uniquindio.exploracity.domain.model.ProfileForm
 import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import co.edu.uniquindio.exploracity.domain.model.TownOption
 import co.edu.uniquindio.exploracity.domain.repository.AccountRepository
+import co.edu.uniquindio.exploracity.domain.repository.TownRepository
 import co.edu.uniquindio.exploracity.domain.repository.UserRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.Json
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -69,6 +74,7 @@ class EditProfileViewModel(
     private val users: UserRepository,
     accounts: AccountRepository,
     private val photos: PhotoStore,
+    towns: TownRepository,
     private val connectivity: ConnectivityObserver,
     private val savedStateHandle: SavedStateHandle,
     private val timeout: Duration = LOAD_TIMEOUT,
@@ -78,6 +84,9 @@ class EditProfileViewModel(
         EditProfileUiState(email = accounts.account.value.email, nameTouched = savedStateHandle[NAME_TOUCHED_KEY] ?: false),
     )
     val state: StateFlow<EditProfileUiState> = _state.asStateFlow()
+
+    /** v1.3.0 · «Elegir ciudad» para «Tu ciudad», sin «Usar mi ubicación». */
+    val townPicker = TownPicker(viewModelScope, towns)
 
     private var loadJob: Job? = null
 
@@ -121,6 +130,19 @@ class EditProfileViewModel(
 
     fun onPhotoProblemShown() = _state.update { it.copy(photoUnreadable = false) }
 
+    fun onOpenTownPicker() = townPicker.open()
+
+    fun onDismissTownPicker() = townPicker.close()
+
+    fun onTownQueryChange(query: String) = townPicker.onQueryChange(query)
+
+    fun onTownChosen(option: TownOption) {
+        townPicker.close()
+        updateForm { it.copy(town = option.municipality) }
+    }
+
+    fun onRemoveTown() = updateForm { it.copy(town = null) }
+
     fun onSave() {
         val state = _state.value
         val form = state.form?.trimmed() ?: return
@@ -134,7 +156,7 @@ class EditProfileViewModel(
                 null -> PhotoChange.Remove
                 else -> PhotoChange.Replace(form.photo)
             }
-            val update = ProfileUpdate(form.name, form.bio.ifEmpty { null }, form.residency, photo)
+            val update = ProfileUpdate(form.name, form.bio.ifEmpty { null }, form.residency, photo, form.town, townChanged = form.town != original.town)
             val result = catchingNonCancellation { users.updateProfile(update) }
             if (result.isSuccess) {
                 // El servidor ya tiene su copia: la del teléfono sobra.
@@ -189,6 +211,7 @@ class EditProfileViewModel(
         savedStateHandle[RESIDENCY_KEY] = updated.residency.name
         savedStateHandle[PHOTO_KEY] = updated.photo
         savedStateHandle[PHOTO_SAVED_KEY] = true
+        savedStateHandle[TOWN_KEY] = updated.town?.let { Json.encodeToString(it) }
         _state.update { it.copy(form = updated) }
     }
 
@@ -197,7 +220,8 @@ class EditProfileViewModel(
         val name = savedStateHandle.get<String>(NAME_KEY) ?: return null
         val residency = Residency.entries.firstOrNull { it.name == savedStateHandle.get<String>(RESIDENCY_KEY) } ?: return null
         val photo = if (savedStateHandle.get<Boolean>(PHOTO_SAVED_KEY) == true) savedStateHandle.get<String>(PHOTO_KEY) else null
-        return ProfileForm(name, savedStateHandle[BIO_KEY] ?: "", residency, photo)
+        val town = savedStateHandle.get<String>(TOWN_KEY)?.let { runCatching { Json.decodeFromString<Municipality>(it) }.getOrNull() }
+        return ProfileForm(name, savedStateHandle[BIO_KEY] ?: "", residency, photo, town)
     }
 
     /** La foto nueva del teléfono, si la hay: la de antes vive en el servidor y no se toca. */
@@ -218,6 +242,7 @@ class EditProfileViewModel(
         private const val PHOTO_KEY = "foto"
         private const val PHOTO_SAVED_KEY = "foto_guardada"
         private const val NAME_TOUCHED_KEY = "nombre_tocado"
+        private const val TOWN_KEY = "ciudad"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -226,6 +251,7 @@ class EditProfileViewModel(
                     users = container.userRepository,
                     accounts = container.accountRepository,
                     photos = container.photoStore,
+                    towns = container.town,
                     connectivity = container.connectivity,
                     savedStateHandle = createSavedStateHandle(),
                 )

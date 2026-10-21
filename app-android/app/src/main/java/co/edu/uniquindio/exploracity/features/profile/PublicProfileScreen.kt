@@ -75,6 +75,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.util.formatDistance
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import co.edu.uniquindio.exploracity.domain.model.Residency
@@ -272,7 +273,8 @@ private fun ProfileHeader(profile: PublicProfile) {
                 )
                 LevelChip(author.level, large = true, modifier = Modifier.clearAndSetSemantics { contentDescription = levelDescription })
                 Text(
-                    stringResource(R.string.profile_summary, residency, profile.city, points),
+                    profile.town?.let { stringResource(R.string.profile_summary, residency, it.name, points) }
+                        ?: stringResource(R.string.profile_summary_short, residency, points),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -372,7 +374,7 @@ private fun ProfileSkeleton() {
 private val previewProfile = PublicProfile(
     author = Author("camilo-r", "Camilo R.", points = 320),
     residency = Residency.RESIDENT,
-    city = "Armenia",
+    town = Municipality("Armenia", "Quindío"),
     bio = "Guío caminatas por el centro los sábados. Me obsesionan las tiendas de barrio que llevan más de 40 años abiertas.",
     places = previewPlaces.take(3),
     badges = 9,

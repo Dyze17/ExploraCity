@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
 import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.Residency
@@ -47,7 +48,8 @@ internal data class SavedProfile(
     val name: String,
     val points: Int,
     val residency: Residency,
-    val city: String,
+    /** v1.3.0 · La ciudad de la persona. Lo que guardó la 1.2 trae «city», que ya no se lee: queda sin ciudad. */
+    val town: Municipality? = null,
     /** «2026-03». */
     val memberSince: String,
     val pending: Int,
@@ -79,7 +81,7 @@ fun OwnProfile.toEntity(savedAtMillis: Long): SavedProfileEntity {
         name = author.name,
         points = author.points,
         residency = residency,
-        city = city,
+        town = town,
         memberSince = memberSince.toString(),
         pending = publications.pending,
         verified = publications.verified,
@@ -97,7 +99,7 @@ fun SavedProfileEntity.toDomain(): OwnProfile {
     return OwnProfile(
         author = Author(saved.authorId, saved.name, saved.points),
         residency = saved.residency,
-        city = saved.city,
+        town = saved.town,
         memberSince = YearMonth.parse(saved.memberSince),
         publications = PublicationCounts(saved.pending, saved.verified, saved.rejected, saved.finalized),
         badges = saved.badges.map { Badge(it.id, it.name, it.metric, it.progress, it.target, it.howTo, it.tip, it.category) },

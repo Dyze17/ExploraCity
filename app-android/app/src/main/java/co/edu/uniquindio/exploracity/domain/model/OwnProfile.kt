@@ -80,7 +80,8 @@ data class PublicationCounts(val pending: Int = 0, val verified: Int = 0, val re
 data class OwnProfile(
     val author: Author,
     val residency: Residency,
-    val city: String,
+    /** v1.3.0 · La ciudad de la persona («Residente · Calarcá»); null si todavía no se sabe o la quitó (28). */
+    val town: Municipality?,
     val memberSince: YearMonth,
     val publications: PublicationCounts,
     val badges: List<Badge>,
