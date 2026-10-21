@@ -33,6 +33,13 @@ data class FeedPageResponse(val items: List<PlaceSummaryResponse>, val total: In
 @Serializable
 data class CountResponse(val count: Int)
 
+/** v1.3.0 · Una ciudad con lugares públicos, para elegirla a mano (7): cuántos tiene y su centro (el promedio). */
+@Serializable
+data class TownResponse(val name: String, val region: String? = null, val places: Int, val center: GeoPoint)
+
+@Serializable
+data class TownsResponse(val items: List<TownResponse>)
+
 /** 8 · Los más cercanos del área visible (como máximo el límite) y cuántos hay en total. */
 @Serializable
 data class MapAreaResponse(val items: List<PlaceSummaryResponse>, val total: Int)

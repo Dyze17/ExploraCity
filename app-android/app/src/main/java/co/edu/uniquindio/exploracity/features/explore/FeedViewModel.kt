@@ -11,12 +11,16 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import co.edu.uniquindio.exploracity.ExploraApplication
 import co.edu.uniquindio.exploracity.core.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
+import co.edu.uniquindio.exploracity.core.ui.components.TownPicker
 import co.edu.uniquindio.exploracity.core.util.catchingNonCancellation
 import co.edu.uniquindio.exploracity.core.util.runCatchingNonCancellation
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Poi
+import co.edu.uniquindio.exploracity.domain.model.TownOption
+import co.edu.uniquindio.exploracity.domain.repository.ExploredTown
 import co.edu.uniquindio.exploracity.domain.repository.FeedPage
 import co.edu.uniquindio.exploracity.domain.repository.FeedQuery
 import co.edu.uniquindio.exploracity.domain.repository.ModerationRepository
@@ -60,6 +64,9 @@ sealed interface FeedContent {
     /** 10.b: la zona no tiene publicaciones. */
     data object EmptyArea : FeedContent
 
+    /** v1.3.0 · «Toda la ciudad» sin ubicación ni ciudad elegida: se pide elegir una, en vez de mostrar la de la API. */
+    data object ChooseTown : FeedContent
+
     /** 12.b: fallo o más de 8 s cargando. Con [hasSaved] se ofrece «Ver mis lugares guardados». */
     data class Error(val hasSaved: Boolean = false) : FeedContent
 
@@ -88,8 +95,8 @@ enum class FeedMessage {
 }
 
 data class FeedUiState(
-    /** ADR-16 · El municipio que se explora: «Estás explorando …». */
-    val areaName: String,
+    /** ADR-16 · El municipio que se explora: «Estás explorando …»; null mientras no se sabe ni se eligió (v1.3.0). */
+    val areaName: String?,
     val query: String = "",
     val filters: FeedFilters = FeedFilters.DEFAULT,
     /**
@@ -105,6 +112,8 @@ data class FeedUiState(
     val refreshing: Boolean = false,
     /** ADR-16 · Primera vez en Explorar: la pantalla pide el permiso de ubicación para saber el municipio. */
     val askLocation: Boolean = false,
+    /** v1.3.0 · La ciudad sigue la ubicación de la persona (no se eligió a mano): «Usar mi ubicación» va marcada. */
+    val followsLocation: Boolean = true,
 )
 
 /**
@@ -133,8 +142,11 @@ class FeedViewModel(
     /** ADR-16 · El municipio de «Toda la ciudad». */
     private var exploring = town.current.value
 
-    private val _state = MutableStateFlow(restoredState(exploring.name))
+    private val _state = MutableStateFlow(restoredState(exploring))
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
+
+    /** v1.3.0 · La hoja «Elegir ciudad». */
+    val townPicker = TownPicker(viewModelScope, town)
 
     private var loadJob: Job? = null
     private var searchJob: Job? = null
@@ -159,7 +171,7 @@ class FeedViewModel(
             town.current.collect { place ->
                 if (place == exploring) return@collect
                 exploring = place
-                _state.update { it.copy(areaName = place.name) }
+                _state.update { it.copy(areaName = place.municipality?.name, followsLocation = place !is ExploredTown.Chosen) }
                 if (_state.value.filters.scope == LocationScope.CITY) reload()
                 if (_state.value.filterSheet?.draft?.scope == LocationScope.CITY) recount(debounce = false)
             }
@@ -179,16 +191,30 @@ class FeedViewModel(
     fun onLocationAsked() = _state.update { it.copy(askLocation = false) }
 
     /**
-     * Se dio el permiso de ubicación para la ciudad: se busca el municipio sin esperar. Si es el mismo, la lista se
-     * recarga igual: se cargó antes del permiso y sus distancias se midieron desde el centro, no desde la persona.
+     * «Usar mi ubicación», con el permiso ya dado: se vuelve a seguir la ubicación y se busca el municipio sin esperar.
+     * Si es el mismo, la lista se recarga igual: se cargó antes del permiso y sus distancias se midieron desde el
+     * centro, no desde la persona.
      */
-    fun onTownLocationAllowed() {
+    fun onUseLocation() {
+        townPicker.close()
         viewModelScope.launch {
             val before = town.current.value
-            town.refresh(force = true)
+            town.useLocation()
             if (town.current.value == before) reload()
         }
     }
+
+    /** v1.3.0 · Una ciudad de «Elegir ciudad»: se explora hasta volver a «Usar mi ubicación». */
+    fun onTownChosen(option: TownOption) {
+        townPicker.close()
+        viewModelScope.launch { town.choose(option) }
+    }
+
+    fun onOpenTownPicker() = townPicker.open()
+
+    fun onDismissTownPicker() = townPicker.close()
+
+    fun onTownQueryChange(query: String) = townPicker.onQueryChange(query)
 
     fun onQueryChange(text: String) {
         _state.update { it.copy(query = text) }
@@ -296,12 +322,15 @@ class FeedViewModel(
         }
     }
 
-    private fun restoredState(areaName: String): FeedUiState {
+    private fun restoredState(town: ExploredTown): FeedUiState {
+        val areaName = town.municipality?.name
+        val followsLocation = town !is ExploredTown.Chosen
         val saved = savedStateHandle.get<String>(SAVED_FEED_KEY)
             ?.let { runCatching { Json.decodeFromString<SavedFeed>(it) }.getOrNull() }
-            ?: return FeedUiState(areaName = areaName)
+            ?: return FeedUiState(areaName = areaName, followsLocation = followsLocation)
         return FeedUiState(
             areaName = areaName,
+            followsLocation = followsLocation,
             query = saved.query,
             filters = saved.filters,
             categoryOrder = saved.categoryOrder,
@@ -325,7 +354,7 @@ class FeedViewModel(
         countJob?.cancel()
         val state = _state.value
         val sheet = state.filterSheet ?: return
-        val query = FeedQuery(sheet.draft, state.query.trim(), exploring)
+        val query = FeedQuery(sheet.draft, state.query.trim(), exploring.municipality, exploring.near)
         countJob = viewModelScope.launch {
             if (debounce) delay(COUNT_DEBOUNCE)
             val count = runCatchingNonCancellation { poiRepository.count(query) }
@@ -340,6 +369,10 @@ class FeedViewModel(
             return
         }
         loadJob?.cancel()
+        if (_state.value.filters.scope == LocationScope.CITY && exploring is ExploredTown.Unknown) {
+            _state.update { it.copy(content = FeedContent.ChooseTown, refreshing = false) }
+            return
+        }
         _state.update { if (refreshing) it.copy(refreshing = true) else it.copy(content = FeedContent.Loading, refreshing = false) }
         val query = currentQuery()
         loadJob = viewModelScope.launch {
@@ -381,7 +414,9 @@ class FeedViewModel(
 
     private suspend fun savedPlaces(): SavedPlaces? = runCatchingNonCancellation { poiRepository.savedPlaces() }
 
-    private fun currentQuery() = _state.value.let { FeedQuery(filters = it.filters, text = it.query.trim(), municipality = exploring) }
+    private fun currentQuery() = _state.value.let {
+        FeedQuery(filters = it.filters, text = it.query.trim(), municipality = exploring.municipality, near = exploring.near)
+    }
 
     private fun FeedPage.toContent(query: FeedQuery): FeedContent = when {
         total == 0 && query.hasCriteria -> FeedContent.NoResults(query)
@@ -422,3 +457,6 @@ private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item e
 
 /** Categorías activas primero, cada grupo en el orden habitual (sortedBy es estable). */
 private fun activeFirst(active: Set<Category>): List<Category> = Category.entries.sortedBy { it !in active }
+
+/** v1.3.0 · Con una ciudad elegida a mano, desde donde se miden las distancias. */
+private val ExploredTown.near: GeoPoint? get() = (this as? ExploredTown.Chosen)?.center

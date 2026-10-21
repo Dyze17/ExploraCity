@@ -29,4 +29,15 @@ data class GeoBounds(val southwest: GeoPoint, val northeast: GeoPoint) {
     operator fun contains(point: GeoPoint): Boolean =
         point.latitude in southwest.latitude..northeast.latitude &&
             point.longitude in southwest.longitude..northeast.longitude
+
+    companion object {
+        /** 17.b · Unos 11 km a cada lado: un municipio entero y sus alrededores. */
+        const val TOWN_SPAN_DEGREES = 0.1
+
+        /** Un rectángulo de [span] grados a cada lado de [center]. */
+        fun around(center: GeoPoint, span: Double = TOWN_SPAN_DEGREES) = GeoBounds(
+            southwest = GeoPoint(center.latitude - span, center.longitude - span),
+            northeast = GeoPoint(center.latitude + span, center.longitude + span),
+        )
+    }
 }

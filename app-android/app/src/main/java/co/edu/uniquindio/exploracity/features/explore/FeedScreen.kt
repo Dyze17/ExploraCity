@@ -28,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -41,7 +40,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -57,7 +55,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -101,6 +98,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.POICardSkeleton
 import co.edu.uniquindio.exploracity.core.ui.components.PublishFab
 import co.edu.uniquindio.exploracity.core.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.core.ui.components.SkeletonBlock
+import co.edu.uniquindio.exploracity.core.ui.components.TownPickerSheet
 import co.edu.uniquindio.exploracity.core.ui.components.dashedBorder
 import co.edu.uniquindio.exploracity.core.ui.components.labelRes
 import co.edu.uniquindio.exploracity.core.ui.components.relativeTimeText
@@ -115,7 +113,6 @@ import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.util.LocationPurpose
 import co.edu.uniquindio.exploracity.core.util.formatDistance
-import co.edu.uniquindio.exploracity.core.util.hasLocationPermission
 import co.edu.uniquindio.exploracity.core.util.rememberLocationPermissionRequester
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
@@ -145,18 +142,13 @@ fun FeedRoute(
     onNoticeShown: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    // ADR-16 · El municipio sale de la ubicación: se pide la primera vez y, si no se dio, desde el nombre de la ciudad.
-    val context = LocalContext.current
-    var locationGranted by remember { mutableStateOf(context.hasLocationPermission()) }
+    val picker by viewModel.townPicker.state.collectAsStateWithLifecycle()
+    // ADR-16 · El municipio sale de la ubicación: se pide la primera vez. Si no se da, se elige la ciudad a mano (v1.3.0).
     val townLocation = rememberLocationPermissionRequester { purpose, granted ->
         if (purpose != LocationPurpose.LOCATE_TOWN) return@rememberLocationPermissionRequester
-        locationGranted = granted
-        if (granted) viewModel.onTownLocationAllowed()
+        if (granted) viewModel.onUseLocation() else viewModel.onOpenTownPicker()
     }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        locationGranted = context.hasLocationPermission()
-        viewModel.onResume()
-    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     LaunchedEffect(state.askLocation) {
         if (state.askLocation) {
             viewModel.onLocationAsked()
@@ -168,7 +160,7 @@ fun FeedRoute(
         isModerator = isModerator,
         callbacks = FeedCallbacks(
             filters = rememberFilterCallbacks(viewModel),
-            onLocateTown = if (locationGranted) null else ({ townLocation.allow(LocationPurpose.LOCATE_TOWN) }),
+            onChooseTown = viewModel::onOpenTownPicker,
             onRetry = viewModel::onRetry,
             onRefresh = viewModel::onRefresh,
             onShowSaved = viewModel::onShowSaved,
@@ -180,6 +172,15 @@ fun FeedRoute(
             onNoticeShown = onNoticeShown,
         ),
         notice = notice,
+    )
+    TownPickerSheet(
+        state = picker,
+        followsLocation = state.followsLocation,
+        onChoose = viewModel::onTownChosen,
+        onQueryChange = viewModel::onTownQueryChange,
+        onDismissRequest = viewModel::onDismissTownPicker,
+        // Sin permiso pide el permiso; si se negó para siempre, lleva a la ficha de la app.
+        onUseLocation = { townLocation.allow(LocationPurpose.LOCATE_TOWN) },
     )
 }
 
@@ -196,8 +197,8 @@ class FeedCallbacks(
     val onPublish: () -> Unit = {},
     val onOpenModeration: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
-    /** ADR-16 · Sin permiso de ubicación: el botón junto a la ciudad lo pide para saber el municipio. */
-    val onLocateTown: (() -> Unit)? = null,
+    /** v1.3.0 · El nombre de la ciudad abre «Elegir ciudad». */
+    val onChooseTown: () -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -214,7 +215,7 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
         val pullGate = remember { PullFromTopGate() }
         Column(Modifier.fillMaxSize()) {
             if (pinnedBanner) SavedPlacesBanner(saved.places, saved.reason, callbacks.onRetry, underStatusBar = true)
-            PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = !pinnedBanner, onLocateTown = callbacks.onLocateTown)
+            PinnedHeader(state.areaName, callbacks.onOpenMap, underStatusBar = !pinnedBanner, onChooseTown = callbacks.onChooseTown)
             // Sin conexión no se busca ni se filtra: lo guardado se muestra tal cual.
             if (saved == null) CollapsibleFilters(state, isModerator, callbacks, collapsing)
             // Deslizar hacia abajo recarga; TalkBack tiene la misma acción en el contenido.
@@ -278,7 +279,7 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                         FeedContent.EmptyArea -> Scrollable {
                             EmptyState(
                                 icon = R.drawable.ic_travel_explore,
-                                title = stringResource(R.string.feed_empty_area_title, state.areaName),
+                                title = stringResource(R.string.feed_empty_area_title, state.areaName.orEmpty()),
                                 body = stringResource(R.string.feed_empty_area_body),
                             ) {
                                 ExploraButton(
@@ -286,6 +287,20 @@ fun FeedScreen(state: FeedUiState, isModerator: Boolean, callbacks: FeedCallback
                                     onClick = callbacks.onPublish,
                                     modifier = Modifier.fillMaxWidth(),
                                     icon = R.drawable.ic_add_location_alt,
+                                )
+                            }
+                        }
+                        FeedContent.ChooseTown -> Scrollable {
+                            EmptyState(
+                                icon = R.drawable.ic_location_city,
+                                title = stringResource(R.string.feed_choose_town_title),
+                                body = stringResource(R.string.feed_choose_town_body),
+                            ) {
+                                ExploraButton(
+                                    stringResource(R.string.feed_choose_town_action),
+                                    onClick = callbacks.onChooseTown,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    icon = R.drawable.ic_location_city,
                                 )
                             }
                         }
@@ -471,12 +486,12 @@ private fun SavedNote() {
 
 /**
  * Fija arriba: «Estás explorando / ciudad» y el conmutador Lista ⇄ Mapa, siempre visible (README 7). Con el aviso de
- * 12.a encima, la barra de estado ya queda cubierta por él ([underStatusBar] false). Con [onLocateTown], un botón junto
- * a la ciudad pide el permiso de ubicación para explorar el municipio donde está la persona (ADR-16).
+ * 12.a encima, la barra de estado ya queda cubierta por él ([underStatusBar] false). El nombre de la ciudad, con ▾,
+ * abre «Elegir ciudad»; sin ciudad dice «Elige una ciudad» (v1.3.0).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PinnedHeader(areaName: String, onOpenMap: () -> Unit, underStatusBar: Boolean = true, onLocateTown: (() -> Unit)? = null) {
+private fun PinnedHeader(areaName: String?, onOpenMap: () -> Unit, underStatusBar: Boolean = true, onChooseTown: () -> Unit = {}) {
     val largeFont = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
     FlowRow(
         Modifier
@@ -493,22 +508,21 @@ private fun PinnedHeader(areaName: String, onOpenMap: () -> Unit, underStatusBar
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            val changeTown = stringResource(R.string.feed_change_town)
+            Row(
+                Modifier
+                    .heightIn(min = 48.dp)
+                    .clickable(onClickLabel = changeTown, role = Role.Button, onClick = onChooseTown),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
-                    areaName,
+                    areaName ?: stringResource(R.string.feed_choose_town),
                     style = MaterialTheme.typography.headlineSmall.copy(fontFamily = Outfit, fontWeight = FontWeight.W600, lineHeight = 28.sp),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (areaName != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f, fill = false).semantics { heading() },
                 )
-                if (onLocateTown != null) {
-                    IconButton(onClick = onLocateTown) {
-                        Icon(
-                            painterResource(R.drawable.ic_my_location),
-                            contentDescription = stringResource(R.string.feed_locate_town),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
+                Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
         }
         ListMapToggle(
@@ -530,7 +544,7 @@ private fun CollapsibleFilters(state: FeedUiState, isModerator: Boolean, callbac
         ExploraSearchBar(
             value = state.query,
             onValueChange = callbacks.filters.onQueryChange,
-            placeholder = stringResource(R.string.feed_search_placeholder, state.areaName),
+            placeholder = state.areaName?.let { stringResource(R.string.feed_search_placeholder, it) } ?: stringResource(R.string.feed_search_placeholder_any),
             modifier = Modifier.onFocusChanged { if (it.isFocused) collapsing.expand() },
             trailing = { FiltersButton(activeCount = state.filters.activeCount, onClick = callbacks.filters.onOpenFilters) },
         )
@@ -688,11 +702,11 @@ private fun PoiItem(poi: Poi, onOpenPoi: (String) -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ListHeader(total: Int, scope: LocationScope, areaName: String) {
+private fun ListHeader(total: Int, scope: LocationScope, areaName: String?) {
     // «24 lugares cerca de ti» (7.a) solo con «Cercanos»; con toda la ciudad lo dice («26 lugares en Bogotá»).
     val title = when (scope) {
         LocationScope.NEARBY -> pluralStringResource(R.plurals.feed_places_nearby, total, total)
-        LocationScope.CITY -> pluralStringResource(R.plurals.feed_places_in_area, total, total, areaName)
+        LocationScope.CITY -> pluralStringResource(R.plurals.feed_places_in_area, total, total, areaName.orEmpty())
     }
     // Se desdobla en dos líneas si no cabe (fuente grande), sin partir «Más cercanos».
     FlowRow(

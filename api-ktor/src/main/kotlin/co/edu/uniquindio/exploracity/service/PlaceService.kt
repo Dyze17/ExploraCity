@@ -9,6 +9,8 @@ import co.edu.uniquindio.exploracity.model.FeedPageResponse
 import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.MapAreaResponse
 import co.edu.uniquindio.exploracity.model.PlaceDetailsResponse
+import co.edu.uniquindio.exploracity.model.TownResponse
+import co.edu.uniquindio.exploracity.model.TownsResponse
 import co.edu.uniquindio.exploracity.model.VisitRequest
 import co.edu.uniquindio.exploracity.model.VisitResponse
 import co.edu.uniquindio.exploracity.model.VoteResponse
@@ -55,6 +57,11 @@ class PlaceService(
         val origin = cards.origin(near)
         val criteria = cards.withUnassigned(filter)
         MapAreaResponse(places.search(criteria, origin, limit).map(cards::summaryOf), places.count(criteria, origin))
+    }
+
+    /** v1.3.0 · Las ciudades con lugares, para elegir una a mano (7). */
+    suspend fun towns(): TownsResponse = database.query {
+        TownsResponse(cards.towns(places).map { TownResponse(it.name, it.region, it.places, GeoPoint(it.latitude, it.longitude)) })
     }
 
     /** 13 · El detalle, con el voto y la visita de quien lo abre. */

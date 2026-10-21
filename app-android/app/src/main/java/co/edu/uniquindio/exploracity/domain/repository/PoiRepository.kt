@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.domain.repository
 import co.edu.uniquindio.exploracity.domain.model.Comment
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
@@ -22,6 +23,8 @@ data class FeedQuery(
     val text: String = "",
     /** ADR-16 · Con «Toda la ciudad», el municipio que se explora; null trae todos (el mapa, que va por área). */
     val municipality: Municipality? = null,
+    /** v1.3.0 · Con una ciudad elegida a mano, su centro: desde ahí se miden las distancias, no desde la persona. */
+    val near: GeoPoint? = null,
 ) {
     val hasCriteria: Boolean get() = !filters.isDefault || text.isNotBlank()
 }

@@ -105,8 +105,30 @@
 
     <!-- Feed (7, 10, 11, 12) -->
     <string name="feed_exploring">You are exploring</string>
-    <!-- ADR-16 · Button next to the city name, without location permission. -->
-    <string name="feed_locate_town">Use your location to know which city you are in</string>
+    <!-- v1.3.0 · Choosing the city by hand (7). -->
+    <string name="feed_choose_town">Choose a city</string>
+    <string name="feed_change_town">change city</string>
+    <string name="feed_choose_town_title">Which city do you want to explore?</string>
+    <string name="feed_choose_town_body">Use your location or choose a city to see its places.</string>
+    <string name="feed_choose_town_action">Choose city</string>
+    <string name="feed_search_placeholder_any">Search places</string>
+    <string name="town_picker_title">Choose a city</string>
+    <string name="town_picker_close">Close</string>
+    <string name="town_use_location">Use my location</string>
+    <string name="town_use_location_body">Explore the city or town you are in</string>
+    <string name="town_search">Search for a city or town</string>
+    <string name="town_with_places">With published places</string>
+    <string name="town_loading">Loading the cities…</string>
+    <string name="town_list_failed">We couldn’t load the cities with places. You can search for one.</string>
+    <string name="town_list_empty">There are no cities with published places yet. Search for yours.</string>
+    <string name="town_searching">Searching…</string>
+    <string name="town_not_found">We didn’t find “%1$s”. Try another name.</string>
+    <string name="town_search_offline">Without a connection we can’t search for cities.</string>
+    <string name="town_search_failed">The search didn’t answer. Try again.</string>
+    <plurals name="town_places">
+        <item quantity="one">%d place</item>
+        <item quantity="other">%d places</item>
+    </plurals>
     <string name="feed_mode_list">List</string>
     <string name="feed_mode_map">Map</string>
     <string name="feed_search_placeholder">Search places in %1$s</string>

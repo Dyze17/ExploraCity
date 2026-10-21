@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.Municipality
+import co.edu.uniquindio.exploracity.domain.model.TownOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -46,6 +47,12 @@ interface AddressResolver {
 
     /** ADR-16 · El municipio de [point]; null si no está en ninguno. Lanza excepción si falla la red o el servicio. */
     suspend fun municipalityOf(point: GeoPoint): Municipality? = addressOf(point)?.municipality
+
+    /**
+     * v1.3.0 · Ciudades y pueblos que se llaman como [query], en cualquier país, para elegir una a mano. Lanza excepción
+     * si falla la red o el servicio.
+     */
+    suspend fun searchTowns(query: String): List<TownOption> = emptyList()
 }
 
 /**
@@ -72,6 +79,22 @@ class GeocoderAddressResolver(context: Context) : AddressResolver {
             }
         }
         return found.firstOrNull()?.toParts()
+    }
+
+    override suspend fun searchTowns(query: String): List<TownOption> {
+        requirePresent()
+        val found = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            geocode { listener -> geocoder.getFromLocationName(query, TOWN_RESULTS, listener) }
+        } else {
+            withContext(Dispatchers.IO) {
+                @Suppress("DEPRECATION")
+                geocoder.getFromLocationName(query, TOWN_RESULTS).orEmpty()
+            }
+        }
+        // Una región o un país no son una ciudad: sin municipio no se ofrece.
+        return found.mapNotNull { address ->
+            address.toParts().toMunicipality()?.let { TownOption(it, GeoPoint(address.latitude, address.longitude), address.countryName) }
+        }.distinctBy { it.municipality }
     }
 
     override suspend fun search(query: String, bounds: GeoBounds): GeoPoint? {
@@ -130,6 +153,11 @@ class OnlineOnlyAddressResolver(
         return remote.municipalityOf(point)
     }
 
+    override suspend fun searchTowns(query: String): List<TownOption> {
+        requireOnline()
+        return remote.searchTowns(query)
+    }
+
     private fun requireOnline() {
         if (!connectivity.isOnline.value) throw OfflineException()
     }
@@ -185,3 +213,6 @@ internal fun AddressParts.toApproximate(): ApproximateAddress? {
 }
 
 private const val UNNAMED_ROAD = "Unnamed Road"
+
+/** v1.3.0 · Resultados de la búsqueda de ciudades: pocos, para elegir sin desplazarse. */
+private const val TOWN_RESULTS = 5

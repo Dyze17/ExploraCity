@@ -2,17 +2,22 @@ package co.edu.uniquindio.exploracity.features.explore
 
 import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.core.data.connectivity.FakeConnectivity
+import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.data.repository.FakeModerationRepository
 import co.edu.uniquindio.exploracity.core.data.repository.FakeNotificationRepository
 import co.edu.uniquindio.exploracity.core.data.repository.FakeOfflineRepository
 import co.edu.uniquindio.exploracity.core.data.repository.FakePoiRepository
 import co.edu.uniquindio.exploracity.core.data.repository.FakePublicationRepository
 import co.edu.uniquindio.exploracity.core.data.repository.samplePois
+import co.edu.uniquindio.exploracity.core.ui.components.TownSearch
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.TownOption
+import co.edu.uniquindio.exploracity.domain.repository.ExploredTown
 import co.edu.uniquindio.exploracity.domain.repository.FeedPage
 import co.edu.uniquindio.exploracity.domain.repository.FeedQuery
 import co.edu.uniquindio.exploracity.domain.repository.ModerationSummary
@@ -32,6 +37,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -498,7 +504,7 @@ class FeedViewModelTest {
         assertEquals("Bogotá", vm.state.value.areaName)
         assertEquals(Municipality("Bogotá", "Bogotá D.C."), repository.queries.last().municipality)
 
-        town.current.value = Municipality("Chía", "Cundinamarca")
+        town.current.value = ExploredTown.Located(Municipality("Chía", "Cundinamarca"))
         advanceUntilIdle()
 
         assertEquals("Chía", vm.state.value.areaName)
@@ -519,7 +525,7 @@ class FeedViewModelTest {
         advanceUntilIdle()
         val loads = repository.queries.size
 
-        town.current.value = Municipality("Chía", "Cundinamarca")
+        town.current.value = ExploredTown.Located(Municipality("Chía", "Cundinamarca"))
         advanceUntilIdle()
 
         assertEquals("Chía", vm.state.value.areaName)
@@ -536,7 +542,7 @@ class FeedViewModelTest {
         assertEquals(1, town.refreshes)
         vm.onLocationAsked()
         assertFalse(vm.state.value.askLocation)
-        vm.onTownLocationAllowed()
+        vm.onUseLocation()
         vm.onResume()
         advanceUntilIdle()
         assertEquals(listOf(false, true, false), town.forced)
@@ -550,10 +556,73 @@ class FeedViewModelTest {
         advanceUntilIdle()
         val loads = repository.queries.size
 
-        vm.onTownLocationAllowed()
+        vm.onUseLocation()
         advanceUntilIdle()
 
         assertEquals(loads + 1, repository.queries.size)
+    }
+
+    @Test
+    fun `sin ubicacion ni ciudad elegida se pide elegir una, y la elegida manda en la lista`() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val town = FakeTownRepository(ExploredTown.Unknown)
+        val vm = viewModel(repository, town = town)
+        advanceUntilIdle()
+
+        assertEquals(FeedContent.ChooseTown, vm.state.value.content)
+        assertEquals(null, vm.state.value.areaName)
+        assertTrue("No se pide nada a la API", repository.queries.isEmpty())
+
+        vm.onTownChosen(calarca)
+        advanceUntilIdle()
+
+        assertEquals("Calarcá", vm.state.value.areaName)
+        assertFalse(vm.state.value.followsLocation)
+        assertEquals(calarca.municipality, repository.queries.last().municipality)
+        assertEquals("Las distancias se miden desde la ciudad elegida", calarca.center, repository.queries.last().near)
+        assertTrue(vm.state.value.content is FeedContent.Loaded)
+    }
+
+    @Test
+    fun `cercanos no necesita ciudad`() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val vm = viewModel(repository, town = FakeTownRepository(ExploredTown.Unknown))
+        advanceUntilIdle()
+
+        vm.onOpenFilters()
+        vm.onDraftChange(FeedFilters(scope = LocationScope.NEARBY))
+        vm.onApplyFilters()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.content is FeedContent.Loaded)
+        assertEquals(null, repository.queries.last().near)
+    }
+
+    @Test
+    fun `elegir ciudad trae las que tienen lugares y busca mientras se escribe`() = runTest(dispatcher) {
+        val town = FakeTownRepository()
+        val vm = viewModel(town = town)
+        advanceUntilIdle()
+
+        vm.onOpenTownPicker()
+        advanceUntilIdle()
+        assertEquals(listOf(calarca), vm.townPicker.state.value?.withPlaces)
+
+        town.searchResult = listOf(austin)
+        vm.onTownQueryChange("Austin")
+        assertEquals(TownSearch.Searching, vm.townPicker.state.value?.search)
+        advanceUntilIdle()
+        assertEquals(TownSearch.Found(listOf(austin)), vm.townPicker.state.value?.search)
+
+        town.searchFailure = OfflineException()
+        vm.onTownQueryChange("Austi")
+        advanceUntilIdle()
+        assertEquals(TownSearch.Offline, vm.townPicker.state.value?.search)
+
+        vm.onTownChosen(austin)
+        advanceUntilIdle()
+        assertNull("Elegir cierra la hoja", vm.townPicker.state.value)
+        assertEquals(ExploredTown.Chosen(austin.municipality, austin.center), town.current.value)
     }
 
     /** Guarda las consultas del feed. */
@@ -574,10 +643,15 @@ private fun sampleModeration(): FakeModerationRepository {
 }
 
 /** ADR-16 · El municipio que se explora, a mano. */
-internal class FakeTownRepository(name: String = "Bogotá", private var asked: Boolean = true) : TownRepository {
-    override val current = MutableStateFlow(Municipality(name, "Bogotá D.C."))
+internal class FakeTownRepository(
+    start: ExploredTown = ExploredTown.Located(Municipality("Bogotá", "Bogotá D.C.")),
+    private var asked: Boolean = true,
+) : TownRepository {
+    override val current = MutableStateFlow(start)
     val forced = mutableListOf<Boolean>()
     val refreshes get() = forced.size
+    var searchResult: List<TownOption> = emptyList()
+    var searchFailure: Exception? = null
 
     override suspend fun refresh(force: Boolean) {
         forced += force
@@ -588,4 +662,24 @@ internal class FakeTownRepository(name: String = "Bogotá", private var asked: B
         asked = true
         return true
     }
+
+    override suspend fun choose(option: TownOption) {
+        current.value = ExploredTown.Chosen(option.municipality, option.center)
+    }
+
+    // Como el de verdad: vuelve al último municipio de la persona y pregunta otra vez.
+    override suspend fun useLocation() {
+        current.value = ExploredTown.Located(Municipality("Bogotá", "Bogotá D.C."))
+        refresh(force = true)
+    }
+
+    override suspend fun withPlaces(): List<TownOption> = listOf(calarca)
+
+    override suspend fun search(query: String): List<TownOption> {
+        searchFailure?.let { throw it }
+        return searchResult
+    }
 }
+
+internal val calarca = TownOption(Municipality("Calarcá", "Quindío"), GeoPoint(4.529, -75.643), places = 3)
+internal val austin = TownOption(Municipality("Austin", "Texas"), GeoPoint(30.27, -97.74), country = "Estados Unidos")

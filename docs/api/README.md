@@ -180,6 +180,7 @@ La app pide la cuenta con Credential Manager («Sign in with Google») y manda e
 | `GET /v1/places` | Token | Una página del feed (`page` desde 0, `pageSize` de 1 a 50, 20 por omisión), del más cercano al más lejano | [`feed-page.json`](ejemplos/feed-page.json) |
 | `GET /v1/places/count` | Token | Cuántos lugares cumplen los criterios: el conteo en vivo de la hoja de filtros (9) | [`count.json`](ejemplos/count.json) |
 | `GET /v1/places/map` | Token | Los del área visible (`bounds`), los más cercanos primero, como máximo `limit` (200), y cuántos hay en el área | [`map-area.json`](ejemplos/map-area.json) |
+| `GET /v1/places/towns` | Token | v1.3.0 · Las ciudades con lugares públicos (verificados y finalizados), para elegir una a mano: nombre, departamento, cuántos lugares tiene y su centro (el promedio). Las 50 que más tienen; los lugares sin municipio cuentan como la ciudad de `/v1/city`, y las variantes de un nombre son la misma ciudad | [`towns.json`](ejemplos/towns.json) |
 | `GET /v1/places/{id}` | Token | El detalle: fotos, dirección, horario, autor con sus puntos y si quien lo abre ya votó o lo visitó | [`place.json`](ejemplos/place.json) |
 | `GET /v1/users/{id}` | Token | El perfil público: sin correo, sus lugares verificados y finalizados con el formato del feed y cuántas insignias tiene | [`public-profile.json`](ejemplos/public-profile.json) |
 

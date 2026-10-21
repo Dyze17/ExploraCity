@@ -1,6 +1,6 @@
 # ADR-16: La ciudad que se explora sale de la ubicación
 
-**Estado:** aceptada (octubre de 2026, versión 1.2.0). Amplía la decisión F2 del plan de conexión con la API: la ciudad de la configuración (`/v1/city`) sigue siendo la de partida.
+**Estado:** aceptada (octubre de 2026, versión 1.2.0; ampliada en la 1.3.0, abajo). Amplía la decisión F2 del plan de conexión con la API: la ciudad de la configuración (`/v1/city`) sigue siendo la de partida.
 
 ## Decisión
 
@@ -42,3 +42,15 @@ Hasta la 1.1.0, la ciudad era una sola, fija en la configuración de la API (Arm
 - La calidad del filtro depende de los nombres del Geocoder. Si escribe un municipio de dos maneras («Bogotá» y «Bogotá, D.C.»), son dos municipios distintos.
 - Un lugar publicado sin conexión, o donde el Geocoder no respondió, queda en la ciudad de la configuración aunque esté en otro municipio. El moderador puede verlo en la dirección.
 - La búsqueda por dirección del formulario (17.b) busca a unos 11 km del pin o, si aún no está, de la persona. Solo sin ninguno de los dos usa los límites de la ciudad de la configuración.
+
+## Cambio en la 1.3.0: elegir la ciudad a mano
+
+Fuera de Armenia, caer en la ciudad de la configuración cuando no hay ubicación mostraba lugares que no correspondían. Desde la 1.3.0:
+
+- Tocar el nombre de la ciudad abre «Elegir ciudad»:
+  - «Usar mi ubicación»;
+  - una búsqueda de cualquier ciudad o pueblo con el Geocoder del teléfono, en cualquier país;
+  - las ciudades que ya tienen lugares (`GET /v1/places/towns`), con cuántos lugares tiene cada una.
+- La ciudad elegida se guarda y manda hasta volver a «Usar mi ubicación». Las distancias se miden desde su centro, y el mapa y el pin del formulario empiezan ahí.
+- Sin ubicación y sin ciudad elegida, «Toda la ciudad» pide elegir una en vez de mostrar la de `/v1/city`. Si se niega el permiso, la hoja se abre sola.
+- La ciudad de la configuración queda solo para los lugares sin municipio y para abrir el mapa cuando no hay nada más.

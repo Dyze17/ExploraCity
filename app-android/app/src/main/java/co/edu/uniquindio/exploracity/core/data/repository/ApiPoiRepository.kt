@@ -26,9 +26,9 @@ import kotlinx.coroutines.flow.flowOf
  */
 class ApiPoiRepository(private val api: PoiApi, private val location: LocationProvider) : PoiRepository {
 
-    override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int): FeedPage = api.feed(query, near(), page, pageSize)
+    override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int): FeedPage = api.feed(query, query.near ?: near(), page, pageSize)
 
-    override suspend fun count(query: FeedQuery): Int = api.count(query, near())
+    override suspend fun count(query: FeedQuery): Int = api.count(query, query.near ?: near())
 
     override suspend fun mapArea(query: FeedQuery, bounds: GeoBounds, limit: Int): MapArea = api.mapArea(query, near(), bounds, limit)
 

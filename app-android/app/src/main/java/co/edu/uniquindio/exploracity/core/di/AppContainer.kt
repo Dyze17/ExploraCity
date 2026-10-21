@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import co.edu.uniquindio.exploracity.BuildConfig
 import co.edu.uniquindio.exploracity.core.data.connectivity.AndroidConnectivityObserver
 import co.edu.uniquindio.exploracity.core.data.connectivity.ConnectivityObserver
+import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.data.google.GoogleCredentials
 import co.edu.uniquindio.exploracity.core.data.local.AndroidDocumentWriter
 import co.edu.uniquindio.exploracity.core.data.local.AppPreferences
@@ -72,10 +73,13 @@ import co.edu.uniquindio.exploracity.core.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.core.data.sync.RoomPublicationOutbox
 import co.edu.uniquindio.exploracity.core.data.sync.WorkManagerScheduler
 import co.edu.uniquindio.exploracity.core.util.hasLocationPermission
+import co.edu.uniquindio.exploracity.domain.model.GeoBounds
+import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.repository.AccountRepository
 import co.edu.uniquindio.exploracity.domain.repository.AuthRepository
 import co.edu.uniquindio.exploracity.domain.repository.CategorySuggester
 import co.edu.uniquindio.exploracity.domain.repository.DuplicateFinder
+import co.edu.uniquindio.exploracity.domain.repository.ExploredTown
 import co.edu.uniquindio.exploracity.domain.repository.GoogleAuthRepository
 import co.edu.uniquindio.exploracity.domain.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.domain.repository.NotificationRepository
@@ -151,7 +155,9 @@ class AppContainer(context: Context) {
     /** 19 · Sube las fotos a la API (SAD: Media Store en Cloudinary), con su progreso. */
     val photoUploader: PhotoUploader = ApiPhotoUploader(publicationApi)
 
-    private val poiServer = ApiPoiRepository(PoiApi(client), locationProvider)
+    private val poiApi = PoiApi(client)
+
+    private val poiServer = ApiPoiRepository(poiApi, locationProvider)
 
     private val notificationServer = ApiNotificationRepository(NotificationApi(client))
 
@@ -243,14 +249,23 @@ class AppContainer(context: Context) {
     /** Dirección aproximada del pin y búsqueda por dirección (17), con el Geocoder de Android. */
     val addressResolver: AddressResolver = OnlineOnlyAddressResolver(GeocoderAddressResolver(context), connectivity)
 
-    /** ADR-16 · El municipio que se explora: el de la persona o, sin su ubicación, la ciudad de la API. */
+    /** ADR-16 · El municipio que se explora: el de la persona o el que eligió a mano (v1.3.0). */
     val town: TownRepository = LocatedTownRepository(
-        defaultTown = { city.current.municipality },
         location = locationProvider,
         addresses = addressResolver,
+        townsWithPlaces = {
+            if (!connectivity.isOnline.value) throw OfflineException()
+            poiApi.towns()
+        },
         store = context.cityDataStore,
         hasPermission = context::hasLocationPermission,
     )
+
+    /** v1.3.0 · Donde abren el mapa (8) y el pin (17) sin ubicación: la ciudad elegida o, si no, la de la API. */
+    fun exploringCenter(): GeoPoint = (town.current.value as? ExploredTown.Chosen)?.center ?: city.current.center
+
+    /** 17.b · Hasta dónde llega la búsqueda por dirección sin pin ni ubicación: alrededor de la ciudad elegida. */
+    fun exploringBounds(): GeoBounds = (town.current.value as? ExploredTown.Chosen)?.center?.let { GeoBounds.around(it) } ?: city.current.bounds
 
     /** 32–37 · La cola de moderación, guardada en el teléfono para leerla sin conexión (32.c). */
     val moderationRepository: ModerationRepository = OfflineModerationRepository(

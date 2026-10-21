@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.core.data.remote.dto.CountDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.FeedPageDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.MapAreaDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.PlaceDetailsDto
+import co.edu.uniquindio.exploracity.core.data.remote.dto.TownsDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.VisitDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.VisitRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.VoteDto
@@ -15,6 +16,7 @@ import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
+import co.edu.uniquindio.exploracity.domain.model.TownOption
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.repository.CommentsPage
 import co.edu.uniquindio.exploracity.domain.repository.FeedPage
@@ -50,6 +52,9 @@ class PoiApi(private val client: HttpClient) {
         parameter("bounds", listOf(bounds.southwest.latitude, bounds.southwest.longitude, bounds.northeast.latitude, bounds.northeast.longitude).joinToString(","))
         parameter("limit", limit)
     }.body<MapAreaDto>().toDomain()
+
+    /** v1.3.0 · Las ciudades con lugares, para elegir una a mano. */
+    suspend fun towns(): List<TownOption> = client.get("v1/places/towns").body<TownsDto>().items.map { it.toDomain() }
 
     /** null si el lugar ya no existe o dejó de ser público. */
     suspend fun details(id: String, near: GeoPoint?): PoiDetails? = orNullIfGone {

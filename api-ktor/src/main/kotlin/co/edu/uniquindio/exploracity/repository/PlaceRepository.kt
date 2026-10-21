@@ -78,6 +78,9 @@ data class PlaceRow(
     val closes: LocalTime?,
 )
 
+/** v1.3.0 · Un municipio con [places] lugares públicos; el centro es el promedio de sus coordenadas. */
+data class TownRow(val name: String, val region: String?, val places: Int, val latitude: Double, val longitude: Double)
+
 /** Quien firma un lugar o un comentario, con sus puntos (G2). */
 data class AuthorRow(val id: UUID, val name: String, val points: Int)
 
@@ -104,6 +107,24 @@ class PlaceRepository {
         sql.append("SELECT count(*) AS total FROM places p ")
         where(sql, filter, from)
         return sql.query { it.getInt("total") }.single()
+    }
+
+    /**
+     * v1.3.0 · Los municipios con lugares públicos, de los que más tienen a los que menos, como máximo [limit]. Los
+     * lugares sin municipio cuentan como [city] (ADR-16). Las variantes de un nombre («Calarca», «Calarcá») son el mismo, con la tilde.
+     */
+    fun towns(city: String, cityRegion: String?, limit: Int): List<TownRow> {
+        val sql = Sql()
+        sql.append("SELECT max(coalesce(p.municipality, ").param(TextColumnType(), city).append(")) AS name, ")
+        sql.append("max(CASE WHEN p.municipality IS NULL THEN ").param(TextColumnType(), cityRegion).append(" ELSE p.region END) AS region, ")
+        sql.append("count(*) AS places, avg(p.latitude) AS latitude, avg(p.longitude) AS longitude FROM places p ")
+        sql.append("WHERE p.status IN $PUBLIC ")
+        sql.append("GROUP BY search_text(coalesce(p.municipality, ").param(TextColumnType(), city).append(")), ")
+        sql.append("search_text(CASE WHEN p.municipality IS NULL THEN ").param(TextColumnType(), cityRegion).append(" ELSE p.region END) ")
+        sql.append("ORDER BY places DESC, name LIMIT ").param(IntegerColumnType(), limit)
+        return sql.query { rs ->
+            TownRow(rs.getString("name"), rs.getString("region"), rs.getInt("places"), rs.getDouble("latitude"), rs.getDouble("longitude"))
+        }
     }
 
     /** El lugar [id] si es público; null si no existe o no se ve (pendiente o rechazado). */

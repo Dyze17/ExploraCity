@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.data.remote.dto
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.Comment
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.Poi
@@ -13,6 +14,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.Residency
+import co.edu.uniquindio.exploracity.domain.model.TownOption
 import co.edu.uniquindio.exploracity.domain.repository.CommentsPage
 import co.edu.uniquindio.exploracity.domain.repository.FeedPage
 import co.edu.uniquindio.exploracity.domain.repository.MapArea
@@ -63,6 +65,15 @@ data class FeedPageDto(val items: List<PlaceDto>, val total: Int, val hasMore: B
 
 @Serializable
 data class CountDto(val count: Int)
+
+/** v1.3.0 · GET /v1/places/towns: una ciudad con lugares, para elegirla a mano. */
+@Serializable
+data class TownDto(val name: String, val region: String? = null, val places: Int, val center: GeoPointDto) {
+    fun toDomain() = TownOption(Municipality(name, region), center.toDomain(), places = places)
+}
+
+@Serializable
+data class TownsDto(val items: List<TownDto>)
 
 @Serializable
 data class MapAreaDto(val items: List<PlaceDto>, val total: Int) {
