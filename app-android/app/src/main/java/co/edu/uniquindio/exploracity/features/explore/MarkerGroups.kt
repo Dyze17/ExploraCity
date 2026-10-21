@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.features.explore
 
+import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.Poi
@@ -17,6 +18,10 @@ sealed interface MapMarker {
             southwest = GeoPoint(pois.minOf { it.location.latitude }, pois.minOf { it.location.longitude }),
             northeast = GeoPoint(pois.maxOf { it.location.latitude }, pois.maxOf { it.location.longitude }),
         )
+
+        /** Cuántos lugares tiene de cada categoría, en el orden habitual y sin las que no tienen ninguno: su anillo. */
+        val categoryCounts: Map<Category, Int> =
+            Category.entries.associateWith { category -> pois.count { it.category == category } }.filterValues { it > 0 }
     }
 }
 
