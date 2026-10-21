@@ -120,6 +120,7 @@ import co.edu.uniquindio.exploracity.core.util.LocationPurpose
 import co.edu.uniquindio.exploracity.core.util.formatDistance
 import co.edu.uniquindio.exploracity.core.util.hasMapsApiKey
 import co.edu.uniquindio.exploracity.core.util.rememberLocationPermissionRequester
+import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
 import co.edu.uniquindio.exploracity.domain.model.Poi
@@ -529,16 +530,25 @@ private fun PlaceMarker(poi: Poi, selected: Boolean, dark: Boolean, onSelect: (S
 private fun GroupMarker(group: MapMarker.Group, dark: Boolean, onClick: (MapMarker.Group) -> Unit) {
     val count = group.pois.size
     MarkerComposable(
-        count,
+        group.categoryCounts,
         dark,
         state = rememberUpdatedMarkerState(position = group.center.toLatLng()),
-        contentDescription = pluralStringResource(R.plurals.map_group_description, count, count),
+        contentDescription = pluralStringResource(R.plurals.map_group_description, count, count, groupCategories(group.categoryCounts)),
         anchor = Offset(0.5f, 0.5f),
         onClick = {
             onClick(group)
             true
         },
-    ) { GroupPin(count) }
+    ) { GroupPin(group.categoryCounts) }
+}
+
+/** «3 de gastronomía, 2 de cultura y 1 de historia»: lo que el anillo del grupo dice con color. */
+@Composable
+private fun groupCategories(counts: Map<Category, Int>): String {
+    val parts = counts.map { (category, places) ->
+        stringResource(R.string.map_group_category, places, stringResource(category.labelRes).lowercase(Locale.forLanguageTag("es")))
+    }
+    return if (parts.size == 1) parts.single() else parts.dropLast(1).joinToString(", ") + " ${stringResource(R.string.list_and)} " + parts.last()
 }
 
 @Composable

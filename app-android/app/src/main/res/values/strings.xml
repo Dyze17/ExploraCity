@@ -114,11 +114,13 @@
     <string name="map_searching_description">Buscando lugares en esta zona</string>
     <string name="map_my_location">Centrar el mapa en tu ubicación</string>
     <string name="map_you_are_here">Estás aquí</string>
+    <!-- %2$s: cuántos hay de cada categoría (map_group_category), como «3 de gastronomía y 2 de cultura». -->
     <plurals name="map_group_description">
-        <item quantity="one">Grupo de %d lugar, toca para acercar</item>
-        <item quantity="many">Grupo de %d lugares, toca para acercar</item>
-        <item quantity="other">Grupo de %d lugares, toca para acercar</item>
+        <item quantity="one">Grupo de %1$d lugar: %2$s. Toca para acercar</item>
+        <item quantity="many">Grupo de %1$d lugares: %2$s. Toca para acercar</item>
+        <item quantity="other">Grupo de %1$d lugares: %2$s. Toca para acercar</item>
     </plurals>
+    <string name="map_group_category">%1$d de %2$s</string>
     <string name="map_marker_description">%1$s, %2$s, %3$s, a %4$s</string>
     <string name="map_marker_selected">%1$s, seleccionado</string>
     <string name="map_open_place">Ver el lugar</string>
