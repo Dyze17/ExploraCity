@@ -48,19 +48,27 @@ Es un monorepo con la **app Android** (Kotlin y Jetpack Compose) y su **API REST
 
 ## <img src="docs/img/iconos/instalar.svg" width="28" height="28" align="top"> Instalar la app
 
-1. Desde el teléfono, descarga `ExploraCity-1.1.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
+1. Desde el teléfono, descarga `ExploraCity-1.2.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
 2. Ábrelo. Android pide permitir la instalación de apps desde el navegador.
 3. Crea tu cuenta con tu correo o con «Continuar con Google». La app ya usa la API en la nube, así que no hace falta nada más.
 
 Requiere **Android 9** o posterior. Las versiones nuevas se instalan encima de las anteriores.
 
+La app está en **español e inglés**: sigue el idioma del teléfono, y en un teléfono en otro idioma se ve en inglés. Se cambia en Ajustes › Idioma o, desde Android 13, en los ajustes del teléfono.
+
+*ExploraCity is available in English and Spanish. It follows the phone’s language, falls back to English, and can be changed in Settings › Language.*
+
 ## Qué hace
 
 ### <img src="docs/img/iconos/explorar.svg" width="24" height="24" align="top"> Explorar
-- **Feed en lista y en mapa** (Google Maps), con marcadores agrupados y una tarjeta inferior para el lugar seleccionado. La lista se recarga deslizando hacia abajo.
+- **La ciudad sale de tu ubicación** ([ADR-16](docs/decisiones-arquitectonicas/ADR-16-ciudad-segun-la-ubicacion.md)): «Estás explorando …» muestra el municipio donde estás, y «Toda la ciudad» trae solo sus lugares.
+  - El municipio lo da el Geocoder del teléfono, y se guarda para abrir sin conexión.
+  - El permiso de ubicación se pide la primera vez que se abre Explorar. Sin él se explora Armenia, y un botón junto al nombre de la ciudad lo pide otra vez.
+- **Feed en lista y en mapa** (Google Maps), con una tarjeta inferior para el lugar seleccionado. La lista se recarga deslizando hacia abajo.
+- **Marcadores con el color de su categoría**. Los que quedan juntos se agrupan en un círculo con el número de lugares y un anillo repartido por categorías; TalkBack las nombra («3 de gastronomía y 2 de cultura»).
 - **Búsqueda y filtros**:
   - categorías;
-  - «Cercanos» (5 km, con permiso de ubicación) o toda la ciudad;
+  - «Cercanos» (5 km, con permiso de ubicación) o toda la ciudad (el municipio donde estás);
   - «Solo verificados».
 
   La búsqueda ignora mayúsculas y tildes: «cafe» encuentra «Café».
@@ -76,7 +84,7 @@ Requiere **Android 9** o posterior. Las versiones nuevas se instalan encima de l
 - **Formulario en 5 pasos**:
   1. título y descripción;
   2. categoría, **sugerida por IA** (DeepSeek por OpenRouter, en menos de un segundo);
-  3. ubicación en el mapa, con la dirección aproximada del pin;
+  3. ubicación en el mapa, con la dirección aproximada del pin y su municipio. La búsqueda por dirección mira alrededor del pin o de la persona;
   4. horario y rango de precio;
   5. de 1 a 5 fotos.
 - **Posibles duplicados**: al confirmar la ubicación se buscan lugares con un nombre parecido a 50 m. La persona puede abrir el existente o confirmar que es otro lugar; en ese caso, el moderador ve la marca «posible duplicado».
@@ -122,9 +130,9 @@ Requiere **Android 9** o posterior. Las versiones nuevas se instalan encima de l
   - si la sesión vence, avisa «Tu sesión terminó. Vuelve a entrar.».
 - **Recuperación de contraseña**: el enlace del correo **abre directo la app** en «Nueva contraseña» (App Links). Vence a los 30 minutos y se puede reenviar después de 60 s. La app nunca revela si un correo tiene cuenta.
 - **Editar perfil**: foto, nombre, «Sobre mí» y «De visita» o «Residente».
-- **Ajustes**: tema claro, oscuro o del sistema; documentos legales; **descargar mis datos** en JSON; cerrar sesión.
+- **Ajustes**: tema claro, oscuro o del sistema; **idioma** (sistema, español o English); documentos legales; **descargar mis datos** en JSON; cerrar sesión.
 - **Cambiar correo**: pide la contraseña y se confirma con un enlace en el correo nuevo.
-- **Eliminar la cuenta**: muestra qué se borra y qué se conserva de forma anónima, y pide escribir **ELIMINAR**.
+- **Eliminar la cuenta**: muestra qué se borra y qué se conserva de forma anónima, y pide escribir **ELIMINAR** (en inglés, **DELETE**).
 
 ### <img src="docs/img/iconos/correo.svg" width="24" height="24" align="top"> Correos
 La bienvenida, la recuperación de contraseña y el cambio de correo llegan con el diseño de la app:
@@ -134,7 +142,7 @@ La bienvenida, la recuperación de contraseña y el cambio de correo llegan con 
 
 Se envían con SendGrid.
 
-### <img src="docs/img/iconos/transversal.svg" width="24" height="24" align="top"> Sin conexión, accesibilidad y tema
+### <img src="docs/img/iconos/transversal.svg" width="24" height="24" align="top"> Sin conexión, accesibilidad, idiomas y tema
 - **Sin conexión**:
   - el feed y el detalle de cada lugar quedan guardados en Room, con la antigüedad de la copia;
   - las visitas, los votos y los comentarios hechos sin red quedan en una **cola de envío** que WorkManager envía al volver la conexión.
@@ -143,6 +151,10 @@ Se envían con SendGrid.
   - el contraste es de al menos 4,5:1 en los dos temas;
   - todo funciona con TalkBack;
   - el diseño se adapta con la **fuente al 200 %**.
+- **Idiomas**: español e inglés. Todos los textos están en `strings.xml` (inglés en `values/`, el de respaldo; español en `values-es/`).
+  - Fechas, horas y cifras siguen el idioma: «12 de marzo, 19:00, 1,2 km» o «March 12, 7:00 PM, 1.2 km».
+  - Lo que la API escribe en español (insignias, motivos de moderación) la app lo dice en su idioma por su código.
+  - Los correos siguen en español, y lo que escribe la gente no se traduce.
 - **Tema** claro y oscuro con Material 3. Las tipografías son Outfit y Manrope.
 
 | Categorías | Estados de una publicación |
@@ -151,10 +163,10 @@ Se envían con SendGrid.
 
 ## <img src="docs/img/iconos/estado.svg" width="28" height="28" align="top"> Estado del proyecto
 
-**Versión 1.1.0, publicada.** Trae entrar y registrarse con Google.
+**Versión 1.2.0, publicada.** Trae la ciudad según la ubicación, los grupos del mapa por categoría y la app en inglés y español.
 - Todas las pantallas del diseño están implementadas.
 - La app trabaja con la API desplegada en Google Cloud, sin datos de ejemplo.
-- La ciudad es **Armenia**; se cambia en `api-ktor/src/main/resources/application.conf`.
+- La ciudad de partida es **Armenia**, la que se explora sin permiso de ubicación. Se cambia en `api-ktor/src/main/resources/application.conf`.
 
 | Área | Pantallas (numeración del diseño) | Estado |
 |---|---|---|
@@ -165,6 +177,9 @@ Se envían con SendGrid.
 | Editar perfil, ajustes, documentos legales y eliminar cuenta | 28–30, 29A, 4A | ✅ |
 | Cambiar correo (Ajustes › Cuenta) | sin número | ✅ |
 | Entrar y registrarse con Google ([ADR-15](docs/decisiones-arquitectonicas/ADR-15-entrar-con-google.md)) | sin número | ✅ |
+| La ciudad según la ubicación ([ADR-16](docs/decisiones-arquitectonicas/ADR-16-ciudad-segun-la-ubicacion.md)) | 7, 9 y 17.b | ✅ |
+| Grupos del mapa por categoría | 8 | ✅ |
+| Inglés y español (Ajustes › Idioma) | todas, 29 | ✅ |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ |
 | API ([contrato](docs/api/README.md)) | — | ✅ |
 | Despliegue: la API en Cloud Run y la app en GitHub Releases ([guía](docs/despliegue.md)) | — | ✅ |
@@ -268,7 +283,7 @@ La IA y la detección de duplicados corren en el backend, así que ninguna clave
   - Si llega uno que ya se usó, se cierran todas las sesiones de la cuenta.
 - Tras 5 intentos fallidos en 15 minutos con el mismo correo, el inicio de sesión queda bloqueado 15 minutos.
 
-**Búsqueda:** el feed, el mapa y el perfil público ordenan por cercanía con PostGIS. Miden desde la ubicación de la persona o, sin ella, desde el centro de la ciudad.
+**Búsqueda:** el feed, el mapa y el perfil público ordenan por cercanía con PostGIS. Miden desde la ubicación de la persona o, sin ella, desde el centro de la ciudad. «Toda la ciudad» filtra por el municipio de cada lugar, que la app manda al publicar; los que no tienen, cuentan como la ciudad de la configuración.
 
 **Reputación:**
 - Votar o visitar un lugar propio no suma ni puntos ni avance de insignias.
