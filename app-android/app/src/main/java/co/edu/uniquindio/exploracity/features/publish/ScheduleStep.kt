@@ -63,7 +63,8 @@ import co.edu.uniquindio.exploracity.core.ui.components.spokenRes
 import co.edu.uniquindio.exploracity.core.ui.components.symbol
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
-import co.edu.uniquindio.exploracity.core.util.spanishColombia
+import co.edu.uniquindio.exploracity.core.util.appLocale
+import co.edu.uniquindio.exploracity.core.util.localeFormats
 import co.edu.uniquindio.exploracity.domain.model.DraftHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import java.time.DayOfWeek
@@ -74,7 +75,6 @@ import java.time.format.TextStyle
 /** El orden de la semana en Colombia, como el resto de la app: empieza el lunes. */
 private val week = DayOfWeek.entries
 
-private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm", spanishColombia)
 
 /** Cuál de las dos horas se está eligiendo. */
 private enum class TimeField { OPENS, CLOSES }
@@ -234,6 +234,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DayToggles(days: Set<DayOfWeek>, enabled: Boolean, error: Boolean, focusRequester: FocusRequester, onToggle: (DayOfWeek) -> Unit) {
+    val locale = appLocale()
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
     val selectedText = stringResource(R.string.publish_schedule_day_selected)
@@ -248,7 +249,7 @@ private fun DayToggles(days: Set<DayOfWeek>, enabled: Boolean, error: Boolean, f
                     selected -> explora.onPrimaryContainerAccent
                     else -> scheme.onSurface
                 }
-                val full = day.getDisplayName(TextStyle.FULL, spanishColombia)
+                val full = day.getDisplayName(TextStyle.FULL, locale)
                 Box(
                     Modifier
                         .then(if (index == 0) Modifier.focusRequester(focusRequester) else Modifier)
@@ -262,7 +263,7 @@ private fun DayToggles(days: Set<DayOfWeek>, enabled: Boolean, error: Boolean, f
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        day.getDisplayName(TextStyle.SHORT, spanishColombia).removeSuffix(".").replaceFirstChar { it.titlecase(spanishColombia) },
+                        day.getDisplayName(TextStyle.SHORT, locale).removeSuffix(".").replaceFirstChar { it.titlecase(locale) },
                         style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = if (selected) FontWeight.W700 else FontWeight.W600),
                         color = content,
                         modifier = Modifier.semantics { contentDescription = full },
@@ -288,7 +289,8 @@ private fun TimeField(
     val scheme = MaterialTheme.colorScheme
     val explora = MaterialTheme.exploraColors
     val shape = RoundedCornerShape(12.dp)
-    val value = time?.let(timeFormat::format)
+    val formats = localeFormats()
+    val value = time?.let { DateTimeFormatter.ofPattern(formats.time, formats.locale).format(it) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.W600), color = explora.textSecondary)
         Row(

@@ -34,8 +34,8 @@ import co.edu.uniquindio.exploracity.core.ui.theme.ContainerColors
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
+import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.core.util.formatCount
-import co.edu.uniquindio.exploracity.core.util.spanishColombia
 import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
 
@@ -81,7 +81,7 @@ fun badgeProgressText(badge: Badge): String {
         BadgeMetric.PUBLICATIONS -> pluralStringResource(R.plurals.badge_progress_publications, target, shownProgress, shownTarget)
         BadgeMetric.VERIFIED_PLACES -> pluralStringResource(R.plurals.badge_progress_verified, target, shownProgress, shownTarget)
         BadgeMetric.CATEGORY_PLACES -> {
-            val category = badge.category?.let { stringResource(it.labelRes).lowercase(spanishColombia) }
+            val category = badge.category?.let { stringResource(it.labelRes).lowercase(appLocale()) }
             if (category != null) {
                 pluralStringResource(R.plurals.badge_progress_category, target, shownProgress, shownTarget, category)
             } else {
@@ -102,9 +102,9 @@ fun badgeLockedProgress(badge: Badge): String =
 /** Lo que dice el lector de una insignia: «10 verificadas, bloqueada, 3 de 10 lugares verificados». */
 @Composable
 fun badgeSpokenDescription(badge: Badge): String = if (badge.unlocked) {
-    stringResource(R.string.badge_unlocked_spoken, badge.name)
+    stringResource(R.string.badge_unlocked_spoken, badge.localName)
 } else {
-    stringResource(R.string.badge_locked_spoken, badge.name, badgeProgressText(badge))
+    stringResource(R.string.badge_locked_spoken, badge.localName, badgeProgressText(badge))
 }
 
 /**
@@ -168,7 +168,7 @@ private fun BadgeCircle(badge: Badge, compact: Boolean) {
 @Composable
 private fun BadgeName(badge: Badge, align: TextAlign) {
     Text(
-        badge.name,
+        badge.localName,
         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.W700),
         color = if (badge.unlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.exploraColors.iconSecondary,
         textAlign = align,

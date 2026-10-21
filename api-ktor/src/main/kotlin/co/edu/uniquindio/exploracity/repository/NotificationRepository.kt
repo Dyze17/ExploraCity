@@ -2,8 +2,10 @@ package co.edu.uniquindio.exploracity.repository
 
 import co.edu.uniquindio.exploracity.model.Badges
 import co.edu.uniquindio.exploracity.model.Comments
+import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.NotificationType
 import co.edu.uniquindio.exploracity.model.Notifications
+import co.edu.uniquindio.exploracity.model.RejectionReason
 import co.edu.uniquindio.exploracity.model.Users
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -32,13 +34,17 @@ data class NotificationRow(
     val placeTitle: String?,
     val points: Int?,
     val reason: String?,
+    /** v1.2.0 · El código del motivo; null en avisos sin motivo. */
+    val reasonCode: String?,
     /** COMMENTED: null si la cuenta que comentó se eliminó. */
     val commentAuthor: String?,
     val commentText: String?,
     val existingPlaceId: UUID?,
     val existingTitle: String?,
     val achievement: String?,
+    val achievementId: String?,
     val nextBadge: String?,
+    val nextBadgeId: String?,
     val remaining: Int?,
 )
 
@@ -54,7 +60,7 @@ class NotificationRepository {
             Notifications.id, Notifications.type, Notifications.createdAt, Notifications.readAt, Notifications.placeId,
             Notifications.placeTitle, Notifications.points, Notifications.reason, Notifications.existingPlaceId,
             Notifications.existingTitle, Notifications.achievement, Notifications.remaining, Comments.text, Users.name,
-            Badges.name,
+            Badges.name, Notifications.reasonCode, Notifications.achievementId, Notifications.badgeId,
         )
         .where { Notifications.userId eq userId }
         .orderBy(Notifications.createdAt to SortOrder.DESC, Notifications.id to SortOrder.DESC)
@@ -69,12 +75,15 @@ class NotificationRepository {
                 placeTitle = row[Notifications.placeTitle],
                 points = row[Notifications.points],
                 reason = row[Notifications.reason],
+                reasonCode = row[Notifications.reasonCode],
                 commentAuthor = row.getOrNull(Users.name),
                 commentText = row.getOrNull(Comments.text),
                 existingPlaceId = row[Notifications.existingPlaceId],
                 existingTitle = row[Notifications.existingTitle],
                 achievement = row[Notifications.achievement],
+                achievementId = row[Notifications.achievementId],
                 nextBadge = row.getOrNull(Badges.name),
+                nextBadgeId = row[Notifications.badgeId],
                 remaining = row[Notifications.remaining],
             )
         }
@@ -94,11 +103,15 @@ class NotificationRepository {
         }
     }
 
-    /** 27 · Desbloqueó [achievement]; [nextBadgeId] es la insignia bloqueada más cercana y le faltan [remaining]. */
-    fun achievement(userId: UUID, achievement: String, nextBadgeId: String?, remaining: Int?, at: Instant) {
+    /**
+     * 27 · Desbloqueó la insignia [achievementId], que se llama [achievement]; [nextBadgeId] es la bloqueada más cercana
+     * y le faltan [remaining].
+     */
+    fun achievement(userId: UUID, achievementId: String, achievement: String, nextBadgeId: String?, remaining: Int?, at: Instant) {
         Notifications.insert {
             it[Notifications.userId] = userId
             it[type] = NotificationType.ACHIEVEMENT
+            it[Notifications.achievementId] = achievementId
             it[Notifications.achievement] = achievement
             it[badgeId] = nextBadgeId
             it[Notifications.remaining] = remaining
@@ -113,12 +126,14 @@ class NotificationRepository {
         it[Notifications.points] = points
     }
 
-    /** 35 · Rechazada; [reason] es la frase del motivo («la foto no permite reconocer el lugar»). */
-    fun rejected(userId: UUID, placeId: UUID, placeTitle: String, reason: String, at: Instant) = insert(userId, NotificationType.REJECTED, at) {
-        it[Notifications.placeId] = placeId
-        it[Notifications.placeTitle] = placeTitle
-        it[Notifications.reason] = reason
-    }
+    /** 35 · Rechazada por [code]; [reason] es la frase del motivo («la foto no permite reconocer el lugar»). */
+    fun rejected(userId: UUID, placeId: UUID, placeTitle: String, code: RejectionReason, reason: String, at: Instant) =
+        insert(userId, NotificationType.REJECTED, at) {
+            it[Notifications.placeId] = placeId
+            it[Notifications.placeTitle] = placeTitle
+            it[Notifications.reasonCode] = code.name
+            it[Notifications.reason] = reason
+        }
 
     /** 35 · Rechazada por duplicado de [existingId]. */
     fun duplicateRejected(userId: UUID, placeId: UUID, placeTitle: String, existingId: UUID, existingTitle: String, at: Instant) =
@@ -129,12 +144,14 @@ class NotificationRepository {
             it[Notifications.existingTitle] = existingTitle
         }
 
-    /** 36 · Pasó a finalizada; [reason] es el motivo en minúscula. */
-    fun finalized(userId: UUID, placeId: UUID, placeTitle: String, reason: String, at: Instant) = insert(userId, NotificationType.FINALIZED, at) {
-        it[Notifications.placeId] = placeId
-        it[Notifications.placeTitle] = placeTitle
-        it[Notifications.reason] = reason
-    }
+    /** 36 · Pasó a finalizada por [code]; [reason] es el motivo en minúscula. */
+    fun finalized(userId: UUID, placeId: UUID, placeTitle: String, code: FinalizeReason, reason: String, at: Instant) =
+        insert(userId, NotificationType.FINALIZED, at) {
+            it[Notifications.placeId] = placeId
+            it[Notifications.placeTitle] = placeTitle
+            it[Notifications.reasonCode] = code.name
+            it[Notifications.reason] = reason
+        }
 
     private fun insert(userId: UUID, type: NotificationType, at: Instant, fill: Notifications.(InsertStatement<Number>) -> Unit) {
         Notifications.insert {

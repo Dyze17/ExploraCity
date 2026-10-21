@@ -7,7 +7,9 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
+import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.Notification
+import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
@@ -36,6 +38,10 @@ data class SavedNotificationEntity(
     val achievement: String? = null,
     val nextBadge: String? = null,
     val remaining: Int? = null,
+    /** v1.2.0 · RejectionReason o FinalizeReason, según el tipo (DB v6). */
+    val reasonCode: String? = null,
+    val achievementId: String? = null,
+    val nextBadgeId: String? = null,
 )
 
 @Dao
@@ -82,10 +88,17 @@ fun Notification.toEntity(position: Int): SavedNotificationEntity {
     val base = SavedNotificationEntity(id, position, NotificationType.VERIFIED, createdAt.toEpochMilli(), read)
     return when (this) {
         is Notification.Verified -> base.copy(type = NotificationType.VERIFIED, poiId = poiId, title = poiTitle, points = points)
-        is Notification.Finalized -> base.copy(type = NotificationType.FINALIZED, poiId = poiId, title = poiTitle, reason = reason)
+        is Notification.Finalized ->
+            base.copy(type = NotificationType.FINALIZED, poiId = poiId, title = poiTitle, reason = reason, reasonCode = finalizeReason?.name)
         is Notification.Commented ->
             base.copy(type = NotificationType.COMMENTED, poiId = poiId, title = poiTitle, authorName = authorName, excerpt = excerpt)
-        is Notification.Rejected -> base.copy(type = NotificationType.REJECTED, publicationId = publicationId, title = title, reason = reason)
+        is Notification.Rejected -> base.copy(
+            type = NotificationType.REJECTED,
+            publicationId = publicationId,
+            title = title,
+            reason = reason,
+            reasonCode = rejectionReason?.name,
+        )
         is Notification.DuplicateRejected -> base.copy(
             type = NotificationType.DUPLICATE_REJECTED,
             publicationId = publicationId,
@@ -93,8 +106,14 @@ fun Notification.toEntity(position: Int): SavedNotificationEntity {
             existingPoiId = existingPoiId,
             existingTitle = existingTitle,
         )
-        is Notification.Achievement ->
-            base.copy(type = NotificationType.ACHIEVEMENT, achievement = achievement, nextBadge = nextBadge, remaining = remaining)
+        is Notification.Achievement -> base.copy(
+            type = NotificationType.ACHIEVEMENT,
+            achievement = achievement,
+            nextBadge = nextBadge,
+            remaining = remaining,
+            achievementId = achievementId,
+            nextBadgeId = nextBadgeId,
+        )
     }
 }
 
@@ -102,11 +121,14 @@ fun SavedNotificationEntity.toDomain(): Notification {
     val createdAt = Instant.ofEpochMilli(createdAtMillis)
     return when (type) {
         NotificationType.VERIFIED -> Notification.Verified(id, createdAt, read, poiId!!, title!!, points ?: 0)
-        NotificationType.FINALIZED -> Notification.Finalized(id, createdAt, read, poiId!!, title!!, reason)
+        NotificationType.FINALIZED ->
+            Notification.Finalized(id, createdAt, read, poiId!!, title!!, reason, FinalizeReason.entries.firstOrNull { it.name == reasonCode })
         NotificationType.COMMENTED -> Notification.Commented(id, createdAt, read, poiId!!, title!!, authorName, excerpt!!)
-        NotificationType.REJECTED -> Notification.Rejected(id, createdAt, read, publicationId!!, title!!, reason!!)
+        NotificationType.REJECTED ->
+            Notification.Rejected(id, createdAt, read, publicationId!!, title!!, reason!!, RejectionReason.entries.firstOrNull { it.name == reasonCode })
         NotificationType.DUPLICATE_REJECTED ->
             Notification.DuplicateRejected(id, createdAt, read, publicationId!!, title!!, existingPoiId!!, existingTitle!!)
-        NotificationType.ACHIEVEMENT -> Notification.Achievement(id, createdAt, read, achievement!!, nextBadge, remaining)
+        NotificationType.ACHIEVEMENT ->
+            Notification.Achievement(id, createdAt, read, achievement!!, nextBadge, remaining, achievementId, nextBadgeId)
     }
 }

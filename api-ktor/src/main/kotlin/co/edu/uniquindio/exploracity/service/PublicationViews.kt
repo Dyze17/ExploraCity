@@ -111,6 +111,7 @@ class PublicationViews(
             canResubmit = decision.canResubmit == true && reason != RejectionReason.DUPLICATE,
             fixes = ModerationTexts.fixes(reason),
             duplicateOf = decision.duplicateOf?.let { places.find(it, place.location()) }?.let(cards::summaryOf),
+            customMessage = decision.rejectionMessage.let { it != null && it != ModerationTexts.defaultMessage(reason) },
         )
     }
 

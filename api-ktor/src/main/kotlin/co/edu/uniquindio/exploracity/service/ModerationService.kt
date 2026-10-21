@@ -135,7 +135,7 @@ class ModerationService(
                 notifications.duplicateRejected(author, place.id, place.fields.title, original.id, original.title, now)
             } else {
                 val reason = ModerationTexts.noticeReason(request.reason, message.ifEmpty { ModerationTexts.defaultMessage(request.reason) })
-                notifications.rejected(author, place.id, place.fields.title, reason, now)
+                notifications.rejected(author, place.id, place.fields.title, request.reason, reason, now)
             }
         }
     }
@@ -170,7 +170,7 @@ class ModerationService(
             val now = clock.instant()
             publications.setStatus(place.id, PublicationStatus.FINALIZED)
             moderation.decide(NewDecision(place.id, moderatorId, DecisionAction.FINALIZED, finalizeReason = reason), now)
-            place.authorId?.let { notifications.finalized(it, place.id, place.fields.title, ModerationTexts.sentence(reason), now) }
+            place.authorId?.let { notifications.finalized(it, place.id, place.fields.title, reason, ModerationTexts.sentence(reason), now) }
         }
     }
 

@@ -65,7 +65,10 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.core.ui.components.OfflineBanner
 import co.edu.uniquindio.exploracity.core.ui.components.SkeletonBlock
+import co.edu.uniquindio.exploracity.core.ui.components.badgeName
 import co.edu.uniquindio.exploracity.core.ui.components.dashedBorder
+import co.edu.uniquindio.exploracity.core.ui.components.finalizeSentence
+import co.edu.uniquindio.exploracity.core.ui.components.rejectionSentence
 import co.edu.uniquindio.exploracity.core.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.core.ui.components.rememberShimmerBrush
@@ -351,7 +354,8 @@ private fun NotificationCard(notification: Notification, now: Instant, callbacks
 @Composable
 private fun notificationMessage(notification: Notification): String = when (notification) {
     is Notification.Verified -> stringResource(R.string.notification_verified, notification.poiTitle)
-    is Notification.Finalized -> notification.reason?.let { stringResource(R.string.notification_finalized_reason, notification.poiTitle, it) }
+    is Notification.Finalized -> finalizeSentence(notification.finalizeReason, notification.reason)
+        ?.let { stringResource(R.string.notification_finalized_reason, notification.poiTitle, it) }
         ?: stringResource(R.string.notification_finalized, notification.poiTitle)
     is Notification.Commented -> stringResource(
         R.string.notification_commented,
@@ -359,12 +363,15 @@ private fun notificationMessage(notification: Notification): String = when (noti
         notification.poiTitle,
         excerpt(notification.excerpt),
     )
-    is Notification.Rejected -> stringResource(R.string.notification_rejected, notification.title, notification.reason)
+    is Notification.Rejected ->
+        stringResource(R.string.notification_rejected, notification.title, rejectionSentence(notification.rejectionReason, notification.reason))
     is Notification.DuplicateRejected -> stringResource(R.string.notification_duplicate, notification.title, notification.existingTitle)
     is Notification.Achievement -> {
-        val achievement = stringResource(R.string.notification_achievement, notification.achievement)
+        val achievement = stringResource(R.string.notification_achievement, badgeName(notification.achievementId, notification.achievement))
         val next = notification.remaining?.let { remaining ->
-            notification.nextBadge?.let { badge -> pluralStringResource(R.plurals.notification_achievement_next, remaining, remaining, badge) }
+            notification.nextBadge?.let { badge ->
+                pluralStringResource(R.plurals.notification_achievement_next, remaining, remaining, badgeName(notification.nextBadgeId, badge))
+            }
         }
         if (next != null) "$achievement $next" else achievement
     }

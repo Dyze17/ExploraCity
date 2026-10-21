@@ -42,4 +42,4 @@ Al abrir el PR se carga la plantilla (`.github/pull_request_template.md`). El CI
   funcionalidad; si otra funcionalidad necesita una pieza suya, esa pieza sube a `core/ui`.
 - **Sistema de diseño en código:** colores, tipografía y formas solo desde `MaterialTheme` y
   `MaterialTheme.exploraColors`; `ThemeContrastTest` exige 4,5:1 en texto y 3:1 en contenido no textual.
-- **Textos:** en `strings.xml` (español, `tools:locale="es"`), con plurales `one`, `many` y `other`.
+- **Textos:** en `strings.xml`, en los dos idiomas (v1.2.0): inglés en `values/` (el de respaldo) y español en `values-es/`, con plurales `one` y `other` en inglés y `one`, `many` y `other` en español. Lint (`MissingTranslation`) falla si falta uno. Fechas, horas y cifras con los formateadores de `core/util`, que siguen el idioma de la app; sus patrones están en `format_*`.

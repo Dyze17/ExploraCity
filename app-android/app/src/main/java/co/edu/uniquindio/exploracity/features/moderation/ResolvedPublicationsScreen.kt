@@ -53,6 +53,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.core.ui.components.StatusBadge
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
+import co.edu.uniquindio.exploracity.core.ui.components.reviewerName
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
@@ -203,7 +204,7 @@ private fun ResolvedCard(item: ResolvedPublication, now: Instant, onOpen: () -> 
                 StatusBadge(item.status, size = BadgeSize.SMALL)
             }
             Text(
-                stringResource(R.string.resolved_decided_by, decidedText(item.status, item.decidedAt, now), item.decidedBy),
+                stringResource(R.string.resolved_decided_by, decidedText(item.status, item.decidedAt, now), reviewerName(item.decidedBy)),
                 style = small,
                 color = explora.textSecondary,
             )

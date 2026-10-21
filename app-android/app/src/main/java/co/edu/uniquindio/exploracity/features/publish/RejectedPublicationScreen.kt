@@ -59,8 +59,11 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraTopAppBar
 import co.edu.uniquindio.exploracity.core.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.core.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.core.ui.components.StatusBadge
+import co.edu.uniquindio.exploracity.core.ui.components.fixText
 import co.edu.uniquindio.exploracity.core.ui.components.labelRes
+import co.edu.uniquindio.exploracity.core.ui.components.rejectionMessage
 import co.edu.uniquindio.exploracity.core.ui.components.rememberShimmerBrush
+import co.edu.uniquindio.exploracity.core.ui.components.reviewerName
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.preview.previewPlaces
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
@@ -290,9 +293,9 @@ private fun ModeratorReason(rejection: Rejection) {
             color = scheme.error,
             modifier = Modifier.semantics { heading() },
         )
-        Text(rejection.message, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp), color = scheme.onSurface)
+        Text(rejectionMessage(rejection), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp), color = scheme.onSurface)
         Text(
-            stringResource(R.string.rejected_reviewed_by, rejection.reviewerName),
+            stringResource(R.string.rejected_reviewed_by, reviewerName(rejection.reviewerName)),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
             color = explora.iconSecondary,
         )
@@ -329,7 +332,7 @@ private fun Fixes(fixes: List<RequiredFix>) {
         fixes.forEach { fix ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(painterResource(fix.kind.iconRes), contentDescription = null, tint = explora.warningAccent, modifier = Modifier.size(18.dp.scaledWithFont()))
-                Text(fix.text, style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 19.sp), color = explora.textSecondary)
+                Text(fixText(fix), style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 19.sp), color = explora.textSecondary)
             }
         }
     }
@@ -463,6 +466,7 @@ private fun PlacePhoto(url: String?, size: Dp) {
 }
 
 /** «12 de septiembre»; de otro año, con el año. */
+@Composable
 private fun dateText(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String {
     val date = instant.atZone(zone).toLocalDate()
     return formatDate(date, withYear = date.year != Instant.now().atZone(zone).year)

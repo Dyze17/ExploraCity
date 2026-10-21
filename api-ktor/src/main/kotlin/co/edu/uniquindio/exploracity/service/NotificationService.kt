@@ -1,9 +1,11 @@
 package co.edu.uniquindio.exploracity.service
 
 import co.edu.uniquindio.exploracity.config.query
+import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.NotificationResponse
 import co.edu.uniquindio.exploracity.model.NotificationType
 import co.edu.uniquindio.exploracity.model.NotificationsResponse
+import co.edu.uniquindio.exploracity.model.RejectionReason
 import co.edu.uniquindio.exploracity.model.iso
 import co.edu.uniquindio.exploracity.plugins.ApiException
 import co.edu.uniquindio.exploracity.repository.NotificationRepository
@@ -40,8 +42,18 @@ class NotificationService(
         val place = placeId?.toString()
         return when (type) {
             NotificationType.VERIFIED -> base.copy(placeId = place, placeTitle = placeTitle, points = points ?: 0)
-            NotificationType.FINALIZED -> base.copy(placeId = place, placeTitle = placeTitle, reason = reason)
-            NotificationType.REJECTED -> base.copy(placeId = place, placeTitle = placeTitle, reason = reason)
+            NotificationType.FINALIZED -> base.copy(
+                placeId = place,
+                placeTitle = placeTitle,
+                reason = reason,
+                finalizeReason = FinalizeReason.entries.firstOrNull { it.name == reasonCode },
+            )
+            NotificationType.REJECTED -> base.copy(
+                placeId = place,
+                placeTitle = placeTitle,
+                reason = reason,
+                rejectionReason = RejectionReason.entries.firstOrNull { it.name == reasonCode },
+            )
             NotificationType.DUPLICATE_REJECTED -> base.copy(
                 placeId = place,
                 placeTitle = placeTitle,
@@ -54,7 +66,13 @@ class NotificationService(
                 authorName = commentAuthor,
                 excerpt = commentText,
             )
-            NotificationType.ACHIEVEMENT -> base.copy(achievement = achievement, nextBadge = nextBadge, remaining = remaining)
+            NotificationType.ACHIEVEMENT -> base.copy(
+                achievement = achievement,
+                nextBadge = nextBadge,
+                remaining = remaining,
+                achievementId = achievementId,
+                nextBadgeId = nextBadgeId,
+            )
         }
     }
 

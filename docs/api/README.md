@@ -226,13 +226,15 @@ Cada aviso trae `id`, `type`, `createdAt` y `read`, más los campos que pide su 
 | `type` | Campos | Lo crea |
 |---|---|---|
 | `COMMENTED` | `placeId`, `placeTitle`, `authorName` (no viene si la cuenta se eliminó), `excerpt` | Un comentario en un lugar propio |
-| `ACHIEVEMENT` | `achievement` (la insignia desbloqueada), `nextBadge` y `remaining` (la bloqueada más cercana y lo que le falta) | Desbloquear una insignia, una sola vez (B1) |
+| `ACHIEVEMENT` | `achievement` y `achievementId` (la insignia desbloqueada), `nextBadge`, `nextBadgeId` y `remaining` (la bloqueada más cercana y lo que le falta) | Desbloquear una insignia, una sola vez (B1) |
 | `VERIFIED` | `placeId`, `placeTitle`, `points` (15 la primera vez, después 0) | Verificar (34) |
-| `FINALIZED` | `placeId`, `placeTitle`, `reason` (el motivo en minúscula) | Pasar a finalizada (36) |
-| `REJECTED` | `placeId`, `placeTitle`, `reason` (la frase del motivo o, con «Otro», lo que escribió el moderador) | Rechazar (35) |
+| `FINALIZED` | `placeId`, `placeTitle`, `reason` (el motivo en minúscula) y `finalizeReason` (`CLOSED`, `EVENT_ENDED` o `MERGED`) | Pasar a finalizada (36) |
+| `REJECTED` | `placeId`, `placeTitle`, `reason` (la frase del motivo o, con «Otro», lo que escribió el moderador) y `rejectionReason` | Rechazar (35) |
 | `DUPLICATE_REJECTED` | `placeId`, `placeTitle`, `existingPlaceId`, `existingTitle` | Rechazar por duplicado (35) |
 
 Las insignias se revisan después de cada acción que mueve sus cifras: publicar, quedar verificada, comentar, visitar o recibir un voto.
+
+**Idioma (v1.2.0):** los textos que arma la API (`achievement`, `nextBadge`, `reason`, y en las insignias del perfil `name`, `howTo` y `tip`) están en español. La app los traduce con los códigos: `achievementId`, `nextBadgeId`, `rejectionReason`, `finalizeReason` y el `id` de cada insignia. Si llega uno que no conoce, muestra el texto. Con `rejectionReason` `OTHER`, `reason` es lo que escribió el moderador y no se traduce. Los avisos de antes de V10 recibieron su código a partir del texto.
 
 ### Publicar (15–24)
 
@@ -243,7 +245,7 @@ Las insignias se revisan después de cada acción que mueve sus cifras: publicar
 | `GET /v1/places/similar?title&near&excludeId` | Token | — | Hasta 3 lugares a 50 m o menos del pin con un título parecido, del más cercano al más lejano | [`similar-places.json`](ejemplos/similar-places.json) |
 | `POST /v1/publications` | Token | La publicación (abajo) | `201` con su id y, si es la primera de la persona, `firstPublicationPoints`. Con un `clientId` que ya llegó, `200` con la que estaba | [`submit.json`](ejemplos/submit.json) |
 | `GET /v1/publications` | Token | — | Las propias en cualquier estado, de la más reciente a la más antigua | [`publications.json`](ejemplos/publications.json) |
-| `GET /v1/publications/{id}` | Token | — | Una propia. Una rechazada trae el motivo y qué corregir | [`publication-rejected.json`](ejemplos/publication-rejected.json) |
+| `GET /v1/publications/{id}` | Token | — | Una propia. Una rechazada trae el motivo y qué corregir. `customMessage` dice si el moderador escribió el mensaje: si no, es el del motivo y la app lo dice en su idioma, igual que `fixes` por su `kind`. Si la cuenta del moderador se eliminó, `reviewerName` es «Moderación» | [`publication-rejected.json`](ejemplos/publication-rejected.json) |
 | `PUT /v1/publications/{id}` | Token | Lo editable (abajo) | `200` con la publicación, que vuelve a verificación | Un ítem de [`publications.json`](ejemplos/publications.json) |
 | `DELETE /v1/publications/{id}` | Token | — | `204`. La borra con sus fotos (también del almacén), comentarios y votos | — |
 | `POST /v1/publications/{id}/photos` | Token | `{ "url" }` | `204`. Una foto que terminó de subir después del envío va al final, hasta 5 | — |

@@ -29,6 +29,8 @@ sealed interface Notification {
         val poiId: String,
         val poiTitle: String,
         val reason: String? = null,
+        /** v1.2.0 · El motivo como código, para decirlo en el idioma de la app; null en avisos de antes. */
+        val finalizeReason: FinalizeReason? = null,
     ) : Notification
 
     /** «Laura G. comentó en …: «…»» → 14. [authorName] es null si esa cuenta se eliminó («Usuario eliminado»). */
@@ -50,6 +52,8 @@ sealed interface Notification {
         val publicationId: String,
         val title: String,
         val reason: String,
+        /** v1.2.0 · El motivo como código; con OTHER, [reason] es lo que escribió el moderador. */
+        val rejectionReason: RejectionReason? = null,
     ) : Notification
 
     /** Rechazo por duplicado: «Tu publicación «…» ya existía como «…»» → 24; «Ir al lugar existente» → 13. */
@@ -71,6 +75,9 @@ sealed interface Notification {
         val achievement: String,
         val nextBadge: String?,
         val remaining: Int?,
+        /** v1.2.0 · Los ids de las dos insignias, para decir sus nombres en el idioma de la app. */
+        val achievementId: String? = null,
+        val nextBadgeId: String? = null,
     ) : Notification
 }
 

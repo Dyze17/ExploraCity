@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
  * (búsqueda y chips) se queda en eso y no sigue en recarga.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(qualifiers = "w384dp-h832dp-450dpi")
+@Config(qualifiers = "es-w384dp-h832dp-450dpi")
 class FeedPullToRefreshTest {
 
     @get:Rule

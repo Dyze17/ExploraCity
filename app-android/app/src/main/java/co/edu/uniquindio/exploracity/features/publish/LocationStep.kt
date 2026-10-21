@@ -74,6 +74,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.LocalDarkTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
+import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.core.util.hasMapsApiKey
 import co.edu.uniquindio.exploracity.core.util.rememberTouchExplorationEnabled
 import co.edu.uniquindio.exploracity.domain.model.Category
@@ -89,7 +90,6 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -444,11 +444,12 @@ private fun NudgeButton(label: Int, rotation: Float, onClick: () -> Unit) {
 @Composable
 internal fun AddressCard(location: GeoPoint, address: PinAddress?) {
     val explora = MaterialTheme.exploraColors
-    val coordinates = remember(location) {
-        String.format(Locale.forLanguageTag("es-CO"), "%.5f · %.5f", location.latitude, location.longitude)
+    val locale = appLocale()
+    val coordinates = remember(location, locale) {
+        String.format(locale, "%.5f · %.5f", location.latitude, location.longitude)
     }
-    val coordinatesSpoken = remember(location) {
-        String.format(Locale.forLanguageTag("es-CO"), "%.5f, %.5f", location.latitude, location.longitude)
+    val coordinatesSpoken = remember(location, locale) {
+        String.format(locale, "%.5f, %.5f", location.latitude, location.longitude)
     }
     val coordinatesDescription = stringResource(R.string.publish_coordinates_spoken, coordinatesSpoken)
     Row(

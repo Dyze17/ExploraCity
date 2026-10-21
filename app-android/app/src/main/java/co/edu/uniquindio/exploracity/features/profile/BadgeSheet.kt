@@ -52,6 +52,9 @@ import co.edu.uniquindio.exploracity.core.ui.components.badgeLockedProgress
 import co.edu.uniquindio.exploracity.core.ui.components.badgeProgressText
 import co.edu.uniquindio.exploracity.core.ui.components.colors
 import co.edu.uniquindio.exploracity.core.ui.components.iconRes
+import co.edu.uniquindio.exploracity.core.ui.components.localHowTo
+import co.edu.uniquindio.exploracity.core.ui.components.localName
+import co.edu.uniquindio.exploracity.core.ui.components.localTip
 import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.preview.previewBadges
 import co.edu.uniquindio.exploracity.core.ui.theme.ContainerColors
@@ -126,7 +129,7 @@ private fun BadgeSheetContent(badge: Badge, onDone: () -> Unit, modifier: Modifi
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        badge.name,
+                        badge.localName,
                         style = MaterialTheme.typography.headlineSmall.copy(fontFamily = Outfit, fontWeight = FontWeight.W600, fontSize = 22.sp, lineHeight = 28.sp),
                         modifier = Modifier.focusRequester(titleFocus).focusable().semantics { heading() },
                     )
@@ -153,9 +156,9 @@ private fun BadgeSheetContent(badge: Badge, onDone: () -> Unit, modifier: Modifi
                     color = explora.textSecondary,
                     modifier = Modifier.semantics { heading() },
                 )
-                Text(badge.howTo, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp), color = explora.textSecondary)
+                Text(badge.localHowTo, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp), color = explora.textSecondary)
             }
-            val tip = badge.tip
+            val tip = badge.localTip
             if (!badge.unlocked && tip != null) {
                 Row(
                     Modifier

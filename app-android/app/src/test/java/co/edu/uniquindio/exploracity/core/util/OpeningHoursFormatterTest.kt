@@ -17,7 +17,7 @@ class OpeningHoursFormatterTest {
     private val words = HoursWords(everyDay = "Todos los días", to = "a", and = "y")
 
     private fun format(days: Set<DayOfWeek>, opens: Int = 7, closes: Int = 19) =
-        formatOpeningHours(OpeningHours(days, LocalTime.of(opens, 0), LocalTime.of(closes, 0)), words)
+        formatOpeningHours(OpeningHours(days, LocalTime.of(opens, 0), LocalTime.of(closes, 0)), words, spanishFormats)
 
     @Test
     fun `lunes a sábado como en el lienzo 13a`() {
@@ -44,5 +44,14 @@ class OpeningHoursFormatterTest {
     @Test
     fun `tramo y días sueltos juntos`() {
         assertEquals("Lunes a miércoles y sábado, 7:00 a 19:00", format(setOf(MONDAY, TUESDAY, WEDNESDAY, SATURDAY)))
+    }
+
+    @Test
+    fun `en inglés, con los días y la hora de ese idioma`() {
+        val english = HoursWords(everyDay = "Every day", to = "to", and = "and")
+        val hours = OpeningHours(DayOfWeek.entries.toSet() - SUNDAY, LocalTime.of(7, 0), LocalTime.of(19, 0))
+        assertEquals("Monday to Saturday, 7:00 AM to 7:00 PM", formatOpeningHours(hours, english, englishFormats))
+        val loose = OpeningHours(setOf(MONDAY, WEDNESDAY, FRIDAY), LocalTime.of(9, 30), LocalTime.of(13, 0))
+        assertEquals("Monday, Wednesday and Friday, 9:30 AM to 1:00 PM", formatOpeningHours(loose, english, englishFormats))
     }
 }
