@@ -7,7 +7,9 @@ import co.edu.uniquindio.exploracity.model.HoursResponse
 import co.edu.uniquindio.exploracity.model.PlaceSummaryResponse
 import co.edu.uniquindio.exploracity.repository.AuthorRow
 import co.edu.uniquindio.exploracity.repository.PlaceFilter
+import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.PlaceRow
+import co.edu.uniquindio.exploracity.repository.TownRow
 import java.text.Normalizer
 import java.time.Clock
 import java.time.DayOfWeek
@@ -53,6 +55,9 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
         return filter.copy(municipality = town.copy(includeUnassigned = isCity))
     }
 
+    /** v1.3.0 · Los municipios con lugares; los que no tienen municipio son de la ciudad de la configuración. */
+    fun towns(places: PlaceRepository): List<TownRow> = places.towns(city.name, city.region, TOWNS_LIMIT)
+
     /**
      * Según el horario y la hora de la ciudad. La franja no cruza la medianoche: el formulario pide que el cierre sea
      * después de la apertura (18).
@@ -69,6 +74,9 @@ class PlaceCards(private val city: CitySettings, private val clock: Clock) {
     companion object {
         /** Lo que cabe en la tarjeta del mapa (8). */
         private const val SUMMARY_MAX = 90
+
+        /** v1.3.0 · Las ciudades que se ofrecen para elegir a mano: las que más lugares tienen. */
+        private const val TOWNS_LIMIT = 50
 
         private val sentenceEnd = Regex("(?<=[.!?])\\s")
 

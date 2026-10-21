@@ -43,6 +43,9 @@ fun Route.placeRoutes(places: PlaceService) {
                 val query = call.request.queryParameters
                 call.respond(places.count(query.filter(), query.near()))
             }
+            get("/towns") {
+                call.respond(places.towns())
+            }
             get("/map") {
                 val query = call.request.queryParameters
                 val bounds = query.bounds() ?: throw invalidQuery()

@@ -109,6 +109,23 @@ class ApiPoiRepositoryTest {
     }
 
     @Test
+    fun `las ciudades con lugares llegan como dice el contrato, y la elegida a mano manda en las distancias`() = runTest {
+        stores.tokens.save(AuthTokens("token-de-acceso", "token-de-renovacion"))
+        api = FakeApi { example("towns.json") }
+        val towns = PoiApi(api.sessionClient(stores)).towns()
+
+        assertEquals(listOf("Armenia", "Calarcá"), towns.map { it.municipality.name })
+        assertEquals(Municipality("Calarcá", "Quindío"), towns[1].municipality)
+        assertEquals(2, towns[1].places)
+        assertEquals("/v1/places/towns", api.requests.single().path)
+
+        val repository = places { example("feed-page.json") }
+        val chosenCenter = GeoPoint(4.529, -75.643)
+        repository.feedPage(FeedQuery(near = chosenCenter), page = 0, pageSize = 20)
+        assertEquals("4.529,-75.643", query()["near"])
+    }
+
+    @Test
     fun `sin ubicación la API mide desde el centro de la ciudad`() = runTest {
         val noLocation = object : LocationProvider {
             override suspend fun currentLocation(): GeoPoint = throw IllegalStateException("sin permiso")

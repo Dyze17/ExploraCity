@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "name": "Armenia",
+      "region": "Quindío",
+      "places": 2,
+      "center": { "latitude": 4.543, "longitude": -75.67 }
+    },
+    {
+      "name": "Calarcá",
+      "region": "Quindío",
+      "places": 2,
+      "center": { "latitude": 4.525, "longitude": -75.6433 }
+    }
+  ]
+}

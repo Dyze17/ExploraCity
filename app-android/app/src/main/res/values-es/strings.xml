@@ -101,8 +101,31 @@
 
     <!-- Feed (7, 10, 11, 12) -->
     <string name="feed_exploring">Estás explorando</string>
-    <!-- ADR-16 · Botón junto al nombre de la ciudad, sin permiso de ubicación. -->
-    <string name="feed_locate_town">Usar tu ubicación para saber en qué ciudad estás</string>
+    <!-- v1.3.0 · Elegir la ciudad a mano (7). -->
+    <string name="feed_choose_town">Elige una ciudad</string>
+    <string name="feed_change_town">cambiar de ciudad</string>
+    <string name="feed_choose_town_title">¿Qué ciudad quieres explorar?</string>
+    <string name="feed_choose_town_body">Usa tu ubicación o elige una ciudad para ver sus lugares.</string>
+    <string name="feed_choose_town_action">Elegir ciudad</string>
+    <string name="feed_search_placeholder_any">Buscar lugares</string>
+    <string name="town_picker_title">Elegir ciudad</string>
+    <string name="town_picker_close">Cerrar</string>
+    <string name="town_use_location">Usar mi ubicación</string>
+    <string name="town_use_location_body">Explora la ciudad o el pueblo donde estás</string>
+    <string name="town_search">Buscar una ciudad o pueblo</string>
+    <string name="town_with_places">Con lugares publicados</string>
+    <string name="town_loading">Cargando las ciudades…</string>
+    <string name="town_list_failed">No pudimos traer las ciudades con lugares. Puedes buscar una.</string>
+    <string name="town_list_empty">Todavía no hay ciudades con lugares publicados. Busca la tuya.</string>
+    <string name="town_searching">Buscando…</string>
+    <string name="town_not_found">No encontramos «%1$s». Prueba con otro nombre.</string>
+    <string name="town_search_offline">Sin conexión no podemos buscar ciudades.</string>
+    <string name="town_search_failed">La búsqueda no respondió. Intenta otra vez.</string>
+    <plurals name="town_places">
+        <item quantity="one">%d lugar</item>
+        <item quantity="many">%d lugares</item>
+        <item quantity="other">%d lugares</item>
+    </plurals>
     <string name="feed_mode_list">Lista</string>
     <string name="feed_mode_map">Mapa</string>
     <string name="feed_search_placeholder">Buscar lugares en %1$s</string>

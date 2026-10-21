@@ -101,6 +101,24 @@ class PlaceRoutesTest : ApiTest() {
     }
 
     @Test
+    fun `las ciudades con lugares, para elegir una a mano, como dice el contrato`() = apiTest {
+        // Los dos públicos de las fixtures no tienen municipio: cuentan como Armenia, la ciudad de la configuración.
+        Fixtures.anaWithActivity(database)
+        Fixtures.place(database, Fixtures.LAURA, "Jardín Botánico", Category.NATURE, latitude = 4.52, longitude = -75.6436, municipality = "Calarcá", region = "Quindío")
+        Fixtures.place(database, Fixtures.LAURA, "Plaza de Calarcá", Category.HISTORY, latitude = 4.53, longitude = -75.643, municipality = "Calarca", region = "Quindio")
+        Fixtures.place(database, Fixtures.LAURA, "Pendiente en Salento", status = PublicationStatus.PENDING, municipality = "Salento", region = "Quindío")
+
+        val response = get("/v1/places/towns", accessToken(Fixtures.LAURA))
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        // Las dos formas de escribir Calarcá son la misma ciudad, con la tilde; lo pendiente no cuenta.
+        assertMatchesContract("towns.json", response.json(), volatile = setOf("latitude", "longitude"))
+        val calarca = response.json().jsonObject["items"]!!.jsonArray[1].jsonObject["center"]!!.jsonObject
+        assertEquals(4.525, calarca["latitude"]!!.jsonPrimitive.content.toDouble(), 1e-9)
+        assertEquals(-75.6433, calarca["longitude"]!!.jsonPrimitive.content.toDouble(), 1e-9)
+    }
+
+    @Test
     fun `la búsqueda ignora mayúsculas y tildes, y toma el texto tal cual`() = apiTest {
         Fixtures.anaWithActivity(database)
         Fixtures.place(database, Fixtures.LAURA, "Café 100% de origen", Category.GASTRONOMY)
