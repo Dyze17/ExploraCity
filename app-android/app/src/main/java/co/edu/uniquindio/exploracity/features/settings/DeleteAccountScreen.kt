@@ -63,6 +63,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.Residency
@@ -336,7 +337,7 @@ private fun ConfirmDialog(confirmation: DeleteConfirmation, callbacks: DeleteAcc
 private val previewProfile = OwnProfile(
     author = Author("ana-rios", "Ana Ríos", 340),
     residency = Residency.RESIDENT,
-    city = "Armenia",
+    town = Municipality("Armenia", "Quindío"),
     memberSince = YearMonth.of(2026, 3),
     publications = PublicationCounts(),
     badges = emptyList(),

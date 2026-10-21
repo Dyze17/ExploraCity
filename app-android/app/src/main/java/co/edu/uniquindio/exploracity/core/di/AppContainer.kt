@@ -95,7 +95,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -283,6 +286,16 @@ class AppContainer(context: Context) {
                 // El badge de «Avisos» se pone al día al abrir la app con red y cada vez que vuelve la red, con sesión.
                 if (hasSession()) quietly { notificationRepository.notifications() }
             }
+        }
+        appScope.launch {
+            // v1.3.0 · La ciudad que sabe la app, la de la ubicación o la elegida, llena la del perfil si nunca tuvo una.
+            // Se intenta al cambiar la ciudad, al entrar y al volver la red.
+            combine(town.current, sessionStore.role, connectivity.isOnline) { place, role, online ->
+                place.municipality.takeIf { role != null && online }
+            }
+                .distinctUntilChanged()
+                .filterNotNull()
+                .collect { if (hasApiSession()) quietly { userRepository.fillTown(it) } }
         }
     }
 

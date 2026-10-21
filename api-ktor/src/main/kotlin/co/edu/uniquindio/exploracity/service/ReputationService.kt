@@ -12,6 +12,7 @@ import co.edu.uniquindio.exploracity.repository.BadgeDefinition
 import co.edu.uniquindio.exploracity.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.repository.ReputationRepository
 import co.edu.uniquindio.exploracity.repository.UserRecord
+import co.edu.uniquindio.exploracity.repository.townRef
 import java.time.Clock
 import java.time.YearMonth
 import java.util.UUID
@@ -33,7 +34,8 @@ class ReputationService(
         return ProfileResponse(
             author = AuthorResponse(user.id.toString(), user.name, reputation.points(user.id)),
             residency = user.residency,
-            city = city.name,
+            city = user.town ?: city.name,
+            town = user.townRef(),
             memberSince = memberSince(user).toString(),
             publications = PublicationCountsResponse(
                 pending = counts[PublicationStatus.PENDING] ?: 0,

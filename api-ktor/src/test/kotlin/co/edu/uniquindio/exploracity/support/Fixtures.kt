@@ -161,6 +161,9 @@ object Fixtures {
         it[residency] = Residency.RESIDENT
         it[photoUrl] = "https://res.cloudinary.com/exploracity/image/upload/perfil/ana-rios.jpg"
         it[photoPublicId] = ANA_PHOTO_ID
+        it[town] = "Armenia"
+        it[townRegion] = "Quindío"
+        it[townSet] = true
         it[Users.createdAt] = createdAt.atOffset(ZoneOffset.UTC)
     }
 }

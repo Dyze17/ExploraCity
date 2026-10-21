@@ -44,7 +44,7 @@ class ApiUserRepositoryTest {
 
         assertEquals(Author("9b2d4f6a-1c3e-4a5b-8d7f-0e2c4a6b8d10", "Laura Gómez", 35), profile.author)
         assertEquals(Residency.VISITOR, profile.residency)
-        assertEquals("Armenia", profile.city)
+        assertNull("Laura no ha puesto su ciudad", profile.town)
         assertNull(profile.bio)
         assertEquals(1, profile.badges)
         assertEquals(listOf("Plaza de Bolívar"), profile.places.map { it.title })

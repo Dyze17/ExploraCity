@@ -218,4 +218,28 @@ class ProfileRoutesTest : ApiTest() {
             ),
         )
     }
+
+    @Test
+    fun `la ciudad del perfil se llena sola una vez y se cambia en Editar perfil`() = apiTest {
+        val pedro = register("pedro@correo.com", name = "Pedro Pérez")
+        suspend fun town() = get("/v1/profile", pedro.accessToken).json().jsonObject.let { it["town"]?.jsonObject?.get("name")?.jsonPrimitive?.content to it["city"]!!.jsonPrimitive.content }
+
+        assertEquals(null to "Armenia", town(), "Sin ciudad, la app 1.2 sigue leyendo la de la configuración")
+        assertEquals(HttpStatusCode.OK, post("/v1/profile/town", """{"name":" Calarcá ","region":"Quindío"}""", pedro.accessToken).status)
+        assertEquals("Calarcá" to "Calarcá", town())
+        post("/v1/profile/town", """{"name":"Salento","region":"Quindío"}""", pedro.accessToken)
+        assertEquals("Calarcá" to "Calarcá", town(), "La que ya tiene no la cambia la app")
+
+        val edit = """{"name":"Pedro Pérez","residency":"VISITOR","town":{"name":"Salento","region":"Quindío"},"townChanged":true}"""
+        assertEquals(HttpStatusCode.OK, put("/v1/profile", edit, pedro.accessToken).status)
+        assertEquals("Salento" to "Salento", town())
+        put("/v1/profile", """{"name":"Pedro Pérez","residency":"VISITOR"}""", pedro.accessToken)
+        assertEquals("Salento" to "Salento", town(), "Sin townChanged, como la app 1.2, se queda")
+        put("/v1/profile", """{"name":"Pedro Pérez","residency":"VISITOR","townChanged":true}""", pedro.accessToken)
+        assertEquals(null to "Armenia", town())
+        post("/v1/profile/town", """{"name":"Calarcá","region":"Quindío"}""", pedro.accessToken)
+        assertEquals(null to "Armenia", town(), "Quitada a mano, la app no la vuelve a llenar")
+
+        assertEquals(HttpStatusCode.BadRequest, post("/v1/profile/town", """{"name":"  "}""", pedro.accessToken).status)
+    }
 }

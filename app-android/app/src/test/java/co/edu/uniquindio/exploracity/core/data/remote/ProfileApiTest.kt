@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.core.data.local.AuthTokens
 import co.edu.uniquindio.exploracity.domain.model.Author
 import co.edu.uniquindio.exploracity.domain.model.BadgeMetric
 import co.edu.uniquindio.exploracity.domain.model.Category
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
 import co.edu.uniquindio.exploracity.domain.model.Residency
@@ -36,7 +37,7 @@ class ProfileApiTest {
 
         assertEquals(Author("3f6c1e2a-8b4d-4c7e-9a1f-2d5b7e9c0a14", "Ana Ríos", 40), profile.author)
         assertEquals(Residency.RESIDENT, profile.residency)
-        assertEquals("Armenia", profile.city)
+        assertEquals(Municipality("Armenia", "Quindío"), profile.town)
         assertEquals(YearMonth.of(2026, 3), profile.memberSince)
         assertEquals(PublicationCounts(pending = 1, verified = 1), profile.publications)
         assertEquals("Me encanta caminar por los miradores del Quindío.", profile.bio)
@@ -61,6 +62,23 @@ class ProfileApiTest {
         assertEquals("PUT", sent.method)
         assertEquals("/v1/profile", sent.path)
         assertEquals("""{"name":"Ana Ríos","residency":"VISITOR"}""", sent.body)
+    }
+
+    @Test
+    fun `la ciudad se cambia o se quita con townChanged, y la que sabe la app va aparte`() = runTest {
+        val profileApi = profiles { example("profile.json") }
+
+        profileApi.updateProfile("Ana Ríos", null, Residency.VISITOR, Municipality("Calarcá", "Quindío"), townChanged = true)
+        profileApi.updateProfile("Ana Ríos", null, Residency.VISITOR, town = null, townChanged = true)
+        val filled = profileApi.fillTown(Municipality("Salento", "Quindío"))
+
+        val (change, remove, fill) = api.requests
+        assertEquals("""{"name":"Ana Ríos","residency":"VISITOR","town":{"name":"Calarcá","region":"Quindío"},"townChanged":true}""", change.body)
+        assertEquals("Sin town, se quita", """{"name":"Ana Ríos","residency":"VISITOR","townChanged":true}""", remove.body)
+        assertEquals("POST", fill.method)
+        assertEquals("/v1/profile/town", fill.path)
+        assertEquals("""{"name":"Salento","region":"Quindío"}""", fill.body)
+        assertEquals("Responde con el perfil", "Ana Ríos", filled.author.name)
     }
 
     @Test

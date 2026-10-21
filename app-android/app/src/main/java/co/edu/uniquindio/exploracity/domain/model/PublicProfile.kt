@@ -13,7 +13,8 @@ enum class ReportReason { IMPERSONATION, INAPPROPRIATE_CONTENT, SPAM }
 data class PublicProfile(
     val author: Author,
     val residency: Residency,
-    val city: String,
+    /** v1.3.0 · La ciudad de la persona; null si no tiene. */
+    val town: Municipality?,
     val bio: String?,
     val places: List<Poi>,
     val badges: Int,

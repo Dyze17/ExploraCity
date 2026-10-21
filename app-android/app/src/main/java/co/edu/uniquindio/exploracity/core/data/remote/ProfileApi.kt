@@ -4,7 +4,9 @@ import co.edu.uniquindio.exploracity.core.data.remote.dto.OwnProfileDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ProfileUpdateRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.PublicProfileDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ReportRequest
+import co.edu.uniquindio.exploracity.core.data.remote.dto.TownRefDto
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.ReportReason
@@ -27,9 +29,20 @@ import java.io.File
 class ProfileApi(private val client: HttpClient) {
     suspend fun ownProfile(): OwnProfile = client.get("v1/profile").body<OwnProfileDto>().toDomain()
 
-    /** 28 · «Sobre mí» null o vacío se guarda como null. */
-    suspend fun updateProfile(name: String, bio: String?, residency: Residency): OwnProfile = client.put("v1/profile") {
-        jsonBody(ProfileUpdateRequest(name, bio, residency))
+    /** 28 · «Sobre mí» null o vacío se guarda como null. La ciudad solo cambia con [townChanged]; [town] null la quita. */
+    suspend fun updateProfile(
+        name: String,
+        bio: String?,
+        residency: Residency,
+        town: Municipality? = null,
+        townChanged: Boolean = false,
+    ): OwnProfile = client.put("v1/profile") {
+        jsonBody(ProfileUpdateRequest(name, bio, residency, town?.let(TownRefDto::of), townChanged))
+    }.body<OwnProfileDto>().toDomain()
+
+    /** v1.3.0 · La ciudad que supo la app; el servidor la guarda solo si la persona nunca tuvo una. */
+    suspend fun fillTown(town: Municipality): OwnProfile = client.post("v1/profile/town") {
+        jsonBody(TownRefDto.of(town))
     }.body<OwnProfileDto>().toDomain()
 
     /** 28 · Sube la foto del teléfono (JPEG, PNG o WebP de hasta 8 MB) y reemplaza la anterior. */

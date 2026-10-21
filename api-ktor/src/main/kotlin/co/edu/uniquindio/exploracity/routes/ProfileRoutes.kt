@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.routes
 
 import co.edu.uniquindio.exploracity.model.ProfileUpdateRequest
 import co.edu.uniquindio.exploracity.model.ReportRequest
+import co.edu.uniquindio.exploracity.model.TownRef
 import co.edu.uniquindio.exploracity.plugins.ACCESS
 import co.edu.uniquindio.exploracity.plugins.user
 import co.edu.uniquindio.exploracity.service.ProfileService
@@ -25,6 +26,9 @@ fun Route.profileRoutes(profiles: ProfileService) {
             }
             put {
                 call.respond(profiles.update(call.user().id, call.receive<ProfileUpdateRequest>()))
+            }
+            post("/town") {
+                call.respond(profiles.fillTown(call.user().id, call.receive<TownRef>()))
             }
             route("/photo") {
                 put {

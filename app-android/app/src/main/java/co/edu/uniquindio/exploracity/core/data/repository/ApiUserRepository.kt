@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.data.repository
 import co.edu.uniquindio.exploracity.core.data.location.LocationProvider
 import co.edu.uniquindio.exploracity.core.data.remote.ProfileApi
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PhotoChange
 import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
@@ -35,8 +36,10 @@ class ApiUserRepository(private val api: ProfileApi, private val location: Locat
             PhotoChange.Remove -> api.removePhoto()
             is PhotoChange.Replace -> api.uploadPhoto(File(photo.path))
         }
-        return api.updateProfile(update.name, update.bio, update.residency)
+        return api.updateProfile(update.name, update.bio, update.residency, update.town, update.townChanged)
     }
+
+    override suspend fun fillTown(town: Municipality): OwnProfile = api.fillTown(town)
 
     private suspend fun near(): GeoPoint? = try {
         location.currentLocation()

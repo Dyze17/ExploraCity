@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.core.data.local.toEntity
 import co.edu.uniquindio.exploracity.core.data.remote.TestSession
 import co.edu.uniquindio.exploracity.domain.model.Account
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.Residency
@@ -24,7 +25,7 @@ class SessionUserTest {
     private val profiles = FakeProfileDao()
 
     private fun profile(author: Author) =
-        OwnProfile(author, Residency.RESIDENT, "Armenia", YearMonth.of(2026, 3), PublicationCounts(), emptyList()).toEntity(savedAtMillis = 0)
+        OwnProfile(author, Residency.RESIDENT, Municipality("Armenia", "Quindío"), YearMonth.of(2026, 3), PublicationCounts(), emptyList()).toEntity(savedAtMillis = 0)
 
     @Test
     fun `el id llega con la sesión, y el nombre y los puntos con el perfil guardado`() = runTest {

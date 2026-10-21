@@ -7,12 +7,16 @@ object ProfileLimits {
     const val BIO_MAX = 150
 }
 
-/** 28 · Lo que se puede cambiar del perfil. [photo] es la foto que se ve: la de antes, una nueva del teléfono o ninguna. */
+/**
+ * 28 · Lo que se puede cambiar del perfil. [photo] es la foto que se ve: la de antes, una nueva del teléfono o ninguna.
+ * [town] es «Tu ciudad» (v1.3.0); null, sin ciudad.
+ */
 data class ProfileForm(
     val name: String,
     val bio: String,
     val residency: Residency,
     val photo: String? = null,
+    val town: Municipality? = null,
 ) {
     private val nameLength: Int get() = name.trim().length
 
@@ -31,7 +35,7 @@ data class ProfileForm(
     fun trimmed() = copy(name = name.trim(), bio = bio.trim())
 
     companion object {
-        fun of(profile: OwnProfile) = ProfileForm(profile.author.name, profile.bio.orEmpty(), profile.residency, profile.photo)
+        fun of(profile: OwnProfile) = ProfileForm(profile.author.name, profile.bio.orEmpty(), profile.residency, profile.photo, profile.town)
     }
 }
 
@@ -44,5 +48,15 @@ sealed interface PhotoChange {
     data class Replace(val path: String) : PhotoChange
 }
 
-/** 28 · Lo que se envía al servidor; «Sobre mí» vacío se guarda como null. */
-data class ProfileUpdate(val name: String, val bio: String?, val residency: Residency, val photo: PhotoChange)
+/**
+ * 28 · Lo que se envía al servidor; «Sobre mí» vacío se guarda como null. La ciudad solo se envía si cambió
+ * ([townChanged]): así no pisa la que llenó la app mientras tanto. Con [townChanged], [town] null la quita.
+ */
+data class ProfileUpdate(
+    val name: String,
+    val bio: String?,
+    val residency: Residency,
+    val photo: PhotoChange,
+    val town: Municipality? = null,
+    val townChanged: Boolean = false,
+)

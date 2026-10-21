@@ -6,6 +6,7 @@
   },
   "residency": "RESIDENT",
   "city": "Armenia",
+  "town": { "name": "Armenia", "region": "Quindío" },
   "memberSince": "2026-03",
   "publications": { "pending": 1, "verified": 1, "rejected": 0, "finalized": 0 },
   "badges": [

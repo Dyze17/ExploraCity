@@ -76,6 +76,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.core.util.formatMonth
 import co.edu.uniquindio.exploracity.domain.model.LevelProgress
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationCounts
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
@@ -205,7 +206,8 @@ private fun Header(profile: OwnProfile, onEdit: () -> Unit) {
             )
             LevelChip(author.level, large = true, modifier = Modifier.clearAndSetSemantics { contentDescription = levelDescription })
             Text(
-                stringResource(R.string.profile_summary, residency, profile.city, since),
+                profile.town?.let { stringResource(R.string.profile_summary, residency, it.name, since) }
+                    ?: stringResource(R.string.profile_summary_short, residency, since),
                 style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.W600),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -469,7 +471,7 @@ private fun OwnProfileSkeleton() {
 internal val previewOwnProfile = OwnProfile(
     author = previewUser,
     residency = Residency.RESIDENT,
-    city = "Armenia",
+    town = Municipality("Armenia", "Quindío"),
     memberSince = YearMonth.now().withMonth(3),
     publications = PublicationCounts(pending = 2, verified = 2, rejected = 2, finalized = 1),
     badges = previewBadges,

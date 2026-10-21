@@ -11,11 +11,13 @@ import co.edu.uniquindio.exploracity.model.ProfileResponse
 import co.edu.uniquindio.exploracity.model.ProfileUpdateRequest
 import co.edu.uniquindio.exploracity.model.PublicProfileResponse
 import co.edu.uniquindio.exploracity.model.ReportReason
+import co.edu.uniquindio.exploracity.model.TownRef
 import co.edu.uniquindio.exploracity.plugins.ApiException
 import co.edu.uniquindio.exploracity.repository.PlaceFilter
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.UserRecord
 import co.edu.uniquindio.exploracity.repository.UserRepository
+import co.edu.uniquindio.exploracity.repository.townRef
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -47,11 +49,35 @@ class ProfileService(
         val bio = request.bio?.trim()?.ifEmpty { null }
         if (!AccountRules.isValidName(name)) throw ApiException.badRequest("invalid_name")
         if ((bio?.length ?: 0) > AccountRules.BIO_MAX) throw ApiException.badRequest("bio_too_long")
+        val town = if (request.townChanged) request.town?.let(::cleanTown) else null
         return database.query {
             user(userId)
             users.updateProfile(userId, name, bio, request.residency)
+            if (request.townChanged) users.updateTown(userId, town?.name, town?.region)
             reputation.profileOf(user(userId))
         }
+    }
+
+    /**
+     * v1.3.0 · La ciudad que supo la app (la de la ubicación o la elegida a mano): se guarda en el perfil solo si la
+     * persona nunca tuvo una; quitarla en Editar perfil también cuenta. Responde con el perfil, como quedó.
+     */
+    suspend fun fillTown(userId: UUID, request: TownRef): ProfileResponse {
+        val town = cleanTown(request)
+        return database.query {
+            user(userId)
+            users.fillTown(userId, town.name, town.region)
+            reputation.profileOf(user(userId))
+        }
+    }
+
+    private fun cleanTown(town: TownRef): TownRef {
+        val name = town.name.trim()
+        val region = town.region?.trim()?.ifEmpty { null }
+        if (name.isEmpty() || name.length > PublicationService.TOWN_MAX || (region?.length ?: 0) > PublicationService.TOWN_MAX) {
+            throw ApiException.badRequest("invalid_town")
+        }
+        return TownRef(name, region)
     }
 
     /**
@@ -105,7 +131,8 @@ class ProfileService(
             PublicProfileResponse(
                 author = AuthorResponse(id.toString(), user.name, reputation.points(user)),
                 residency = user.residency,
-                city = city.name,
+                city = user.town ?: city.name,
+                town = user.townRef(),
                 bio = user.bio,
                 photo = user.photoUrl,
                 places = owned.map(cards::summaryOf),

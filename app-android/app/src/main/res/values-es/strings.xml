@@ -393,6 +393,7 @@
         <item quantity="other">%d puntos</item>
     </plurals>
     <string name="profile_summary">%1$s · %2$s · %3$s</string>
+    <string name="profile_summary_short">%1$s · %2$s</string>
     <plurals name="profile_stat_verified">
         <item quantity="one">Lugar verificado</item>
         <item quantity="many">Lugares verificados</item>
@@ -1096,6 +1097,11 @@
     <string name="profile_residency_title">¿Cómo te presentas?</string>
     <string name="profile_field_email">Correo electrónico</string>
     <string name="profile_email_locked">El correo se cambia desde Ajustes, por seguridad.</string>
+    <string name="profile_town_title">Tu ciudad</string>
+    <string name="profile_town_choose">Elegir tu ciudad</string>
+    <string name="profile_town_change">Cambiar la ciudad</string>
+    <string name="profile_town_remove">Quitar la ciudad</string>
+    <string name="profile_town_hint">Se ve en tu perfil, junto a cómo te presentas.</string>
     <string name="profile_save_no_changes">todavía no hay cambios</string>
     <string name="profile_save_fix_name">corrige el nombre</string>
     <string name="profile_save_fix_bio">corrige «Sobre mí»</string>

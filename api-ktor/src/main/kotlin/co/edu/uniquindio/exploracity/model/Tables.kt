@@ -32,6 +32,13 @@ object Users : Table("users") {
     /** ADR-15 · La cuenta de Google vinculada: el «sub» de su ID token, único (V8). */
     val googleSub = text("google_sub").nullable()
 
+    /** v1.3.0 · La ciudad de la persona y su departamento (V11); null si todavía no se sabe. */
+    val town = text("town").nullable()
+    val townRegion = text("town_region").nullable()
+
+    /** v1.3.0 · La ciudad ya se puso una vez, sola o en Editar perfil (también si se quitó): la app ya no la llena. */
+    val townSet = bool("town_set").default(false)
+
     override val primaryKey = PrimaryKey(id)
 }
 

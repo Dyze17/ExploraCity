@@ -4,6 +4,8 @@ import androidx.room.Room
 import co.edu.uniquindio.exploracity.core.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.data.local.ExploraDatabase
+import co.edu.uniquindio.exploracity.core.data.local.SavedProfileEntity
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.PhotoChange
 import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
@@ -110,6 +112,70 @@ class OfflineUserRepositoryTest {
 
         assertTrue(failure.exceptionOrNull() is OfflineException)
     }
+
+    @Test
+    fun `la ciudad que sabe la app llena la del perfil y queda guardada, y con una guardada ya no pregunta`() = runTest {
+        val counting = object : UserRepository by server {
+            var fills = 0
+
+            override suspend fun fillTown(town: Municipality): OwnProfile {
+                fills++
+                return server.fillTown(town)
+            }
+        }
+        val repository = repository(counting)
+        server.updateProfile(ProfileUpdate("Ana Ríos", null, Residency.RESIDENT, PhotoChange.Keep, town = null, townChanged = true))
+        connectivity.online = false
+        assertTrue(runCatching { repository.fillTown(calarca) }.exceptionOrNull() is OfflineException)
+
+        connectivity.online = true
+        repository.ownProfile()
+        repository.fillTown(calarca)
+        assertEquals("Quitada a mano, el servidor no la vuelve a llenar", null, repository.ownProfile().town)
+
+        server.deleteOwnAccount()
+        repository.ownProfile()
+        assertEquals(sampleTown, repository.fillTown(calarca).town)
+        connectivity.online = false
+        assertEquals("Con la guardada no hace falta red", sampleTown, repository.fillTown(calarca).town)
+        assertEquals("Solo preguntó cuando lo guardado no tenía ciudad", 1, counting.fills)
+    }
+
+    @Test
+    fun `una ciudad nueva queda guardada para ver el perfil sin conexion`() = runTest {
+        val empty = object : UserRepository by server {
+            private var town: Municipality? = null
+
+            override suspend fun ownProfile() = server.ownProfile().copy(town = town)
+
+            override suspend fun fillTown(town: Municipality): OwnProfile {
+                this.town = this.town ?: town
+                return ownProfile()
+            }
+        }
+        val repository = repository(empty)
+        repository.ownProfile()
+
+        repository.fillTown(calarca)
+        connectivity.online = false
+
+        assertEquals(calarca, repository.ownProfile().town)
+    }
+
+    @Test
+    fun `lo guardado por la 1_2, con city en vez de town, se sigue viendo sin ciudad`() = runTest {
+        val json = """{"authorId":"ana-rios","name":"Ana Ríos","points":340,"residency":"RESIDENT","city":"Armenia","memberSince":"2026-03",""" +
+            """"pending":0,"verified":1,"rejected":0,"finalized":0,"badges":[]}"""
+        database.profileDao().save(SavedProfileEntity(json = json, savedAtMillis = 0))
+        connectivity.online = false
+
+        val saved = repository().ownProfile()
+
+        assertEquals("Ana Ríos", saved.author.name)
+        assertNull(saved.town)
+    }
+
+    private val calarca = Municipality("Calarcá", "Quindío")
 
     private class FlakyServer(private val delegate: UserRepository) : UserRepository by delegate {
         var failing = false

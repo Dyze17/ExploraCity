@@ -130,7 +130,7 @@ class AccountService(
                 email = user.email,
                 name = user.name,
                 residency = ExportLabels.of(user.residency),
-                city = city.name,
+                city = user.town,
                 memberSince = reputation.memberSince(user).toString(),
                 googleLinked = user.googleSub != null,
                 bio = user.bio,

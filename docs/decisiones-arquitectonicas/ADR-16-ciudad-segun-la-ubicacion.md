@@ -54,3 +54,12 @@ Fuera de Armenia, caer en la ciudad de la configuración cuando no hay ubicació
 - La ciudad elegida se guarda y manda hasta volver a «Usar mi ubicación». Las distancias se miden desde su centro, y el mapa y el pin del formulario empiezan ahí.
 - Sin ubicación y sin ciudad elegida, «Toda la ciudad» pide elegir una en vez de mostrar la de `/v1/city`. Si se niega el permiso, la hoja se abre sola.
 - La ciudad de la configuración queda solo para los lugares sin municipio y para abrir el mapa cuando no hay nada más.
+
+## Cambio en la 1.3.0: la ciudad de cada persona
+
+El perfil (26 y 31) mostraba la ciudad de la configuración para todos: «Residente · Armenia» aunque la persona viviera en otra. Desde la 1.3.0 cada persona tiene la suya (`users.town`, V11):
+
+- La primera ciudad que sabe la app, la de la ubicación o la elegida a mano, se guarda en el perfil (`POST /v1/profile/town`) solo si la persona nunca tuvo una.
+- Después se cambia o se quita en Editar perfil (28), con la misma hoja «Elegir ciudad» sin «Usar mi ubicación». Desde ahí la app no la vuelve a llenar, aunque se haya quitado (`town_set`).
+- Sin ciudad, el perfil dice solo «Residente · desde marzo».
+- La app 1.2 sigue leyendo `city`: es la ciudad de la persona o, si no tiene, la de la configuración.

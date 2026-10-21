@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.domain.repository
 
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OwnProfile
 import co.edu.uniquindio.exploracity.domain.model.ProfileUpdate
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
@@ -18,4 +19,10 @@ interface UserRepository {
 
     /** 28 · Guarda nombre, «Sobre mí», cómo se presenta y la foto (que sube si es nueva). Lanza excepción si falla la red. */
     suspend fun updateProfile(update: ProfileUpdate): OwnProfile
+
+    /**
+     * v1.3.0 · La ciudad que supo la app (la de la ubicación o la elegida a mano) llena la del perfil, solo si la
+     * persona nunca tuvo una. Devuelve el perfil como quedó. Lanza excepción si falla la red.
+     */
+    suspend fun fillTown(town: Municipality): OwnProfile
 }
