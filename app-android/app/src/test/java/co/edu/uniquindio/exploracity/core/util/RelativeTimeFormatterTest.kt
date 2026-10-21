@@ -50,14 +50,14 @@ class RelativeTimeFormatterTest {
 
     @Test
     fun `fechas en español`() {
-        assertEquals("10 de agosto", formatDate(LocalDate.of(2026, 8, 10), withYear = false))
-        assertEquals("12 de marzo de 2025", formatDate(LocalDate.of(2025, 3, 12), withYear = true))
+        assertEquals("10 de agosto", formatDate(LocalDate.of(2026, 8, 10), withYear = false, spanishFormats))
+        assertEquals("12 de marzo de 2025", formatDate(LocalDate.of(2025, 3, 12), withYear = true, spanishFormats))
     }
 
     @Test
     fun `el mes del perfil, con año solo si es otro (26 · desde marzo)`() {
-        assertEquals("marzo", formatMonth(YearMonth.of(2026, 3), withYear = false))
-        assertEquals("diciembre de 2025", formatMonth(YearMonth.of(2025, 12), withYear = true))
+        assertEquals("marzo", formatMonth(YearMonth.of(2026, 3), withYear = false, spanishFormats))
+        assertEquals("diciembre de 2025", formatMonth(YearMonth.of(2025, 12), withYear = true, spanishFormats))
     }
 
     @Test
@@ -81,7 +81,15 @@ class RelativeTimeFormatterTest {
 
     @Test
     fun `la hora va sin cero delante`() {
-        assertEquals("9:12", formatTime(LocalTime.of(9, 12)))
-        assertEquals("21:05", formatTime(LocalTime.of(21, 5)))
+        assertEquals("9:12", formatTime(LocalTime.of(9, 12), spanishFormats))
+        assertEquals("21:05", formatTime(LocalTime.of(21, 5), spanishFormats))
+    }
+
+    @Test
+    fun `en inglés, el mes primero y la hora con AM y PM`() {
+        assertEquals("August 10", formatDate(LocalDate.of(2026, 8, 10), withYear = false, englishFormats))
+        assertEquals("March 12, 2025", formatDate(LocalDate.of(2025, 3, 12), withYear = true, englishFormats))
+        assertEquals("December 2025", formatMonth(YearMonth.of(2025, 12), withYear = true, englishFormats))
+        assertEquals("9:05 PM", formatTime(LocalTime.of(21, 5), englishFormats))
     }
 }

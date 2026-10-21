@@ -35,13 +35,13 @@ import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.core.util.formatDistance
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
-import java.util.Locale
 
 /**
  * 17A · Un lugar parecido: el número lo enlaza con su marcador del minimapa. El lector oye «Lugar parecido 1: La Fonda
@@ -60,7 +60,7 @@ fun DuplicateCandidateCard(number: Int, place: SimilarPlace, onOpen: () -> Unit,
         number,
         place.title,
         stringResource(place.category.labelRes),
-        stringResource(place.status.labelRes).lowercase(Locale.forLanguageTag("es")),
+        stringResource(place.status.labelRes).lowercase(appLocale()),
         distance,
     )
     val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows

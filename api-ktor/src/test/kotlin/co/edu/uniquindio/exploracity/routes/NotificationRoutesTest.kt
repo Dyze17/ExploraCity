@@ -97,6 +97,9 @@ class NotificationRoutesTest : ApiTest() {
         // Las demás están en cero: la más cercana es la primera del catálogo.
         assertEquals("Primera publicación", notice["nextBadge"]!!.jsonPrimitive.content)
         assertEquals(1, notice["remaining"]!!.jsonPrimitive.int)
+        // v1.2.0 · Con los ids, la app dice los nombres en su idioma.
+        assertEquals("caminante", notice["achievementId"]!!.jsonPrimitive.content)
+        assertEquals("primera-publicacion", notice["nextBadgeId"]!!.jsonPrimitive.content)
     }
 
     @Test

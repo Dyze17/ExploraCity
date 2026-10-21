@@ -117,6 +117,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.core.util.LocationPurpose
+import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.core.util.formatDistance
 import co.edu.uniquindio.exploracity.core.util.hasMapsApiKey
 import co.edu.uniquindio.exploracity.core.util.rememberLocationPermissionRequester
@@ -139,7 +140,6 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /** Zoom al abrir el mapa y al centrarlo en la persona. */
@@ -546,7 +546,7 @@ private fun GroupMarker(group: MapMarker.Group, dark: Boolean, onClick: (MapMark
 @Composable
 private fun groupCategories(counts: Map<Category, Int>): String {
     val parts = counts.map { (category, places) ->
-        stringResource(R.string.map_group_category, places, stringResource(category.labelRes).lowercase(Locale.forLanguageTag("es")))
+        stringResource(R.string.map_group_category, places, stringResource(category.labelRes).lowercase(appLocale()))
     }
     return if (parts.size == 1) parts.single() else parts.dropLast(1).joinToString(", ") + " ${stringResource(R.string.list_and)} " + parts.last()
 }
@@ -556,7 +556,7 @@ private fun markerDescription(poi: Poi): String = stringResource(
     R.string.map_marker_description,
     poi.title,
     stringResource(poi.category.labelRes),
-    stringResource(poi.status.labelRes).lowercase(Locale.forLanguageTag("es")),
+    stringResource(poi.status.labelRes).lowercase(appLocale()),
     formatDistance(poi.distanceMeters),
 )
 

@@ -51,6 +51,8 @@ data class Rejection(
     val canResubmit: Boolean,
     val fixes: List<RequiredFix> = emptyList(),
     val duplicateOf: Poi? = null,
+    /** v1.2.0 · true si [message] lo escribió el moderador; si no, es el del motivo y se dice en el idioma de la app. */
+    val customMessage: Boolean = false,
 ) {
     /**
      * Paso en que abre «Corregir y reenviar»: el primero del formulario que haya que corregir (con foto y ubicación,

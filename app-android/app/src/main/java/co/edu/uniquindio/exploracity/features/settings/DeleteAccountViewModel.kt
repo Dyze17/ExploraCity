@@ -25,10 +25,10 @@ import kotlinx.coroutines.launch
 
 enum class DeleteAccountError { OFFLINE, FAILED }
 
-/** 30 · El diálogo que exige escribir ELIMINAR. */
+/** 30 · El diálogo que exige escribir ELIMINAR (DELETE en inglés: la palabra está en strings.xml). */
 data class DeleteConfirmation(val typed: String = "", val deleting: Boolean = false, val error: DeleteAccountError? = null) {
     /** Sin distinguir mayúsculas ni espacios alrededor: el teclado o el dictado pueden cambiarlos. */
-    val matches: Boolean get() = typed.trim().equals(DeleteAccountViewModel.CONFIRMATION_WORD, ignoreCase = true)
+    fun matches(word: String): Boolean = typed.trim().equals(word, ignoreCase = true)
 }
 
 data class DeleteAccountUiState(
@@ -90,9 +90,10 @@ class DeleteAccountViewModel(
         _state.update { it.copy(confirmation = null) }
     }
 
-    fun onConfirmDelete() {
+    /** [word] es la palabra que pide el diálogo en el idioma de la app. */
+    fun onConfirmDelete(word: String) {
         val confirmation = _state.value.confirmation ?: return
-        if (!confirmation.matches || confirmation.deleting) return
+        if (!confirmation.matches(word) || confirmation.deleting) return
         if (!connectivity.isOnline.value) return setConfirmation(confirmation.copy(error = DeleteAccountError.OFFLINE))
         setConfirmation(confirmation.copy(deleting = true, error = null))
         viewModelScope.launch {
@@ -112,9 +113,6 @@ class DeleteAccountViewModel(
     private fun setConfirmation(confirmation: DeleteConfirmation) = _state.update { it.copy(confirmation = confirmation) }
 
     companion object {
-        /** La palabra que pide el diálogo (README 30). */
-        const val CONFIRMATION_WORD = "ELIMINAR"
-
         private const val TYPED_KEY = "confirmacion_escrita"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {

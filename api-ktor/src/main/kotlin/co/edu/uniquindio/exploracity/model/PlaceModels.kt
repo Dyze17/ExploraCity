@@ -109,6 +109,11 @@ data class NotificationResponse(
     val achievement: String? = null,
     val nextBadge: String? = null,
     val remaining: Int? = null,
+    /** v1.2.0 · Los códigos de lo de arriba, para que la app lo diga en su idioma: el texto queda para la app de antes. */
+    val achievementId: String? = null,
+    val nextBadgeId: String? = null,
+    val rejectionReason: RejectionReason? = null,
+    val finalizeReason: FinalizeReason? = null,
 )
 
 @Serializable

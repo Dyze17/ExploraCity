@@ -96,7 +96,7 @@ class ReputationService(
             .filter { it.id !in unlocked }
             .maxByOrNull { progress.getValue(it.id).toDouble() / it.target }
         val remaining = next?.let { it.target - progress.getValue(it.id) }
-        fresh.forEach { badge -> notifications.achievement(userId, badge.name, next?.id, remaining, now) }
+        fresh.forEach { badge -> notifications.achievement(userId, badge.id, badge.name, next?.id, remaining, now) }
     }
 
     /** El avance nunca pasa de la meta: «10 de 10», no «12 de 10». */

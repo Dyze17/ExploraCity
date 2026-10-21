@@ -39,7 +39,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w412dp-h915dp-450dpi")
+@Config(qualifiers = "es-w412dp-h915dp-450dpi")
 class POICardLayoutTest {
 
     @get:Rule

@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.features.settings
 
 import android.content.ActivityNotFoundException
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
@@ -76,9 +77,11 @@ import co.edu.uniquindio.exploracity.core.ui.components.scaledWithFont
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
+import co.edu.uniquindio.exploracity.core.util.AppLanguages
 import co.edu.uniquindio.exploracity.core.util.LocationAccess
 import co.edu.uniquindio.exploracity.core.util.locationAccess
 import co.edu.uniquindio.exploracity.core.util.openAppSettings
+import co.edu.uniquindio.exploracity.domain.model.AppLanguage
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 
 /**
@@ -108,7 +111,13 @@ fun SettingsRoute(
     }
     val context = LocalContext.current
     var location by remember { mutableStateOf(context.locationAccess()) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { location = context.locationAccess() }
+    // v1.2.0 · Desde Android 13 el idioma también se cambia en los ajustes del teléfono: al volver se lee otra vez.
+    var language by remember { mutableStateOf(AppLanguages.current(context)) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        location = context.locationAccess()
+        language = AppLanguages.current(context)
+    }
+    val activity = LocalActivity.current
 
     // «Descargar mis datos»: Android pregunta dónde guardar el archivo; la app no necesita permisos.
     val saveDialog = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(JSON_MIME)) { uri ->
@@ -132,10 +141,15 @@ fun SettingsRoute(
     SettingsScreen(
         state = state,
         location = location,
+        language = language,
         showDevelopment = BuildConfig.DEBUG,
         callbacks = SettingsCallbacks(
             onBack = onBack,
             onThemeChange = viewModel::onThemeChange,
+            onLanguageChange = { chosen ->
+                language = chosen
+                activity?.let { AppLanguages.set(it, chosen) }
+            },
             onChangeLocationPermission = { context.openAppSettings() },
             onOpenPolicy = onOpenPolicy,
             onOpenPrivacyNotice = onOpenPrivacyNotice,
@@ -156,6 +170,7 @@ private const val JSON_MIME = "application/json"
 class SettingsCallbacks(
     val onBack: () -> Unit = {},
     val onThemeChange: (ThemeMode) -> Unit = {},
+    val onLanguageChange: (AppLanguage) -> Unit = {},
     val onChangeLocationPermission: () -> Unit = {},
     val onOpenPolicy: () -> Unit = {},
     val onOpenPrivacyNotice: () -> Unit = {},
@@ -181,6 +196,7 @@ fun SettingsScreen(
     callbacks: SettingsCallbacks,
     modifier: Modifier = Modifier,
     showDevelopment: Boolean = false,
+    language: AppLanguage = AppLanguage.SYSTEM,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     NoticeEffect(state.notice, snackbarHostState, callbacks.onNoticeShown)
@@ -205,6 +221,15 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             ThemePicker(state.themeMode, callbacks.onThemeChange)
+                        }
+                        RowDivider()
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                stringResource(R.string.settings_language),
+                                style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.W700),
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            LanguagePicker(language, callbacks.onLanguageChange)
                         }
                     }
                 }
@@ -292,6 +317,30 @@ private fun ThemePicker(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     val items: @Composable (Modifier) -> Unit = { itemModifier ->
         options.forEach { (mode, icon, label) ->
             OptionButton(stringResource(label), icon, mode == selected, { onSelect(mode) }, itemModifier, fontSize = 13.sp)
+        }
+    }
+    if (stacked) {
+        Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(Modifier.fillMaxWidth()) }
+    } else {
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(Modifier.weight(1f)) }
+    }
+}
+
+/**
+ * v1.2.0 · Sistema, Español y English, como el tema. Cada idioma se nombra en sí mismo: quien no entiende el que se ve
+ * encuentra el suyo.
+ */
+@Composable
+private fun LanguagePicker(selected: AppLanguage, onSelect: (AppLanguage) -> Unit) {
+    val stacked = LocalDensity.current.fontScale > FontScaleThresholds.StackRows
+    val options = listOf(
+        Triple(AppLanguage.SYSTEM, R.drawable.ic_smartphone, R.string.settings_language_system),
+        Triple(AppLanguage.SPANISH, R.drawable.ic_language, R.string.language_spanish),
+        Triple(AppLanguage.ENGLISH, R.drawable.ic_language, R.string.language_english),
+    )
+    val items: @Composable (Modifier) -> Unit = { itemModifier ->
+        options.forEach { (language, icon, label) ->
+            OptionButton(stringResource(label), icon, language == selected, { onSelect(language) }, itemModifier, fontSize = 13.sp)
         }
     }
     if (stacked) {

@@ -1,5 +1,7 @@
 package co.edu.uniquindio.exploracity.core.util
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -41,17 +43,23 @@ fun relativeTime(then: Instant, now: Instant, zone: ZoneId): RelativeTime {
     }
 }
 
-private val dayMonth = DateTimeFormatter.ofPattern("d 'de' MMMM", spanishColombia)
-private val dayMonthYear = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", spanishColombia)
+/** «12 de marzo»; de otro año, «12 de marzo de 2025». En inglés, «March 12» y «March 12, 2025». */
+fun formatDate(date: LocalDate, withYear: Boolean, formats: LocaleFormats): String =
+    DateTimeFormatter.ofPattern(if (withYear) formats.dayMonthYear else formats.dayMonth, formats.locale).format(date)
 
-/** «12 de marzo»; de otro año, «12 de marzo de 2025». */
-fun formatDate(date: LocalDate, withYear: Boolean): String = (if (withYear) dayMonthYear else dayMonth).format(date)
+@Composable
+@ReadOnlyComposable
+fun formatDate(date: LocalDate, withYear: Boolean): String = formatDate(date, withYear, localeFormats())
 
-private val monthOnly = DateTimeFormatter.ofPattern("MMMM", spanishColombia)
-private val monthYear = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", spanishColombia)
+/** «marzo»; de otro año, «marzo de 2025» (26: «Residente · Bogotá · desde marzo»). En inglés, «March» y «March 2025». */
+fun formatMonth(month: YearMonth, withYear: Boolean, formats: LocaleFormats): String =
+    DateTimeFormatter.ofPattern(if (withYear) formats.monthYear else MONTH_ONLY, formats.locale).format(month)
 
-/** «marzo»; de otro año, «marzo de 2025» (26: «Residente · Bogotá · desde marzo»). */
-fun formatMonth(month: YearMonth, withYear: Boolean): String = (if (withYear) monthYear else monthOnly).format(month)
+@Composable
+@ReadOnlyComposable
+fun formatMonth(month: YearMonth, withYear: Boolean): String = formatMonth(month, withYear, localeFormats())
+
+private const val MONTH_ONLY = "MMMM"
 
 /** Día de envío de una publicación como se dice en 22 («Enviada hoy · 9:12», «Enviada ayer», «hace 4 días»). */
 sealed interface SubmittedDay {
@@ -81,7 +89,9 @@ fun submittedDay(then: Instant, now: Instant, zone: ZoneId): SubmittedDay {
     }
 }
 
-private val hourMinute = DateTimeFormatter.ofPattern("H:mm", spanishColombia)
+/** «9:12»; en inglés, «9:12 AM». */
+fun formatTime(time: LocalTime, formats: LocaleFormats): String = DateTimeFormatter.ofPattern(formats.time, formats.locale).format(time)
 
-/** «9:12». */
-fun formatTime(time: LocalTime): String = hourMinute.format(time)
+@Composable
+@ReadOnlyComposable
+fun formatTime(time: LocalTime): String = formatTime(time, localeFormats())

@@ -101,6 +101,8 @@ data class RejectionResponse(
     val canResubmit: Boolean,
     val fixes: List<FixResponse> = emptyList(),
     val duplicateOf: PlaceSummaryResponse? = null,
+    /** v1.2.0 · true si [message] lo escribió el moderador; si no, es el del motivo y la app lo dice en su idioma. */
+    val customMessage: Boolean,
 )
 
 /** 22–24 · Una publicación propia en cualquier estado. */

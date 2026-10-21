@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity
 
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -9,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
+import co.edu.uniquindio.exploracity.core.util.AppLanguages
 import co.edu.uniquindio.exploracity.navigation.ExploraApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -38,6 +40,11 @@ class MainActivity : ComponentActivity() {
                 ExploraApp(emailLink = link, onEmailLinkHandled = { emailLink.value = null })
             }
         }
+    }
+
+    /** v1.2.0 · Antes de Android 13, el idioma elegido en Ajustes (29); desde 13 lo aplica el sistema. */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.wrap(newBase))
     }
 
     /** La app ya estaba abierta (una sola instancia, singleTask) y llegó un enlace del correo. */

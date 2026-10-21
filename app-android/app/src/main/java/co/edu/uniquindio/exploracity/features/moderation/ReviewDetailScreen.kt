@@ -106,6 +106,7 @@ import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.ScrimAlpha
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.util.HoursWords
+import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.core.util.formatOpeningHours
 import co.edu.uniquindio.exploracity.core.util.hasMapsApiKey
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
@@ -419,7 +420,8 @@ private fun InfoCard(item: ReviewItem) {
         formatOpeningHours(it, HoursWords(stringResource(R.string.hours_every_day), stringResource(R.string.hours_to), stringResource(R.string.list_and)))
     } ?: stringResource(R.string.review_no_hours)
     val price = item.price?.let { stringResource(it.labelRes) } ?: stringResource(R.string.review_no_price)
-    val coordinates = item.location.let { "${it.latitude.format()} · ${it.longitude.format()}" }
+    val locale = appLocale()
+    val coordinates = item.location.let { "${it.latitude.format(locale)} · ${it.longitude.format(locale)}" }
     val place = item.address?.let { stringResource(R.string.review_place, it, coordinates) } ?: coordinates
     Column(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium).padding(14.dp),
@@ -439,10 +441,8 @@ private fun InfoRow(@DrawableRes icon: Int, text: String) {
     }
 }
 
-private val spanishColombia: Locale = Locale.forLanguageTag("es-CO")
-
-/** «4,71203»: coma decimal, como se escribe en Colombia. */
-private fun Double.format(): String = String.format(spanishColombia, "%.5f", this)
+/** «4,71203» en español, «4.71203» en inglés: el separador decimal del idioma. */
+private fun Double.format(locale: Locale): String = String.format(locale, "%.5f", this)
 
 /** 33.b · Un usuario reportó la publicación: el motivo, en tono de error y con su icono. */
 @Composable

@@ -49,9 +49,9 @@ import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.Outfit
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
+import co.edu.uniquindio.exploracity.core.util.appLocale
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
-import java.util.Locale
 
 /**
  * Tarjeta de un punto de interés en el feed. Alto mínimo 96 dp y crece con el texto.
@@ -86,7 +86,7 @@ fun POICard(
         R.string.poi_card_description,
         title,
         stringResource(category.labelRes),
-        stringResource(status.labelRes).lowercase(Locale.forLanguageTag("es")),
+        stringResource(status.labelRes).lowercase(appLocale()),
         distance,
         votesText,
         commentsText,

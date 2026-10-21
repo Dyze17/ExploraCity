@@ -115,6 +115,9 @@ class ModerationRoutesTest : ApiTest() {
         assertEquals(HttpStatusCode.NoContent, response.status)
         assertMatchesContract("publication-rejected.json", get("/v1/publications/${Fixtures.CAFE}", accessToken(Fixtures.ANA)).json())
         assertEquals("la foto no permite reconocer el lugar", notices(NotificationType.REJECTED).single()[Notifications.reason])
+        val notice = get("/v1/notifications", accessToken(Fixtures.ANA)).json().jsonObject["items"]!!.jsonArray
+            .single { it.jsonObject["type"]!!.jsonPrimitive.content == "REJECTED" }.jsonObject
+        assertEquals("PHOTO", notice["rejectionReason"]!!.jsonPrimitive.content)
         val photo = uploadPhoto(accessToken(Fixtures.ANA))
         val body = """{"clientId":"${UUID.randomUUID()}","title":"Café Las Acacias","description":"Café de origen con tostión propia y vista al parque principal.",""" +
             """"category":"GASTRONOMY","categoryOrigin":"CHOSEN","location":{"latitude":4.5402,"longitude":-75.6721},"photos":["$photo"],"resubmitId":"${Fixtures.CAFE}"}"""
@@ -155,6 +158,10 @@ class ModerationRoutesTest : ApiTest() {
         assertEquals(HttpStatusCode.BadRequest, short.status)
         assertEquals(HttpStatusCode.NoContent, ok.status)
         assertEquals("el horario no coincide con el letrero del local", notices(NotificationType.REJECTED).single()[Notifications.reason])
+        assertEquals("OTHER", notices(NotificationType.REJECTED).single()[Notifications.reasonCode])
+        // Lo escribió el moderador: la app lo muestra tal cual.
+        val rejection = get("/v1/publications/${Fixtures.CAFE}", accessToken(Fixtures.ANA)).json().jsonObject["rejection"]!!.jsonObject
+        assertEquals("true", rejection["customMessage"]!!.jsonPrimitive.content)
     }
 
     @Test
@@ -218,6 +225,9 @@ class ModerationRoutesTest : ApiTest() {
         assertEquals(HttpStatusCode.NoContent, response.status)
         assertEquals(PublicationStatus.FINALIZED, status(Fixtures.MIRADOR))
         assertEquals("fue un evento temporal que ya pasó", notices(NotificationType.FINALIZED).single()[Notifications.reason])
+        val finalized = get("/v1/notifications", accessToken(Fixtures.ANA)).json().jsonObject["items"]!!.jsonArray
+            .single { it.jsonObject["type"]!!.jsonPrimitive.content == "FINALIZED" }.jsonObject
+        assertEquals("EVENT_ENDED", finalized["finalizeReason"]!!.jsonPrimitive.content)
         assertEquals(before, points(Fixtures.ANA))
         val again = post("/v1/moderation/resolved/${Fixtures.MIRADOR}/finalize", """{"reason":"CLOSED"}""", laura())
         assertEquals(HttpStatusCode.Conflict, again.status)

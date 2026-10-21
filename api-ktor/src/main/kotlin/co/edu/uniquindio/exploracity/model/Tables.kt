@@ -208,7 +208,15 @@ object Notifications : Table("notifications") {
     val existingPlaceId = optReference("existing_place_id", Places.id, onDelete = ReferenceOption.SET_NULL)
     val existingTitle = text("existing_title").nullable()
     val achievement = text("achievement").nullable()
+
+    /** v1.2.0 · La insignia que se desbloqueó, para que la app diga su nombre en su idioma (V10). */
+    val achievementId = optReference("achievement_id", Badges.id, onDelete = ReferenceOption.SET_NULL)
+
+    /** La siguiente insignia, la bloqueada más cercana. */
     val badgeId = optReference("badge_id", Badges.id, onDelete = ReferenceOption.SET_NULL)
+
+    /** v1.2.0 · El código del motivo (RejectionReason o FinalizeReason); [reason] sigue con la frase en español (V10). */
+    val reasonCode = text("reason_code").nullable()
     val remaining = integer("remaining").nullable()
     val readAt = timestampWithTimeZone("read_at").nullable()
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)

@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.core.data.remote.dto
 
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.Comment
+import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.Poi
@@ -10,6 +11,7 @@ import co.edu.uniquindio.exploracity.domain.model.PoiPhoto
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicProfile
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
+import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.Residency
 import co.edu.uniquindio.exploracity.domain.repository.CommentsPage
 import co.edu.uniquindio.exploracity.domain.repository.FeedPage
@@ -156,21 +158,32 @@ data class NotificationDto(
     val achievement: String? = null,
     val nextBadge: String? = null,
     val remaining: Int? = null,
+    /** v1.2.0 · Los códigos de lo de arriba, como texto: uno nuevo no rompe la lista. */
+    val achievementId: String? = null,
+    val nextBadgeId: String? = null,
+    val rejectionReason: String? = null,
+    val finalizeReason: String? = null,
 ) {
     /** null si es de un tipo que la app no conoce o le falta un dato: no se muestra. */
     fun toDomain(): Notification? {
         val at = Instant.parse(createdAt)
         return when (type) {
             "VERIFIED" -> Notification.Verified(id, at, read, placeId ?: return null, placeTitle ?: return null, points ?: 0)
-            "FINALIZED" -> Notification.Finalized(id, at, read, placeId ?: return null, placeTitle ?: return null, reason)
+            "FINALIZED" -> Notification.Finalized(
+                id, at, read, placeId ?: return null, placeTitle ?: return null, reason,
+                FinalizeReason.entries.firstOrNull { it.name == finalizeReason },
+            )
             "COMMENTED" -> Notification.Commented(
                 id, at, read, placeId ?: return null, placeTitle ?: return null, authorName, excerpt ?: return null,
             )
-            "REJECTED" -> Notification.Rejected(id, at, read, placeId ?: return null, placeTitle ?: return null, reason ?: return null)
+            "REJECTED" -> Notification.Rejected(
+                id, at, read, placeId ?: return null, placeTitle ?: return null, reason ?: return null,
+                RejectionReason.entries.firstOrNull { it.name == rejectionReason },
+            )
             "DUPLICATE_REJECTED" -> Notification.DuplicateRejected(
                 id, at, read, placeId ?: return null, placeTitle ?: return null, existingPlaceId ?: return null, existingTitle ?: return null,
             )
-            "ACHIEVEMENT" -> Notification.Achievement(id, at, read, achievement ?: return null, nextBadge, remaining)
+            "ACHIEVEMENT" -> Notification.Achievement(id, at, read, achievement ?: return null, nextBadge, remaining, achievementId, nextBadgeId)
             else -> null
         }
     }

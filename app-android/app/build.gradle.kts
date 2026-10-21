@@ -41,6 +41,12 @@ android {
     namespace = "co.edu.uniquindio.exploracity"
     compileSdk = 37
 
+    // v1.2.0 · El localeConfig sale de las carpetas values-*: Android 13 o posterior ofrece el idioma de la app en sus
+    // ajustes. El idioma de values/ está en res/resources.properties.
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     defaultConfig {
         applicationId = "co.edu.uniquindio.exploracity"
         minSdk = 28

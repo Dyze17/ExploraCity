@@ -164,6 +164,7 @@ data class RejectionDto(
     val canResubmit: Boolean,
     val fixes: List<FixDto> = emptyList(),
     val duplicateOf: PlaceDto? = null,
+    val customMessage: Boolean = false,
 ) {
     fun toDomain() = Rejection(
         reason = reason,
@@ -173,6 +174,7 @@ data class RejectionDto(
         canResubmit = canResubmit,
         fixes = fixes.map { it.toDomain() },
         duplicateOf = duplicateOf?.toDomain(),
+        customMessage = customMessage,
     )
 }
 

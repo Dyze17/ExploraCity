@@ -58,13 +58,13 @@ class DeleteAccountViewModelTest {
         vm.onContinue()
 
         vm.onTypedChange("ELIMINA")
-        assertFalse(vm.state.value.confirmation!!.matches)
-        vm.onConfirmDelete()
+        assertFalse(vm.state.value.confirmation!!.matches("ELIMINAR"))
+        vm.onConfirmDelete("ELIMINAR")
         advanceUntilIdle()
         assertFalse("Sin la palabra no se borra", accounts.deleted)
 
         vm.onTypedChange(" eliminar ")
-        assertTrue(vm.state.value.confirmation!!.matches)
+        assertTrue(vm.state.value.confirmation!!.matches("ELIMINAR"))
     }
 
     @Test
@@ -74,7 +74,7 @@ class DeleteAccountViewModelTest {
         vm.onContinue()
         vm.onTypedChange("ELIMINAR")
 
-        vm.onConfirmDelete()
+        vm.onConfirmDelete("ELIMINAR")
         runCurrent()
         assertEquals(true, vm.state.value.confirmation?.deleting)
         vm.onDismissConfirmation()
@@ -94,7 +94,7 @@ class DeleteAccountViewModelTest {
         vm.onContinue()
         vm.onTypedChange("ELIMINAR")
 
-        vm.onConfirmDelete()
+        vm.onConfirmDelete("ELIMINAR")
         advanceUntilIdle()
 
         assertEquals(DeleteAccountError.FAILED, vm.state.value.confirmation?.error)
@@ -120,7 +120,7 @@ class DeleteAccountViewModelTest {
         vm.onContinue()
         vm.onTypedChange("ELIMINAR")
         connectivity.online = false
-        vm.onConfirmDelete()
+        vm.onConfirmDelete("ELIMINAR")
         advanceUntilIdle()
 
         assertEquals(DeleteAccountError.OFFLINE, vm.state.value.confirmation?.error)
@@ -135,7 +135,7 @@ class DeleteAccountViewModelTest {
         vm.onContinue()
         vm.onTypedChange("eliminar")
 
-        vm.onConfirmDelete()
+        vm.onConfirmDelete("ELIMINAR")
         advanceUntilIdle()
 
         assertEquals(DeleteAccountError.OFFLINE, vm.state.value.confirmation?.error)

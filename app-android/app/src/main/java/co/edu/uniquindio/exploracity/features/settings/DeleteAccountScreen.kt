@@ -98,7 +98,7 @@ class DeleteAccountCallbacks(
     val onContinue: () -> Unit = {},
     val onTypedChange: (String) -> Unit = {},
     val onDismiss: () -> Unit = {},
-    val onConfirm: () -> Unit = {},
+    val onConfirm: (String) -> Unit = {},
 )
 
 /**
@@ -309,11 +309,12 @@ private fun ConfirmDialog(confirmation: DeleteConfirmation, callbacks: DeleteAcc
             }
         },
         confirmButton = {
+            val word = stringResource(R.string.delete_account_word)
             ExploraButton(
                 stringResource(R.string.delete_account_confirm),
-                onClick = callbacks.onConfirm,
+                onClick = { callbacks.onConfirm(word) },
                 style = ExploraButtonStyle.DESTRUCTIVE,
-                enabled = confirmation.matches || confirmation.deleting,
+                enabled = confirmation.matches(word) || confirmation.deleting,
                 disabledReason = stringResource(R.string.delete_account_confirm_unavailable),
                 loading = confirmation.deleting,
             )
