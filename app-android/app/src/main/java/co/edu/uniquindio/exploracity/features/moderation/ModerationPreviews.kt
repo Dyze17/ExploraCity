@@ -29,7 +29,7 @@ internal fun previewReviews(now: Instant): List<ReviewItem> {
             categoryOrigin = CategoryOrigin.SUGGESTED,
             description = "Subida de 40 minutos desde el paradero. Al llegar se ve todo el valle y hay una cruz de piedra de 1890.",
             photos = photos("mirador", 3),
-            hours = OpeningHours(DayOfWeek.entries.toSet(), LocalTime.of(6, 0), LocalTime.of(17, 0)),
+            hours = OpeningHours.of(DayOfWeek.entries.toSet(), LocalTime.of(6, 0), LocalTime.of(17, 0)),
             price = PriceRange.FREE,
             address = "Vereda El Alto",
             location = GeoPoint(4.71203, -74.03118),

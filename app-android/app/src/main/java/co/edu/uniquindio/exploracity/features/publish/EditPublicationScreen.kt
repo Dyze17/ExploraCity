@@ -162,10 +162,12 @@ fun EditPublicationRoute(
                 },
             ),
             schedule = ScheduleCallbacks(
+                onModeChange = viewModel::onHoursModeChange,
                 onDayToggle = viewModel::onDayToggle,
                 onOpensChange = viewModel::onOpensChange,
                 onClosesChange = viewModel::onClosesChange,
-                onHoursUnknownChange = viewModel::onHoursUnknownChange,
+                onAddBlock = viewModel::onAddBlock,
+                onRemoveBlock = viewModel::onRemoveBlock,
                 onPriceChange = viewModel::onPriceChange,
             ),
             photos = PhotoCallbacks(
@@ -352,11 +354,9 @@ private fun EditForm(original: OwnPublication, form: PublicationChanges, state: 
 
         EditSectionTitle(stringResource(R.string.edit_section_schedule))
         ScheduleFields(
-            hours = form.hours,
-            hoursUnknown = form.hoursUnknown,
+            schedule = form.schedule,
             price = form.price,
             showError = state::showScheduleError,
-            closesBeforeOpens = state.closesBeforeOpens,
             callbacks = callbacks.schedule,
         )
 

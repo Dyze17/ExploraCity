@@ -140,10 +140,12 @@ fun PublishFormRoute(
                 },
             ),
             schedule = ScheduleCallbacks(
+                onModeChange = viewModel::onHoursModeChange,
                 onDayToggle = viewModel::onDayToggle,
                 onOpensChange = viewModel::onOpensChange,
                 onClosesChange = viewModel::onClosesChange,
-                onHoursUnknownChange = viewModel::onHoursUnknownChange,
+                onAddBlock = viewModel::onAddBlock,
+                onRemoveBlock = viewModel::onRemoveBlock,
                 onPriceChange = viewModel::onPriceChange,
             ),
             photos = PhotoCallbacks(
@@ -340,15 +342,15 @@ private fun ActionBar(continueText: String, loading: Boolean, onBack: () -> Unit
 
 /**
  * 21 · Resumen arriba: cuántas cosas faltan y dónde. Se anuncia al aparecer; el foco va al primer campo con error.
- * [closesBeforeOpens]: en el paso 4 lo único que falla es el orden de las horas.
+ * [sameTimes]: en el paso 4 lo único que falla es que un tramo abre y cierra a la misma hora.
  */
 @Composable
-internal fun ErrorSummary(errors: List<DraftField>, closesBeforeOpens: Boolean = false) {
+internal fun ErrorSummary(errors: List<DraftField>, sameTimes: Boolean = false) {
     val scheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(12.dp)
     val detail = when {
         DraftField.PHOTOS in errors -> R.string.publish_errors_photos
-        errors == listOf(DraftField.CLOSES) && closesBeforeOpens -> R.string.publish_errors_hours_order
+        sameTimes -> R.string.publish_errors_hours_same
         DraftField.DAYS in errors || DraftField.OPENS in errors || DraftField.CLOSES in errors -> R.string.publish_errors_hours
         DraftField.LOCATION in errors -> R.string.publish_errors_location
         DraftField.CATEGORY in errors -> R.string.publish_errors_category

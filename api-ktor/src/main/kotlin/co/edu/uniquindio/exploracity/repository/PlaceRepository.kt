@@ -12,6 +12,9 @@ import co.edu.uniquindio.exploracity.model.Users
 import co.edu.uniquindio.exploracity.model.Visits
 import co.edu.uniquindio.exploracity.model.Votes
 import co.edu.uniquindio.exploracity.service.zoneOrNull
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.DoubleColumnType
 import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.JoinType
@@ -74,10 +77,10 @@ data class PlaceRow(
     val cover: String?,
     val price: PriceRange?,
     val address: String?,
-    /** Días de atención como bits: lunes = 1 … domingo = 64. */
-    val hoursDays: Int?,
-    val opens: LocalTime?,
-    val closes: LocalTime?,
+    /** 18 · Los tramos del horario, en orden; vacío sin horario o siempre abierto. */
+    val schedule: List<HoursBlock> = emptyList(),
+    /** v1.3.0 · Sin puertas ni horario. */
+    val alwaysOpen: Boolean = false,
     /** ADR-17 · La zona horaria del lugar; null = la de la ciudad de la configuración. */
     val timeZone: ZoneId? = null,
 )
@@ -334,9 +337,8 @@ class PlaceRepository {
         cover = rs.getString("cover"),
         price = rs.getString("price")?.let(PriceRange::valueOf),
         address = rs.getString("address"),
-        hoursDays = rs.getInt("hours_days").takeUnless { rs.wasNull() },
-        opens = rs.getObject("hours_opens", LocalTime::class.java),
-        closes = rs.getObject("hours_closes", LocalTime::class.java),
+        schedule = rs.getString("schedule")?.let(::scheduleOf).orEmpty(),
+        alwaysOpen = rs.getBoolean("always_open"),
         timeZone = rs.getString("time_zone")?.let(::zoneOrNull),
     )
 
@@ -348,7 +350,9 @@ class PlaceRepository {
         const val PUBLIC = "('VERIFIED', 'FINALIZED')"
 
         const val COLUMNS = "p.id, p.author_id, p.title, p.description, p.category, p.status, p.latitude, p.longitude, " +
-            "p.price, p.address, p.hours_days, p.hours_opens, p.hours_closes, p.time_zone, " +
+            "p.price, p.address, p.always_open, p.time_zone, " +
+            "(SELECT json_agg(json_build_array(h.days, h.opens, h.closes) ORDER BY h.position) FROM place_hours h " +
+            "WHERE h.place_id = p.id) AS schedule, " +
             "(SELECT count(*) FROM votes v WHERE v.place_id = p.id) AS votes, " +
             "(SELECT count(*) FROM comments c WHERE c.place_id = p.id) AS comments, " +
             "(SELECT ph.url FROM photos ph WHERE ph.place_id = p.id ORDER BY ph.position LIMIT 1) AS cover"
@@ -356,4 +360,10 @@ class PlaceRepository {
         /** El texto de la persona se busca tal cual: sin comodines de LIKE. */
         fun escapeLike(text: String): String = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     }
+}
+
+/** v1.3.0 · El horario de la subconsulta de [PlaceRepository]: `[[días, "abre", "cierra"], …]`, en orden. */
+private fun scheduleOf(json: String): List<HoursBlock> = Json.parseToJsonElement(json).jsonArray.map { block ->
+    val (days, opens, closes) = block.jsonArray.map { it.jsonPrimitive.content }
+    HoursBlock(days.toInt(), LocalTime.parse(opens), LocalTime.parse(closes))
 }

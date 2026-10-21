@@ -50,7 +50,7 @@ data class SavedDetailsEntity(
     val description: String,
     val photos: List<SavedPhoto>,
     val address: String,
-    /** Días del horario separados por coma (MONDAY,TUESDAY…); null si el lugar no tiene horario. */
+    /** Días del horario separados por coma (MONDAY,TUESDAY…): lo que guardó la 1.2. Desde la 1.3.0 se usa [hoursJson]. */
     val openDays: String?,
     val opensAt: String?,
     val closesAt: String?,
@@ -61,6 +61,8 @@ data class SavedDetailsEntity(
     val voted: Boolean,
     val visited: Boolean,
     val savedAtMillis: Long,
+    /** v1.3.0 · El horario por tramos o siempre abierto ([StoredHours]); null sin horario o en lo que guardó la 1.2. */
+    val hoursJson: String? = null,
 )
 
 @Serializable
@@ -118,9 +120,10 @@ fun PoiDetails.toEntity(savedAt: Instant) = SavedDetailsEntity(
     description = description,
     photos = photos.map { SavedPhoto(it.url, it.description) },
     address = address,
-    openDays = hours?.days?.sorted()?.joinToString(",") { it.name },
-    opensAt = hours?.opens?.toString(),
-    closesAt = hours?.closes?.toString(),
+    openDays = null,
+    opensAt = null,
+    closesAt = null,
+    hoursJson = hours?.let { StoredHours.of(it).encode() },
     authorId = author?.id ?: DELETED_AUTHOR,
     authorName = author?.name.orEmpty(),
     authorPoints = author?.points ?: 0,
@@ -134,8 +137,8 @@ fun SavedDetailsEntity.toDomain(poi: SavedPoiEntity) = PoiDetails(
     description = description,
     photos = photos.map { PoiPhoto(it.url, it.description) },
     address = address,
-    hours = if (openDays != null && opensAt != null && closesAt != null) {
-        OpeningHours(openDays.split(',').map(DayOfWeek::valueOf).toSet(), LocalTime.parse(opensAt), LocalTime.parse(closesAt))
+    hours = hoursJson?.let(StoredHours::decode) ?: if (openDays != null && opensAt != null && closesAt != null) {
+        OpeningHours.of(openDays.split(',').map(DayOfWeek::valueOf).toSet(), LocalTime.parse(opensAt), LocalTime.parse(closesAt))
     } else {
         null
     },

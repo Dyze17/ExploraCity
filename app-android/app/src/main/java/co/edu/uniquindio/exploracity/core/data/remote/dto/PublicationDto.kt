@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateSuspicion
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
@@ -76,7 +77,12 @@ data class SubmissionRequest(
     val categoryOrigin: CategoryOrigin,
     val location: GeoPointDto,
     val address: String?,
+    /** El primer tramo, para la API de antes; la de ahora lee [schedule]. */
     val hours: HoursDto?,
+    /** v1.3.0 · Todos los tramos, en orden. */
+    val schedule: List<HoursDto>? = null,
+    /** v1.3.0 · Sin puertas ni horario: sin tramos. */
+    val alwaysOpen: Boolean = false,
     val price: PriceRange?,
     val photos: List<String>,
     val duplicateCheck: DuplicateCheckRequest?,
@@ -94,7 +100,9 @@ data class SubmissionRequest(
             categoryOrigin = submission.categoryOrigin,
             location = GeoPointDto.of(submission.location),
             address = submission.address,
-            hours = submission.hours?.let(HoursDto::of),
+            hours = HoursDto.blocksOf(submission.hours)?.firstOrNull(),
+            schedule = HoursDto.blocksOf(submission.hours),
+            alwaysOpen = submission.hours == OpeningHours.AlwaysOpen,
             price = submission.price,
             photos = submission.photos.mapNotNull { it.remoteUrl },
             duplicateCheck = submission.duplicateCheck?.let(DuplicateCheckRequest::of),
@@ -118,7 +126,12 @@ data class ChangesRequest(
     val description: String,
     val location: GeoPointDto,
     val address: String?,
+    /** El primer tramo, para la API de antes; la de ahora lee [schedule]. */
     val hours: HoursDto?,
+    /** v1.3.0 · Todos los tramos, en orden. */
+    val schedule: List<HoursDto>? = null,
+    /** v1.3.0 · Sin puertas ni horario: sin tramos. */
+    val alwaysOpen: Boolean = false,
     val price: PriceRange?,
     val photos: List<String>,
     val duplicateCheck: DuplicateCheckRequest?,
@@ -135,7 +148,9 @@ data class ChangesRequest(
                 description = clean.description,
                 location = GeoPointDto.of(clean.location),
                 address = clean.address,
-                hours = clean.openingHours?.let(HoursDto::of),
+                hours = HoursDto.blocksOf(clean.openingHours)?.firstOrNull(),
+                schedule = HoursDto.blocksOf(clean.openingHours),
+                alwaysOpen = clean.openingHours == OpeningHours.AlwaysOpen,
                 price = clean.price,
                 photos = clean.photos.mapNotNull { it.remoteUrl },
                 duplicateCheck = clean.duplicateCheck?.let(DuplicateCheckRequest::of),
@@ -190,7 +205,11 @@ data class PublicationDto(
     val submittedAt: String,
     val description: String,
     val photo: String? = null,
+    /** El primer tramo, para la app 1.2; con [schedule] no se lee. */
     val hours: HoursDto? = null,
+    /** v1.3.0 · Todos los tramos, en orden. */
+    val schedule: List<HoursDto>? = null,
+    val alwaysOpen: Boolean = false,
     val price: PriceRange? = null,
     val votes: Int,
     val comments: Int,
@@ -210,7 +229,7 @@ data class PublicationDto(
         submittedAt = Instant.parse(submittedAt),
         description = description,
         photoUrl = photo,
-        hours = hours?.toDomain(),
+        hours = HoursDto.scheduleOf(hours, schedule, alwaysOpen),
         price = price,
         votes = votes,
         comments = comments,
@@ -258,7 +277,11 @@ data class ReviewItemDto(
     val categoryOrigin: CategoryOrigin,
     val description: String,
     val photos: List<PhotoDto>,
+    /** El primer tramo, para la app 1.2; con [schedule] no se lee. */
     val hours: HoursDto? = null,
+    /** v1.3.0 · Todos los tramos, en orden. */
+    val schedule: List<HoursDto>? = null,
+    val alwaysOpen: Boolean = false,
     val price: PriceRange? = null,
     val address: String? = null,
     val location: GeoPointDto,
@@ -274,7 +297,7 @@ data class ReviewItemDto(
         categoryOrigin = categoryOrigin,
         description = description,
         photos = photos.map { it.toDomain() },
-        hours = hours?.toDomain(),
+        hours = HoursDto.scheduleOf(hours, schedule, alwaysOpen),
         price = price,
         address = address,
         location = location.toDomain(),

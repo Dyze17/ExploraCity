@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.data.remote.dto
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.Comment
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
+import co.edu.uniquindio.exploracity.domain.model.HoursBlock
 import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
@@ -80,13 +81,28 @@ data class MapAreaDto(val items: List<PlaceDto>, val total: Int) {
     fun toDomain() = MapArea(items.map { it.toDomain() }, total)
 }
 
+/** 18 · Un tramo del horario. Si [closes] no es posterior a [opens], cierra al día siguiente. */
 @Serializable
 data class HoursDto(val days: List<String>, val opens: String, val closes: String) {
-    fun toDomain() = OpeningHours(days.map(DayOfWeek::valueOf).toSet(), LocalTime.parse(opens), LocalTime.parse(closes))
+    fun toDomain() = HoursBlock(days.map(DayOfWeek::valueOf).toSet(), LocalTime.parse(opens), LocalTime.parse(closes))
 
     companion object {
         /** Los días de lunes a domingo y las horas como «08:00». */
-        fun of(hours: OpeningHours) = HoursDto(hours.days.sorted().map { it.name }, hours.opens.hourMinute(), hours.closes.hourMinute())
+        fun of(block: HoursBlock) = HoursDto(block.days.sorted().map { it.name }, block.opens.hourMinute(), block.closes.hourMinute())
+
+        /**
+         * v1.3.0 · El horario de una respuesta: siempre abierto, todos los tramos de [schedule] o, sin él, el único de
+         * [hours] (la API de antes).
+         */
+        fun scheduleOf(hours: HoursDto?, schedule: List<HoursDto>?, alwaysOpen: Boolean): OpeningHours? = when {
+            alwaysOpen -> OpeningHours.AlwaysOpen
+            !schedule.isNullOrEmpty() -> OpeningHours.Blocks(schedule.map { it.toDomain() })
+            hours != null -> OpeningHours.Blocks(listOf(hours.toDomain()))
+            else -> null
+        }
+
+        /** v1.3.0 · Los tramos que se envían; null sin horario o siempre abierto. */
+        fun blocksOf(hours: OpeningHours?): List<HoursDto>? = (hours as? OpeningHours.Blocks)?.blocks?.map(::of)
 
         private fun LocalTime.hourMinute() = "%02d:%02d".format(Locale.ROOT, hour, minute)
     }
@@ -99,7 +115,11 @@ data class PlaceDetailsDto(
     val description: String,
     val photos: List<String>,
     val address: String? = null,
+    /** El primer tramo, para la app 1.2; con [schedule] no se lee. */
     val hours: HoursDto? = null,
+    /** v1.3.0 · Todos los tramos, en orden. */
+    val schedule: List<HoursDto>? = null,
+    val alwaysOpen: Boolean = false,
     val author: AuthorDto? = null,
     val voted: Boolean,
     val visited: Boolean,
@@ -110,7 +130,7 @@ data class PlaceDetailsDto(
         // El formulario no pide descripción por foto: el lector oye «Mirador de la Secreta. Foto 1 de 3».
         photos = photos.map { PoiPhoto(it, place.title) },
         address = address.orEmpty(),
-        hours = hours?.toDomain(),
+        hours = HoursDto.scheduleOf(hours, schedule, alwaysOpen),
         author = author?.toDomain(),
         voted = voted,
         visited = visited,

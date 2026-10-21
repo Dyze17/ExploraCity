@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.model.Category
 import co.edu.uniquindio.exploracity.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.model.Comments
 import co.edu.uniquindio.exploracity.model.Photos
+import co.edu.uniquindio.exploracity.model.PlaceHours
 import co.edu.uniquindio.exploracity.model.Places
 import co.edu.uniquindio.exploracity.model.PriceRange
 import co.edu.uniquindio.exploracity.model.PublicationStatus
@@ -66,6 +67,13 @@ object Fixtures {
                 it[hoursCloses] = LocalTime.of(18, 0)
                 it[pointsEarned] = 35
                 it[submittedAt] = Instant.parse("2026-09-01T14:00:00Z").atOffset(ZoneOffset.UTC)
+            }
+            PlaceHours.insert {
+                it[placeId] = MIRADOR
+                it[position] = 0
+                it[days] = 0b0011111
+                it[opens] = LocalTime.of(8, 0)
+                it[closes] = LocalTime.of(18, 0)
             }
             Places.insert {
                 it[id] = CAFE

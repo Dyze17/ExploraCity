@@ -119,7 +119,7 @@ class PendingSenderTest {
         category = Category.GASTRONOMY,
         categoryOrigin = CategoryOrigin.SUGGESTED,
         location = GeoPoint(4.6383, -74.0656),
-        hours = OpeningHours(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)),
+        hours = OpeningHours.of(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)),
         price = PriceRange.LOW,
         photos = listOf(DraftPhoto("foto-1", "/fotos/foto-1.jpg", "patio.jpg"), DraftPhoto("foto-2", "/fotos/foto-2.jpg", "barra.jpg")),
         duplicateCheck = DuplicateCheck(GeoPoint(4.6383, -74.0656), listOf("cafe-las-acacias"), "Es el local del lado."),

@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.model.Category
 import co.edu.uniquindio.exploracity.model.NotificationType
 import co.edu.uniquindio.exploracity.model.Notifications
 import co.edu.uniquindio.exploracity.model.Photos
+import co.edu.uniquindio.exploracity.model.PlaceHours
 import co.edu.uniquindio.exploracity.model.Places
 import co.edu.uniquindio.exploracity.model.PublicationStatus
 import co.edu.uniquindio.exploracity.service.TimeZones
@@ -95,6 +96,41 @@ class PublicationRoutesTest : ApiTest() {
         assertEquals(listOf("Café Las Acacias"), ownPending.json().jsonArray.map { it.jsonObject["title"]!!.jsonPrimitive.content })
         val excluded = get("/v1/places/similar?title=Cafe%20Acacias&near=4.5402,-75.6721&excludeId=${Fixtures.CAFE}", accessToken(Fixtures.ANA))
         assertEquals("[]", excluded.bodyAsText())
+    }
+
+    @Test
+    fun `el horario va por tramos, con cierre después de medianoche, o siempre abierto`() = apiTest {
+        val pedro = register("pedro@correo.com", name = "Pedro Pérez")
+        // Entre semana de 16:00 a 2:00 y el fin de semana de 22:00 a 3:00. Sábado 3 de octubre, 10:00 en Armenia.
+        val club = publish(
+            pedro.accessToken,
+            title = "Discoteca La Estación",
+            extra = ""","schedule":[{"days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"opens":"16:00","closes":"02:00"},""" +
+                """{"days":["SATURDAY","SUNDAY"],"opens":"22:00","closes":"03:00"}],"price":"MEDIUM"""",
+        )
+        val plaza = publish(pedro.accessToken, title = "Plaza de Bolívar", latitude = 4.5339, longitude = -75.6811, extra = ""","alwaysOpen":true,"price":"FREE"""")
+
+        val own = get("/v1/publications/$club", pedro.accessToken).json().jsonObject
+        assertEquals(listOf("16:00", "22:00"), own["schedule"]!!.jsonArray.map { it.jsonObject["opens"]!!.jsonPrimitive.content })
+        assertEquals("02:00", own["hours"]!!.jsonObject["closes"]!!.jsonPrimitive.content, "La app 1.2 ve el primer tramo")
+        assertNull(own["alwaysOpen"])
+        transaction(database) {
+            assertEquals(2L, PlaceHours.selectAll().where { PlaceHours.placeId eq UUID.fromString(club) }.count())
+            // Las columnas de antes guardan el primer tramo, por si se vuelve a la versión anterior.
+            assertEquals(0b0011111, Places.selectAll().where { Places.id eq UUID.fromString(club) }.single()[Places.hoursDays]?.toInt())
+            Places.update({ Places.id inList listOf(UUID.fromString(club), UUID.fromString(plaza)) }) { it[status] = PublicationStatus.VERIFIED }
+        }
+
+        val detail = get("/v1/places/$plaza", pedro.accessToken).json().jsonObject
+        assertEquals(true, detail["alwaysOpen"]!!.jsonPrimitive.boolean)
+        assertNull(detail["schedule"])
+        assertEquals(true, detail["place"]!!.jsonObject["openNow"]!!.jsonPrimitive.boolean)
+        val clubDetail = get("/v1/places/$club", pedro.accessToken).json().jsonObject
+        assertEquals(false, clubDetail["place"]!!.jsonObject["openNow"]!!.jsonPrimitive.boolean, "Sábado 10:00: abre a las 22:00")
+        // Domingo 2:59, del tramo del sábado, con un token de acceso nuevo (dura 15 minutos).
+        clock.advance(Duration.ofHours(16).plusMinutes(59))
+        val later = login(pedro.email, pedro.password).session(pedro.password).accessToken
+        assertEquals(true, get("/v1/places/$club", later).json().jsonObject["place"]!!.jsonObject["openNow"]!!.jsonPrimitive.boolean, "Domingo 2:59")
     }
 
     @Test
@@ -206,7 +242,10 @@ class PublicationRoutesTest : ApiTest() {
         assertEquals("invalid_photos", code(photos = "\"$other\""))
         assertEquals("invalid_photos", code(photos = "\"https://medios.test/lugares/no-existe.jpg\""))
         assertEquals("invalid_photos", code(photos = "\"$photo\",\"$photo\""))
-        assertEquals("invalid_publication", code(extra = ""","hours":{"days":["MONDAY"],"opens":"19:00","closes":"07:00"}"""))
+        assertEquals("invalid_publication", code(extra = ""","hours":{"days":["MONDAY"],"opens":"19:00","closes":"19:00"}"""))
+        val repeated = ""","schedule":[{"days":["MONDAY"],"opens":"07:00","closes":"12:00"},{"days":["MONDAY","TUESDAY"],"opens":"14:00","closes":"19:00"}]"""
+        assertEquals("invalid_publication", code(extra = repeated), "El lunes en dos tramos")
+        assertEquals("invalid_publication", code(extra = ""","alwaysOpen":true,"hours":{"days":["MONDAY"],"opens":"07:00","closes":"19:00"}"""))
         assertEquals("invalid_publication", code(extra = ""","hours":{"days":[],"opens":"07:00","closes":"19:00"}"""))
         assertEquals("invalid_publication", code(extra = ""","duplicateCheck":{"location":{"latitude":4.545,"longitude":-75.675},"note":"${"a".repeat(201)}"}"""))
     }

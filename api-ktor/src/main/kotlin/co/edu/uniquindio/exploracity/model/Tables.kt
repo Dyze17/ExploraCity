@@ -96,13 +96,19 @@ object Places : Table("places") {
     val region = text("region").nullable()
     val price = enumerationByName<PriceRange>("price", ENUM_LENGTH).nullable()
 
-    /** Días de atención como bits: lunes = 1 … domingo = 64. */
+    /**
+     * Días de atención como bits: lunes = 1 … domingo = 64. Desde la 1.3.0 el horario está en [PlaceHours]; estas tres
+     * columnas guardan su primer tramo, por si se vuelve a la versión anterior de la API.
+     */
     val hoursDays = short("hours_days").nullable()
     val hoursOpens = time("hours_opens").nullable()
     val hoursCloses = time("hours_closes").nullable()
 
     /** ADR-17 · La zona horaria del pin («America/Bogota», V12); null = la de la ciudad de la configuración. */
     val timeZone = text("time_zone").nullable()
+
+    /** v1.3.0 · Sin puertas ni horario: una plaza, un parque, una cascada (V13). */
+    val alwaysOpen = bool("always_open").default(false)
     val possibleDuplicate = bool("possible_duplicate").default(false)
     val duplicateNote = text("duplicate_note").nullable()
     val pointsEarned = integer("points_earned").default(0)
@@ -116,6 +122,21 @@ object Places : Table("places") {
     val firstPublication = bool("first_publication").default(false)
 
     override val primaryKey = PrimaryKey(id)
+}
+
+/** v1.3.0 · Los tramos del horario de un lugar, en orden (V13): unos días con la misma franja. */
+object PlaceHours : Table("place_hours") {
+    val placeId = reference("place_id", Places.id, onDelete = ReferenceOption.CASCADE)
+    val position = short("position")
+
+    /** Bits: lunes = 1 … domingo = 64. */
+    val days = short("days")
+    val opens = time("opens")
+
+    /** No posterior a [opens]: cierra al día siguiente. */
+    val closes = time("closes")
+
+    override val primaryKey = PrimaryKey(placeId, position)
 }
 
 object Photos : Table("photos") {

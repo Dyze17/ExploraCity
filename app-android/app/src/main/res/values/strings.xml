@@ -227,6 +227,7 @@
     <!-- Opening hours: “Monday to Saturday, 7:00 AM to 7:00 PM” -->
     <string name="hours_every_day">Every day</string>
     <string name="hours_to">to</string>
+    <string name="hours_always_open">Always open · free access</string>
 
     <!-- Place details (13) -->
     <string name="detail_share">Share</string>
@@ -556,7 +557,19 @@
     <string name="publish_address_search_failed">The search didn’t answer. Try again or move the pin by hand.</string>
     <!-- 18 · Step 4, hours and price -->
     <string name="publish_schedule_heading">When can people visit?</string>
-    <string name="publish_schedule_intro">If you don’t know the exact hours, you can continue without them.</string>
+    <string name="publish_schedule_intro">If the hours change by day, add hours for each group of days.</string>
+    <string name="publish_schedule_mode">Opening hours</string>
+    <string name="publish_schedule_mode_hours">It has opening hours</string>
+    <string name="publish_schedule_mode_hours_body">Choose the days and times.</string>
+    <string name="publish_schedule_mode_always">Always open · free access</string>
+    <string name="publish_schedule_mode_always_body">Squares, parks, waterfalls: no gates and no hours.</string>
+    <string name="publish_schedule_mode_unknown">I don’t know the hours</string>
+    <string name="publish_schedule_mode_unknown_body">It’s published without hours.</string>
+    <string name="publish_schedule_block">Hours %1$d</string>
+    <string name="publish_schedule_remove_block">Remove hours %1$d</string>
+    <string name="publish_schedule_add_block">Add other days with other hours</string>
+    <string name="publish_schedule_day_taken">in other hours</string>
+    <string name="publish_schedule_past_midnight">Closes the next day.</string>
     <string name="publish_schedule_days">Opening days</string>
     <string name="publish_schedule_day_selected">selected</string>
     <string name="publish_schedule_day_not_selected">not selected</string>
@@ -568,13 +581,12 @@
     <string name="publish_schedule_pick_closes">Closing time</string>
     <string name="publish_schedule_opens_missing">Choose the opening time.</string>
     <string name="publish_schedule_closes_missing">Choose the closing time.</string>
-    <string name="publish_schedule_closes_before">It must be after the opening time.</string>
-    <string name="publish_schedule_unknown">I don’t know the exact hours</string>
+    <string name="publish_schedule_same_time">It must be different from the opening time.</string>
     <string name="publish_schedule_price">Price range</string>
     <string name="publish_schedule_accept">OK</string>
     <string name="publish_schedule_cancel">Cancel</string>
-    <string name="publish_errors_hours">Choose the days and the times, or check “I don’t know the exact hours”.</string>
-    <string name="publish_errors_hours_order">The closing time must be after the opening time.</string>
+    <string name="publish_errors_hours">Choose the days and the times of each group, or choose “I don’t know the hours”.</string>
+    <string name="publish_errors_hours_same">The closing time must be different from the opening time.</string>
     <!-- 19 · Step 5, photos -->
     <string name="publish_photos_heading">Show the place</string>
     <string name="publish_photos_intro">You need at least one photo. You can upload up to 5.</string>
@@ -673,7 +685,7 @@
     <string name="edit_save_fix_title">fix the title</string>
     <string name="edit_save_fix_description">fix the description</string>
     <string name="edit_save_fix_both">fix the title and the description</string>
-    <string name="edit_save_fix_hours">complete the hours or check “I don’t know the exact hours”</string>
+    <string name="edit_save_fix_hours">complete the hours or choose “I don’t know the hours”</string>
     <string name="edit_save_fix_photos">add at least one photo</string>
     <string name="edit_save_photos">A new photo didn’t finish uploading. Retry it or remove it to save.</string>
     <string name="edit_section_location">Location</string>

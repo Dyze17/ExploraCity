@@ -73,7 +73,7 @@ data class OwnPublication(
     val submittedAt: Instant,
     val description: String = "",
     val photoUrl: String? = null,
-    /** 18 · null si no indicó horario («No tengo el horario exacto»). */
+    /** 18 · null si no indicó horario («No sé el horario»). */
     val hours: OpeningHours? = null,
     val price: PriceRange? = null,
     /** Votos y comentarios: solo las públicas (verificadas y finalizadas) los reciben. */
@@ -120,9 +120,8 @@ data class PublicationChanges(
     val category: Category,
     val description: String,
     val location: GeoPoint,
-    val hours: DraftHours = DraftHours(),
-    /** «No tengo el horario exacto»: el lugar queda sin horario. */
-    val hoursUnknown: Boolean = true,
+    /** 18 · Por tramos, siempre abierto o sin horario. */
+    val schedule: DraftSchedule = DraftSchedule(HoursMode.UNKNOWN),
     val price: PriceRange? = null,
     val photos: List<DraftPhoto> = emptyList(),
     /** 17A/17B · Solo si se movió el pin: la búsqueda de parecidos del lugar nuevo. */
@@ -141,11 +140,11 @@ data class PublicationChanges(
 
     val descriptionMissing: Int get() = PublicationLimits.descriptionMissing(description)
 
-    /** 18 · El horario que se guarda: null con «No tengo el horario exacto». */
-    val openingHours: OpeningHours? get() = if (hoursUnknown) null else hours.complete
+    /** 18 · El horario que se guarda: null con «No sé el horario». */
+    val openingHours: OpeningHours? get() = schedule.complete
 
-    /** 18 · Sin la casilla, hace falta el horario completo, con el cierre después de la apertura. */
-    val hoursValid: Boolean get() = hoursUnknown || hours.complete != null
+    /** 18 · Por tramos, hace falta cada uno completo, sin abrir y cerrar a la misma hora. */
+    val hoursValid: Boolean get() = schedule.isValid
 
     val photosValid: Boolean get() = photos.size >= PhotoRules.MIN
 
@@ -155,29 +154,25 @@ data class PublicationChanges(
     val photosLeft: Int get() = (PhotoRules.MAX - photos.size).coerceAtLeast(0)
 
     /**
-     * Como se guarda y como se compara: sin los espacios de los extremos y, con «No tengo el horario exacto», sin el
-     * horario a medio elegir (se conserva en el formulario por si la desmarca).
+     * Como se guarda y como se compara: sin los espacios de los extremos y, sin «Tiene horario», sin los tramos a medio
+     * elegir (se conservan en el formulario por si vuelve).
      */
     fun trimmed(): PublicationChanges = copy(
         title = title.trim(),
         description = description.trim(),
-        hours = if (hoursUnknown) DraftHours() else hours,
+        schedule = schedule.trimmed(),
     )
 
     companion object {
-        fun of(publication: OwnPublication): PublicationChanges {
-            val hours = publication.hours
-            return PublicationChanges(
-                title = publication.title,
-                category = publication.category,
-                description = publication.description,
-                location = publication.location,
-                hours = hours?.let { DraftHours(it.days, it.opens, it.closes) } ?: DraftHours(),
-                hoursUnknown = hours == null,
-                price = publication.price,
-                photos = publication.photos.map { it.toDraftPhoto() },
-            )
-        }
+        fun of(publication: OwnPublication) = PublicationChanges(
+            title = publication.title,
+            category = publication.category,
+            description = publication.description,
+            location = publication.location,
+            schedule = DraftSchedule.of(publication.hours),
+            price = publication.price,
+            photos = publication.photos.map { it.toDraftPhoto() },
+        )
     }
 }
 

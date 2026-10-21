@@ -38,7 +38,7 @@ data class PublicationSubmission(
             val category = draft.category ?: return null
             val location = draft.location ?: return null
             if (draft.titleMissing > 0 || draft.descriptionMissing > 0 || draft.photos.size < PhotoRules.MIN) return null
-            if (!draft.hoursUnknown && draft.hours.complete == null) return null
+            if (!draft.schedule.isValid) return null
             return PublicationSubmission(
                 title = draft.title.trim(),
                 description = draft.description.trim(),

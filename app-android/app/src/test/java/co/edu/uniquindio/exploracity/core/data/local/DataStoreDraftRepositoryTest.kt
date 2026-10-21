@@ -6,8 +6,10 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DraftHours
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
+import co.edu.uniquindio.exploracity.domain.model.DraftSchedule
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublishStep
@@ -62,7 +64,12 @@ class DataStoreDraftRepositoryTest {
     @Test
     fun `guarda el horario, el precio y las fotos con su estado de subida (18 y 19)`() = runTest {
         val full = draft.copy(
-            hours = DraftHours(setOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), LocalTime.of(7, 0), LocalTime.of(19, 30)),
+            schedule = DraftSchedule(
+                blocks = listOf(
+                    DraftHours(setOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), LocalTime.of(7, 0), LocalTime.of(19, 30)),
+                    DraftHours(setOf(DayOfWeek.FRIDAY), opens = LocalTime.of(22, 0)),
+                ),
+            ),
             price = PriceRange.MEDIUM,
             photos = listOf(DraftPhoto("f1", "/fotos/f1.jpg", "patio.jpg", "fake://f1"), DraftPhoto("f2", "/fotos/f2.jpg", "barra.jpg")),
             step = PublishStep.PHOTOS,
@@ -70,6 +77,21 @@ class DataStoreDraftRepositoryTest {
         repository.save(DraftKey.New, full)
 
         assertEquals(full, repository.load(DraftKey.New))
+    }
+
+    @Test
+    fun `el horario que guardó la 1_2, con un tramo o sin horario exacto, se sigue leyendo`() = runTest {
+        dataStore.edit {
+            it[stringPreferencesKey("borrador:nueva")] =
+                """{"title":"Café Las Acacias","hours":{"days":[1,6],"opensMinute":420,"closesMinute":1170},"step":"SCHEDULE"}"""
+        }
+        assertEquals(
+            DraftSchedule(blocks = listOf(DraftHours(setOf(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), LocalTime.of(7, 0), LocalTime.of(19, 30)))),
+            repository.load(DraftKey.New)?.schedule,
+        )
+
+        dataStore.edit { it[stringPreferencesKey("borrador:nueva")] = """{"title":"Café Las Acacias","hoursUnknown":true,"step":"SCHEDULE"}""" }
+        assertEquals(HoursMode.UNKNOWN, repository.load(DraftKey.New)?.schedule?.mode)
     }
 
     @Test

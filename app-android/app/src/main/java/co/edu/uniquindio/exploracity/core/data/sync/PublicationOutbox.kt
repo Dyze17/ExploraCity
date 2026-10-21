@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.core.data.sync
 import co.edu.uniquindio.exploracity.core.data.local.PendingActionEntity
 import co.edu.uniquindio.exploracity.core.data.local.PendingActionsDao
 import co.edu.uniquindio.exploracity.core.data.local.PendingType
+import co.edu.uniquindio.exploracity.core.data.local.StoredHours
 import co.edu.uniquindio.exploracity.core.data.local.payloadAs
 import co.edu.uniquindio.exploracity.core.data.photos.PhotoStore
 import co.edu.uniquindio.exploracity.core.data.photos.PhotoUploader
@@ -109,9 +110,11 @@ internal data class QueuedPublication(
     val categoryOrigin: CategoryOrigin,
     val latitude: Double,
     val longitude: Double,
+    /** Lo que encoló la 1.2: un solo tramo. Desde la 1.3.0 se usa [schedule]. */
     val days: List<Int>? = null,
     val opensMinute: Int? = null,
     val closesMinute: Int? = null,
+    val schedule: StoredHours? = null,
     val price: PriceRange? = null,
     val photos: List<QueuedPhoto>,
     val similarIds: List<String> = emptyList(),
@@ -136,8 +139,8 @@ internal data class QueuedPublication(
             category = category,
             categoryOrigin = categoryOrigin,
             location = location,
-            hours = if (days != null && opens != null && closes != null) {
-                OpeningHours(days.map(DayOfWeek::of).toSet(), opens.toTime(), closes.toTime())
+            hours = schedule?.toDomain() ?: if (days != null && opens != null && closes != null) {
+                OpeningHours.of(days.map(DayOfWeek::of).toSet(), opens.toTime(), closes.toTime())
             } else {
                 null
             },
@@ -154,8 +157,6 @@ internal data class QueuedPublication(
 
 private fun DraftPhoto.toQueued() = QueuedPhoto(id, path, name, remoteUrl)
 
-private fun LocalTime.toMinute() = hour * 60 + minute
-
 private fun Int.toTime(): LocalTime = LocalTime.of(this / 60, this % 60)
 
 private fun PublicationSubmission.toQueued() = QueuedPublication(
@@ -165,9 +166,7 @@ private fun PublicationSubmission.toQueued() = QueuedPublication(
     categoryOrigin = categoryOrigin,
     latitude = location.latitude,
     longitude = location.longitude,
-    days = hours?.days?.map { it.value }?.sorted(),
-    opensMinute = hours?.opens?.toMinute(),
-    closesMinute = hours?.closes?.toMinute(),
+    schedule = hours?.let(StoredHours::of),
     price = price,
     photos = photos.map { it.toQueued() },
     similarIds = duplicateCheck?.similarIds.orEmpty(),

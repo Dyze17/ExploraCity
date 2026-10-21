@@ -18,9 +18,11 @@ import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DraftHours
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
+import co.edu.uniquindio.exploracity.domain.model.DraftSchedule
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.HoursMode
 import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
@@ -86,7 +88,7 @@ class ApiPublicationRepositoryTest {
         assertEquals(GeoPoint(4.5521, -75.6589), verified.location)
         assertEquals(listOf(PublishedPhoto("b4c5d6e7-f8a9-4bc0-9d1e-3f4a5b6c7d8e", miradorPhoto)), verified.photos)
         assertEquals(miradorPhoto, verified.photoUrl)
-        assertEquals(OpeningHours((1..5).map(DayOfWeek::of).toSet(), LocalTime.of(8, 0), LocalTime.of(18, 0)), verified.hours)
+        assertEquals(OpeningHours.of((1..5).map(DayOfWeek::of).toSet(), LocalTime.of(8, 0), LocalTime.of(18, 0)), verified.hours)
         assertEquals(PriceRange.FREE, verified.price)
         assertEquals(1, verified.votes)
         assertEquals(35, verified.pointsEarned)
@@ -142,7 +144,7 @@ class ApiPublicationRepositoryTest {
             category = Category.GASTRONOMY,
             categoryOrigin = CategoryOrigin.SUGGESTED,
             location = GeoPoint(4.545, -75.675),
-            hours = OpeningHours(setOf(DayOfWeek.SATURDAY, DayOfWeek.MONDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)),
+            hours = OpeningHours.of(setOf(DayOfWeek.SATURDAY, DayOfWeek.MONDAY), LocalTime.of(7, 0), LocalTime.of(19, 0)),
             price = PriceRange.LOW,
             photos = listOf(
                 DraftPhoto("f1", "/fotos/f1.jpg", "patio.jpg", remoteUrl = "https://medios.test/lugares/f1.jpg"),
@@ -165,6 +167,7 @@ class ApiPublicationRepositoryTest {
              "description":"Un café pequeño frente a la vieja estación del tren, con tostión propia.",
              "category":"GASTRONOMY","categoryOrigin":"SUGGESTED","location":{"latitude":4.545,"longitude":-75.675},
              "address":"Calle 21 # 18-30, Armenia","hours":{"days":["MONDAY","SATURDAY"],"opens":"07:00","closes":"19:00"},
+             "schedule":[{"days":["MONDAY","SATURDAY"],"opens":"07:00","closes":"19:00"}],
              "price":"LOW","photos":["https://medios.test/lugares/f1.jpg"],
              "duplicateCheck":{"location":{"latitude":4.545,"longitude":-75.675},"similarIds":["$mirador"],"note":"Es el de arriba.","failed":false},
              "municipality":"Armenia","region":"Quindío"}
@@ -207,9 +210,8 @@ class ApiPublicationRepositoryTest {
             category = Category.NATURE,
             description = "Un mirador con vista a toda la ciudad, mejor al atardecer.",
             location = GeoPoint(4.5521, -75.6589),
-            // Con «No tengo el horario exacto», lo que se empezó a elegir no viaja.
-            hours = DraftHours(opens = LocalTime.of(9, 0)),
-            hoursUnknown = true,
+            // Con «No sé el horario», lo que se empezó a elegir no viaja.
+            schedule = DraftSchedule(HoursMode.UNKNOWN, listOf(DraftHours(opens = LocalTime.of(9, 0)))),
             price = PriceRange.FREE,
             photos = listOf(PublishedPhoto("b4c5d6e7-f8a9-4bc0-9d1e-3f4a5b6c7d8e", miradorPhoto).toDraftPhoto()),
         )

@@ -38,22 +38,22 @@ private val details = mapOf(
     "cafe-las-acacias" to Extra(
         description = "Café de barrio con tostión propia y un patio interior lleno de matas. Buen wifi en la mañana y pan de queso recién hecho a las 8.",
         address = "Calle 45 # 19-32, Chapinero",
-        hours = OpeningHours(mondayToSaturday, LocalTime.of(7, 0), LocalTime.of(19, 0)),
+        hours = OpeningHours.of(mondayToSaturday, LocalTime.of(7, 0), LocalTime.of(19, 0)),
         photos = listOf("Patio interior del café", "Barra con la cafetera de tostión propia", "Pan de queso recién horneado"),
     ),
     "museo-del-oro" to Extra(
         address = "Carrera 6 # 15-88, La Candelaria",
-        hours = OpeningHours(everyDay - MONDAY, LocalTime.of(9, 0), LocalTime.of(18, 0)),
+        hours = OpeningHours.of(everyDay - MONDAY, LocalTime.of(9, 0), LocalTime.of(18, 0)),
         photos = listOf("Sala de orfebrería con piezas muiscas", "Balsa muisca iluminada en su vitrina"),
     ),
     "cerro-monserrate" to Extra(
         address = "Carrera 2 Este # 21-48, Paseo Bolívar",
-        hours = OpeningHours(everyDay, LocalTime.of(6, 0), LocalTime.of(22, 0)),
+        hours = OpeningHours.of(everyDay, LocalTime.of(6, 0), LocalTime.of(22, 0)),
         photos = listOf("Vista de Bogotá desde la cima", "Funicular subiendo entre el bosque"),
     ),
     "la-puerta-falsa" to Extra(
         address = "Calle 11 # 6-50, La Candelaria",
-        hours = OpeningHours(everyDay, LocalTime.of(7, 0), LocalTime.of(22, 0)),
+        hours = OpeningHours.of(everyDay, LocalTime.of(7, 0), LocalTime.of(22, 0)),
         photos = listOf("Tamal con chocolate y queso sobre la mesa"),
     ),
 )
@@ -76,7 +76,7 @@ fun sampleDetails(poi: Poi): PoiDetails {
         photos = (extra?.photos?.takeIf { it.isNotEmpty() } ?: listOf("Vista principal de ${poi.title}")).map { PoiPhoto(url = null, description = it) },
         address = extra?.address ?: "Bogotá",
         // Sin dato de «abierto ahora» se asume que el autor no dio horario exacto (casilla del paso 4).
-        hours = extra?.hours ?: poi.openNow?.let { OpeningHours(mondayToSaturday, LocalTime.of(9, 0), LocalTime.of(18, 0)) },
+        hours = extra?.hours ?: poi.openNow?.let { OpeningHours.of(mondayToSaturday, LocalTime.of(9, 0), LocalTime.of(18, 0)) },
         author = if (poi.id in currentUserPlaces) sampleCurrentUser else sampleAuthors[index % sampleAuthors.size],
         voted = false,
         visited = false,

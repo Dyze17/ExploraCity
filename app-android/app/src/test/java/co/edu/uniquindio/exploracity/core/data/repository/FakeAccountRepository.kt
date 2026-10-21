@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.domain.model.EmailDeliveryException
 import co.edu.uniquindio.exploracity.domain.model.EmailTakenException
 import co.edu.uniquindio.exploracity.domain.model.ExpiredLinkException
 import co.edu.uniquindio.exploracity.domain.model.InvalidCredentialsException
+import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
@@ -177,13 +178,14 @@ class FakeAccountRepository(
             description = description,
             latitude = location.latitude,
             longitude = location.longitude,
-            hours = hours?.let { hours ->
+            hours = (hours as? OpeningHours.Blocks)?.blocks?.map { block ->
                 ExportHours(
-                    days = hours.days.sorted().map { it.getDisplayName(TextStyle.FULL, SPANISH) },
-                    opens = hours.opens.toString(),
-                    closes = hours.closes.toString(),
+                    days = block.days.sorted().map { it.getDisplayName(TextStyle.FULL, SPANISH) },
+                    opens = block.opens.toString(),
+                    closes = block.closes.toString(),
                 )
             },
+            alwaysOpen = (hours == OpeningHours.AlwaysOpen).takeIf { it },
             price = price?.label,
             photos = photos.map { it.url },
             submittedAt = submittedAt.toString(),
@@ -268,7 +270,8 @@ private class ExportPublication(
     @SerialName("descripcion") val description: String,
     @SerialName("latitud") val latitude: Double,
     @SerialName("longitud") val longitude: Double,
-    @SerialName("horario") val hours: ExportHours?,
+    @SerialName("horario") val hours: List<ExportHours>?,
+    @SerialName("siempreAbierto") val alwaysOpen: Boolean? = null,
     @SerialName("precio") val price: String?,
     @SerialName("fotos") val photos: List<String>,
     @SerialName("enviada") val submittedAt: String,

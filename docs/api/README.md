@@ -182,7 +182,7 @@ La app pide la cuenta con Credential Manager («Sign in with Google») y manda e
 | `GET /v1/places/count` | Token | Cuántos lugares cumplen los criterios: el conteo en vivo de la hoja de filtros (9) | [`count.json`](ejemplos/count.json) |
 | `GET /v1/places/map` | Token | Los del área visible (`bounds`), los más cercanos primero, como máximo `limit` (200), y cuántos hay en el área | [`map-area.json`](ejemplos/map-area.json) |
 | `GET /v1/places/towns` | Token | v1.3.0 · Las ciudades con lugares públicos (verificados y finalizados), para elegir una a mano: nombre, departamento, cuántos lugares tiene y su centro (el promedio). Las 50 que más tienen; los lugares sin municipio cuentan como la ciudad de `/v1/city`, y las variantes de un nombre son la misma ciudad | [`towns.json`](ejemplos/towns.json) |
-| `GET /v1/places/{id}` | Token | El detalle: fotos, dirección, horario, autor con sus puntos y si quien lo abre ya votó o lo visitó | [`place.json`](ejemplos/place.json) |
+| `GET /v1/places/{id}` | Token | El detalle: fotos, dirección, horario (`schedule` y `alwaysOpen`), autor con sus puntos y si quien lo abre ya votó o lo visitó | [`place.json`](ejemplos/place.json) |
 | `GET /v1/users/{id}` | Token | El perfil público: sin correo, su ciudad (`town`, si tiene; `city` como en el propio), sus lugares verificados y finalizados con el formato del feed y cuántas insignias tiene | [`public-profile.json`](ejemplos/public-profile.json) |
 
 Los criterios van en la consulta:
@@ -196,7 +196,7 @@ Los criterios van en la consulta:
 
 En cada lugar:
 - `photo` es la portada, la primera foto.
-- `openNow` sale del horario y de la hora del lugar: cada lugar guarda la zona horaria de su pin (ADR-17). Sin zona, usa la de la ciudad; sin horario, no viene.
+- `openNow` sale del horario y de la hora del lugar: cada lugar guarda la zona horaria de su pin (ADR-17). Sin zona, usa la de la ciudad. Un tramo que cierra después de medianoche sigue abierto la madrugada siguiente. Siempre abierto (`alwaysOpen`), es `true`; sin horario, no viene.
 - `summary` es la primera oración de la descripción, para la tarjeta del mapa.
 - En el detalle, `photos` trae todas las fotos en orden, y los días del horario van de `MONDAY` a `SUNDAY`. Si la cuenta que publicó el lugar se eliminó, no viene `author` y la app muestra «Usuario eliminado».
 
@@ -256,7 +256,10 @@ La publicación lleva:
 - `title` (5 a 60), `description` (30 a 600), `category`, `categoryOrigin` (`SUGGESTED` o `CHOSEN`) y `location`.
 - `address`: la dirección aproximada del pin, opcional.
 - `municipality` y `region` (ADR-16): el municipio y el departamento del pin según el Geocoder del teléfono, opcionales (hasta 100). Sin municipio, el lugar cuenta como la ciudad de `/v1/city`.
-- `hours`: `{ "days": ["MONDAY", …], "opens": "08:00", "closes": "18:00" }`, con al menos un día y el cierre después de la apertura. Sin él, el lugar no tiene horario.
+- `schedule` (v1.3.0): los tramos del horario, en orden, de 1 a 7. Cada uno es `{ "days": ["MONDAY", …], "opens": "08:00", "closes": "18:00" }`, con al menos un día y el cierre distinto de la apertura. Si el cierre es antes, cierra al día siguiente («22:00 a 3:00»). Un día no se repite entre tramos.
+- `hours`: un solo tramo, el de la app 1.2. Sin `schedule`, es el único; con él, no se lee. Sin ninguno de los dos, el lugar no tiene horario.
+- `alwaysOpen` (v1.3.0): sin puertas ni horario, como una plaza, un parque o una cascada. No lleva tramos.
+- Las respuestas (detalle, publicaciones propias y moderación) traen los tres: `schedule` con todos los tramos, `hours` con el primero para la app 1.2 y `alwaysOpen` solo si es `true`.
 - `price`, opcional.
 - `photos`: las direcciones de 1 a 5 fotos ya subidas, en orden; la primera es la portada.
 - `duplicateCheck`: la búsqueda de parecidos que se hizo en el teléfono: `location` (dónde estaba el pin), `similarIds` (los parecidos que la persona dijo que son otro lugar), `note` (hasta 200) y `failed`.
