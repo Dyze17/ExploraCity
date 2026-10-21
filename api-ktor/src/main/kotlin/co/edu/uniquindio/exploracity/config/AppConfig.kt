@@ -64,6 +64,7 @@ data class AppConfig(
                 moderators = parseEmails(root.property("moderators").getString()),
                 city = CitySettings(
                     name = city.property("name").getString(),
+                    region = city.propertyOrNull("region")?.getString()?.trim()?.ifEmpty { null },
                     center = city.point("center"),
                     southwest = city.point("southwest"),
                     northeast = city.point("northeast"),
@@ -162,6 +163,8 @@ data class JwtSettings(
 /** La ciudad que atiende la app (F2) y la zona horaria con la que se cuentan sus días. */
 data class CitySettings(
     val name: String,
+    /** ADR-16 · El departamento: separa la ciudad de otras que se llaman igual. */
+    val region: String? = null,
     val center: GeoPoint,
     val southwest: GeoPoint,
     val northeast: GeoPoint,

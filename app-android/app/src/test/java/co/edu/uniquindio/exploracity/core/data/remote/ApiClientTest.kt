@@ -38,7 +38,7 @@ class ApiClientTest {
         val city = api { respond(contractExample("city.json"), HttpStatusCode.OK, json) }.city()
 
         assertEquals(
-            City("Armenia", GeoPoint(4.5339, -75.6811), GeoBounds(GeoPoint(4.47, -75.76), GeoPoint(4.6, -75.62))),
+            City("Armenia", GeoPoint(4.5339, -75.6811), GeoBounds(GeoPoint(4.47, -75.76), GeoPoint(4.6, -75.62)), region = "Quindío"),
             city,
         )
         assertEquals(listOf("http://localhost:8080/v1/city"), requested)

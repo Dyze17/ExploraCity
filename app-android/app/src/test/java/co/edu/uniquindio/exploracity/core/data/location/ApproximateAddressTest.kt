@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.core.data.location
 
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -9,9 +10,9 @@ class ApproximateAddressTest {
 
     @Test
     fun `usa la calle como la escribe Google y el barrio`() {
-        val address = AddressParts("Cl. 45 #19-32, Bogotá, Colombia", "Calle 45", "19-32", "Chapinero", "Bogotá").toApproximate()
+        val address = AddressParts("Cl. 45 #19-32, Bogotá, Colombia", "Calle 45", "19-32", "Chapinero", "Bogotá", adminArea = "Bogotá D.C.").toApproximate()
 
-        assertEquals(ApproximateAddress("Cl. 45 #19-32", "Chapinero", "Bogotá"), address)
+        assertEquals(ApproximateAddress("Cl. 45 #19-32", "Chapinero", "Bogotá", Municipality("Bogotá", "Bogotá D.C.")), address)
         assertEquals("Cl. 45 #19-32, Chapinero", address?.line)
         assertEquals("Chapinero, Bogotá", address?.area)
     }
@@ -36,5 +37,13 @@ class ApproximateAddressTest {
     @Test
     fun `sin nada útil no hay dirección`() {
         assertNull(AddressParts(null, "Unnamed Road", null, null, null).toApproximate())
+    }
+
+    @Test
+    fun `el municipio es la ciudad o, en el campo, el subAdminArea, con su departamento`() {
+        assertEquals(Municipality("Calarcá", "Quindío"), AddressParts(null, null, null, null, "Calarcá", "Calarcá", "Quindío").toMunicipality())
+        assertEquals(Municipality("Salento", "Quindío"), AddressParts(null, null, null, null, null, " Salento ", "Quindío").toMunicipality())
+        assertEquals(Municipality("Armenia"), AddressParts(null, null, null, null, "Armenia", null, " ").toMunicipality())
+        assertNull(AddressParts(null, null, null, null, null, null, "Quindío").toMunicipality())
     }
 }

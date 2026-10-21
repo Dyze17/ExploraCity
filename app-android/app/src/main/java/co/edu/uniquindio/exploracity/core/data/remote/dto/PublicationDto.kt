@@ -81,6 +81,9 @@ data class SubmissionRequest(
     val photos: List<String>,
     val duplicateCheck: DuplicateCheckRequest?,
     val resubmitId: String?,
+    /** ADR-16 · El municipio y el departamento del pin. */
+    val municipality: String? = null,
+    val region: String? = null,
 ) {
     companion object {
         fun of(submission: PublicationSubmission) = SubmissionRequest(
@@ -96,6 +99,8 @@ data class SubmissionRequest(
             photos = submission.photos.mapNotNull { it.remoteUrl },
             duplicateCheck = submission.duplicateCheck?.let(DuplicateCheckRequest::of),
             resubmitId = submission.resubmitId,
+            municipality = submission.municipality?.name,
+            region = submission.municipality?.region,
         )
     }
 }
@@ -117,6 +122,9 @@ data class ChangesRequest(
     val price: PriceRange?,
     val photos: List<String>,
     val duplicateCheck: DuplicateCheckRequest?,
+    /** ADR-16 · Como la dirección: solo si se movió el pin. */
+    val municipality: String? = null,
+    val region: String? = null,
 ) {
     companion object {
         fun of(changes: PublicationChanges): ChangesRequest {
@@ -131,6 +139,8 @@ data class ChangesRequest(
                 price = clean.price,
                 photos = clean.photos.mapNotNull { it.remoteUrl },
                 duplicateCheck = clean.duplicateCheck?.let(DuplicateCheckRequest::of),
+                municipality = clean.municipality?.name,
+                region = clean.municipality?.region,
             )
         }
     }

@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyPublicationR
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
@@ -338,6 +339,7 @@ class EditPublicationViewModelTest {
         assertEquals(nearby, server.publication("murales-calle-26")?.location)
         assertEquals(false, server.publication("murales-calle-26")?.possibleDuplicate)
         assertEquals("La dirección del lugar nuevo viaja", "Cl. 45 #19-32, Chapinero", recording.updates.single().address)
+        assertEquals("Y su municipio (ADR-16)", Municipality("Bogotá", "Bogotá D.C."), recording.updates.single().municipality)
     }
 
     @Test

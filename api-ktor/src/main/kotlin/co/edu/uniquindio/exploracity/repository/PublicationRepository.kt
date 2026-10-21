@@ -56,6 +56,9 @@ data class PlaceFields(
     val hoursDays: Int?,
     val opens: LocalTime?,
     val closes: LocalTime?,
+    /** ADR-16 · El municipio y el departamento del pin; null = la ciudad de la configuración. */
+    val municipality: String? = null,
+    val region: String? = null,
 )
 
 /** Un lugar en cualquier estado, como lo ven su autor (22–24) y la moderación (33). */
@@ -331,6 +334,8 @@ class PublicationRepository {
         it[Places.latitude] = fields.latitude
         it[Places.longitude] = fields.longitude
         it[Places.address] = fields.address
+        it[Places.municipality] = fields.municipality
+        it[Places.region] = fields.region
         it[Places.price] = fields.price
         it[Places.hoursDays] = fields.hoursDays?.toShort()
         it[Places.hoursOpens] = fields.opens
@@ -353,6 +358,8 @@ class PublicationRepository {
             hoursDays = this[Places.hoursDays]?.toInt(),
             opens = this[Places.hoursOpens],
             closes = this[Places.hoursCloses],
+            municipality = this[Places.municipality],
+            region = this[Places.region],
         ),
         categoryOrigin = this[Places.categoryOrigin],
         status = this[Places.status],

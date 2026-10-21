@@ -26,6 +26,7 @@ class AppConfigTest {
         val config = load("exploracity.jwt.secret" to randomSecret(), "exploracity.moderators" to "")
 
         assertEquals("Armenia", config.city.name)
+        assertEquals("Quindío", config.city.region)
         assertEquals(GeoPoint(4.5339, -75.6811), config.city.center)
         assertEquals(ZoneId.of("America/Bogota"), config.city.timeZone)
         assertEquals(Duration.ofMinutes(15), config.jwt.accessTtl)

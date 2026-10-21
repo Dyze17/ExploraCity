@@ -18,6 +18,7 @@ import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PoiPhoto
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
@@ -92,6 +93,19 @@ class ApiPoiRepositoryTest {
             mapOf("categories" to "CULTURE,NATURE", "scope" to "NEARBY", "verifiedOnly" to "true", "q" to "café", "near" to "4.5402,-75.6721"),
             query(),
         )
+    }
+
+    @Test
+    fun `toda la ciudad es el municipio que se explora, y cercanos no lo manda`() = runTest {
+        val repository = places { example("feed-page.json") }
+        val calarca = Municipality("Calarcá", "Quindío")
+
+        repository.feedPage(FeedQuery(municipality = calarca), page = 0, pageSize = 20)
+        assertEquals("Calarcá", query()["municipality"])
+        assertEquals("Quindío", query()["region"])
+
+        repository.feedPage(FeedQuery(FeedFilters(scope = LocationScope.NEARBY), municipality = calarca), page = 0, pageSize = 20)
+        assertNull(query()["municipality"])
     }
 
     @Test

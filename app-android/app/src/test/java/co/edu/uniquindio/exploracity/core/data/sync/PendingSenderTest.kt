@@ -24,6 +24,7 @@ import co.edu.uniquindio.exploracity.domain.model.Comment
 import co.edu.uniquindio.exploracity.domain.model.DraftPhoto
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationSubmission
@@ -244,7 +245,7 @@ class PendingSenderTest {
 
     @Test
     fun `la publicación de la cola viaja con su dirección y siempre con el mismo clientId`() = runTest(dispatcher) {
-        outbox().enqueue(submission.copy(address = "Cl. 45 #19-32, Chapinero"))
+        outbox().enqueue(submission.copy(address = "Cl. 45 #19-32, Chapinero", municipality = Municipality("Bogotá", "Bogotá D.C.")))
         val recording = RecordingPublications(publicationServer, fail = true)
 
         assertFalse(sender(publications = recording).flush())
@@ -254,6 +255,7 @@ class PendingSenderTest {
         assertEquals(2, recording.sent.size)
         assertEquals(listOf(submission.clientId), recording.sent.map { it.clientId }.distinct())
         assertEquals("Cl. 45 #19-32, Chapinero", recording.sent.last().address)
+        assertEquals(Municipality("Bogotá", "Bogotá D.C."), recording.sent.last().municipality)
     }
 
     @Test

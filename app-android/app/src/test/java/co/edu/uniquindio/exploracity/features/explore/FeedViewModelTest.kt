@@ -11,14 +11,17 @@ import co.edu.uniquindio.exploracity.core.data.repository.samplePois
 import co.edu.uniquindio.exploracity.domain.model.Category
 import co.edu.uniquindio.exploracity.domain.model.FeedFilters
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.repository.FeedPage
 import co.edu.uniquindio.exploracity.domain.repository.FeedQuery
 import co.edu.uniquindio.exploracity.domain.repository.ModerationSummary
 import co.edu.uniquindio.exploracity.domain.repository.PoiRepository
 import co.edu.uniquindio.exploracity.domain.repository.SavedPlaces
+import co.edu.uniquindio.exploracity.domain.repository.TownRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -52,7 +55,8 @@ class FeedViewModelTest {
         repository: PoiRepository = FakePoiRepository(),
         moderator: Boolean = false,
         moderation: FakeModerationRepository = sampleModeration(),
-    ) = FeedViewModel(repository, moderation, connectivity, areaName = "Bogotá", isModerator = moderator, savedStateHandle = SavedStateHandle())
+        town: FakeTownRepository = FakeTownRepository(),
+    ) = FeedViewModel(repository, moderation, connectivity, town, isModerator = moderator, savedStateHandle = SavedStateHandle())
 
     private val FeedViewModel.loaded get() = state.value.content as FeedContent.Loaded
 
@@ -116,7 +120,7 @@ class FeedViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            FeedContent.NoResults(FeedQuery(FeedFilters(categories = setOf(Category.NATURE)), "teatro al aire libre")),
+            FeedContent.NoResults(FeedQuery(FeedFilters(categories = setOf(Category.NATURE)), "teatro al aire libre", Municipality("Bogotá", "Bogotá D.C."))),
             vm.state.value.content,
         )
 
@@ -435,7 +439,7 @@ class FeedViewModelTest {
     fun `si el sistema cierra la app con la hoja abierta, el borrador sigue ahí para aplicarlo`() = runTest(dispatcher) {
         // Pasa al negar el permiso de ubicación: Android mata el proceso y el resultado llega a uno nuevo.
         val savedState = SavedStateHandle()
-        val before = FeedViewModel(FakePoiRepository(), sampleModeration(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        val before = FeedViewModel(FakePoiRepository(), sampleModeration(), FakeConnectivity(), FakeTownRepository(), isModerator = false, savedStateHandle = savedState)
         advanceUntilIdle()
         before.onQueryChange("parque")
         before.onToggleCategory(Category.ENTERTAINMENT)
@@ -444,7 +448,7 @@ class FeedViewModelTest {
         before.onDraftChange(draft)
         advanceUntilIdle()
 
-        val after = FeedViewModel(FakePoiRepository(), sampleModeration(), FakeConnectivity(), "Bogotá", isModerator = false, savedStateHandle = savedState)
+        val after = FeedViewModel(FakePoiRepository(), sampleModeration(), FakeConnectivity(), FakeTownRepository(), isModerator = false, savedStateHandle = savedState)
         advanceUntilIdle()
 
         assertEquals("parque", after.state.value.query)
@@ -484,10 +488,104 @@ class FeedViewModelTest {
     private class CountFailingRepository : PoiRepository by FakePoiRepository() {
         override suspend fun count(query: FeedQuery): Int = throw IOException("sin red")
     }
+
+    @Test
+    fun `al llegar a otro municipio cambian el nombre y la lista de toda la ciudad`() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val town = FakeTownRepository()
+        val vm = viewModel(repository, town = town)
+        advanceUntilIdle()
+        assertEquals("Bogotá", vm.state.value.areaName)
+        assertEquals(Municipality("Bogotá", "Bogotá D.C."), repository.queries.last().municipality)
+
+        town.current.value = Municipality("Chía", "Cundinamarca")
+        advanceUntilIdle()
+
+        assertEquals("Chía", vm.state.value.areaName)
+        assertEquals(2, repository.queries.size)
+        assertEquals(Municipality("Chía", "Cundinamarca"), repository.queries.last().municipality)
+        assertTrue(vm.state.value.content is FeedContent.Loaded)
+    }
+
+    @Test
+    fun `con cercanos el cambio de municipio solo cambia el nombre`() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val town = FakeTownRepository()
+        val vm = viewModel(repository, town = town)
+        advanceUntilIdle()
+        vm.onOpenFilters()
+        vm.onDraftChange(FeedFilters(scope = LocationScope.NEARBY))
+        vm.onApplyFilters()
+        advanceUntilIdle()
+        val loads = repository.queries.size
+
+        town.current.value = Municipality("Chía", "Cundinamarca")
+        advanceUntilIdle()
+
+        assertEquals("Chía", vm.state.value.areaName)
+        assertEquals(loads, repository.queries.size)
+    }
+
+    @Test
+    fun `la primera vez en explorar se pide el permiso de ubicación, y al volver se pregunta otra vez dónde está`() = runTest(dispatcher) {
+        val town = FakeTownRepository(asked = false)
+        val vm = viewModel(town = town)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.askLocation)
+        assertEquals(1, town.refreshes)
+        vm.onLocationAsked()
+        assertFalse(vm.state.value.askLocation)
+        vm.onTownLocationAllowed()
+        vm.onResume()
+        advanceUntilIdle()
+        assertEquals(listOf(false, true, false), town.forced)
+        assertFalse("La segunda vez ya no se pide", viewModel(town = town).also { advanceUntilIdle() }.state.value.askLocation)
+    }
+
+    @Test
+    fun `al dar el permiso en el mismo municipio la lista se recarga para medir desde la persona`() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val vm = viewModel(repository, town = FakeTownRepository())
+        advanceUntilIdle()
+        val loads = repository.queries.size
+
+        vm.onTownLocationAllowed()
+        advanceUntilIdle()
+
+        assertEquals(loads + 1, repository.queries.size)
+    }
+
+    /** Guarda las consultas del feed. */
+    private class RecordingRepository(private val delegate: FakePoiRepository = FakePoiRepository()) : PoiRepository by delegate {
+        val queries = mutableListOf<FeedQuery>()
+
+        override suspend fun feedPage(query: FeedQuery, page: Int, pageSize: Int): FeedPage {
+            queries += query
+            return delegate.feedPage(query, page, pageSize)
+        }
+    }
 }
 
 /** La cola de prueba (7 pendientes, la más antigua de hace 3 días), para la tarjeta del moderador (7.c). */
 private fun sampleModeration(): FakeModerationRepository {
     val pois = FakePoiRepository()
     return FakeModerationRepository(pois, FakePublicationRepository(pois), FakeNotificationRepository())
+}
+
+/** ADR-16 · El municipio que se explora, a mano. */
+internal class FakeTownRepository(name: String = "Bogotá", private var asked: Boolean = true) : TownRepository {
+    override val current = MutableStateFlow(Municipality(name, "Bogotá D.C."))
+    val forced = mutableListOf<Boolean>()
+    val refreshes get() = forced.size
+
+    override suspend fun refresh(force: Boolean) {
+        forced += force
+    }
+
+    override suspend fun firstAsk(): Boolean {
+        if (asked) return false
+        asked = true
+        return true
+    }
 }

@@ -334,8 +334,9 @@ class EditPublicationViewModel(
             }
             // 17 · Con el pin movido viaja la dirección de la tarjeta, que es la del lugar nuevo.
             val moved = ready.original?.location?.let { it != form.location } == true
-            val address = (ready.pin.address as? PinAddress.Found)?.address?.line?.ifEmpty { null }?.takeIf { moved }
-            val result = catchingNonCancellation { publications.update(publicationId, form.trimmed().copy(address = address)) }
+            val found = (ready.pin.address as? PinAddress.Found)?.address?.takeIf { moved }
+            val changes = form.trimmed().copy(address = found?.line?.ifEmpty { null }, municipality = found?.municipality)
+            val result = catchingNonCancellation { publications.update(publicationId, changes) }
             if (result.isSuccess) {
                 // Ya están en el servidor: los archivos del teléfono sobran.
                 photos.deleteFiles(form.photos)

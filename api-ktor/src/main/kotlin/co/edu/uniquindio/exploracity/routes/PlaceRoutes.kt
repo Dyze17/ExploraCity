@@ -8,8 +8,10 @@ import co.edu.uniquindio.exploracity.model.VisitRequest
 import co.edu.uniquindio.exploracity.plugins.ACCESS
 import co.edu.uniquindio.exploracity.plugins.ApiException
 import co.edu.uniquindio.exploracity.plugins.user
+import co.edu.uniquindio.exploracity.repository.MunicipalityFilter
 import co.edu.uniquindio.exploracity.repository.PlaceFilter
 import co.edu.uniquindio.exploracity.service.PlaceService
+import co.edu.uniquindio.exploracity.service.PublicationService
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import io.ktor.server.application.ApplicationCall
@@ -91,7 +93,16 @@ private fun Parameters.filter(): PlaceFilter {
         nearbyOnly = nearby,
         verifiedOnly = this["verifiedOnly"]?.toBooleanStrictOrNull() ?: false,
         text = this["q"].orEmpty().take(MAX_TEXT),
+        municipality = municipality(),
     )
+}
+
+/** ADR-16 · `municipality=Calarcá&region=Quindío`: el municipio donde está la persona; el departamento es opcional. */
+private fun Parameters.municipality(): MunicipalityFilter? {
+    val name = this["municipality"]?.trim()?.ifEmpty { null } ?: return null
+    val region = this["region"]?.trim()?.ifEmpty { null }
+    if (name.length > PublicationService.TOWN_MAX || (region?.length ?: 0) > PublicationService.TOWN_MAX) throw invalidQuery()
+    return MunicipalityFilter(name, region)
 }
 
 /** `near=4.5339,-75.6811` */

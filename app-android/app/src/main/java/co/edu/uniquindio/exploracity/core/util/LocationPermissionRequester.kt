@@ -31,6 +31,9 @@ enum class LocationPurpose {
 
     /** «Usar mi ubicación» o el aviso de 17.b en el paso 3 del formulario. */
     PLACE_PIN,
+
+    /** ADR-16 · Al abrir Explorar la primera vez, o al tocar el nombre de la ciudad: el municipio de la persona. */
+    LOCATE_TOWN,
 }
 
 /**

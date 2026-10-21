@@ -15,6 +15,7 @@ import co.edu.uniquindio.exploracity.domain.model.CategoryOrigin
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
+import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationDraft
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
@@ -786,6 +787,7 @@ class PublishViewModelTest {
         assertEquals("Es otro local.", queued.duplicateCheck?.note)
         // Retomó en el paso 5: la dirección del pin se buscó igual y viaja con el envío.
         assertEquals("Cl. 45 #19-32, Chapinero", queued.address)
+        assertEquals("ADR-16 · Y su municipio", Municipality("Bogotá", "Bogotá D.C."), queued.municipality)
         // Sobrevive si Android cierra la app: cada intento de enviarla lleva el mismo.
         assertEquals(savedState.get<String>("id_de_envio"), queued.clientId)
         assertNull("El borrador ya está a salvo en la cola", drafts.saved[DraftKey.New])

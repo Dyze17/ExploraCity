@@ -89,6 +89,13 @@ class PoiApi(private val client: HttpClient) {
         if (filters.verifiedOnly) parameter("verifiedOnly", true)
         query.text.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
         near?.let { parameter("near", it.asParameter()) }
+        // ADR-16 · «Cercanos» va por distancia: el municipio solo cuenta con «Toda la ciudad».
+        if (filters.scope == LocationScope.CITY) {
+            query.municipality?.let { town ->
+                parameter("municipality", town.name)
+                town.region?.let { parameter("region", it) }
+            }
+        }
     }
 
     private fun GeoPoint.asParameter() = "$latitude,$longitude"

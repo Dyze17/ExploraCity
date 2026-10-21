@@ -40,19 +40,21 @@ class PlaceService(
     /** 7 · Página [page] (desde 0), del más cercano al más lejano. */
     suspend fun feed(filter: PlaceFilter, near: GeoPoint?, page: Int, pageSize: Int): FeedPageResponse = database.query {
         val origin = cards.origin(near)
-        val items = places.search(filter, origin, limit = pageSize, offset = page * pageSize)
-        val total = places.count(filter, origin)
+        val criteria = cards.withUnassigned(filter)
+        val items = places.search(criteria, origin, limit = pageSize, offset = page * pageSize)
+        val total = places.count(criteria, origin)
         FeedPageResponse(items.map(cards::summaryOf), total, hasMore = page * pageSize + items.size < total)
     }
 
     /** 9 · El conteo en vivo del botón de la hoja de filtros. */
     suspend fun count(filter: PlaceFilter, near: GeoPoint?): CountResponse =
-        database.query { CountResponse(places.count(filter, cards.origin(near))) }
+        database.query { CountResponse(places.count(cards.withUnassigned(filter), cards.origin(near))) }
 
     /** 8 · Los más cercanos del área visible, como máximo [limit], y cuántos hay en el área. */
     suspend fun map(filter: PlaceFilter, near: GeoPoint?, limit: Int): MapAreaResponse = database.query {
         val origin = cards.origin(near)
-        MapAreaResponse(places.search(filter, origin, limit).map(cards::summaryOf), places.count(filter, origin))
+        val criteria = cards.withUnassigned(filter)
+        MapAreaResponse(places.search(criteria, origin, limit).map(cards::summaryOf), places.count(criteria, origin))
     }
 
     /** 13 · El detalle, con el voto y la visita de quien lo abre. */

@@ -53,6 +53,9 @@ data class SubmissionRequest(
     val categoryOrigin: CategoryOrigin,
     val location: GeoPoint,
     val address: String? = null,
+    /** ADR-16 · El municipio y el departamento del pin, del Geocoder del teléfono; sin ellos cuenta como la ciudad. */
+    val municipality: String? = null,
+    val region: String? = null,
     val hours: HoursResponse? = null,
     val price: PriceRange? = null,
     val photos: List<String>,
@@ -72,6 +75,8 @@ data class ChangesRequest(
     val description: String,
     val location: GeoPoint,
     val address: String? = null,
+    val municipality: String? = null,
+    val region: String? = null,
     val hours: HoursResponse? = null,
     val price: PriceRange? = null,
     val photos: List<String>,

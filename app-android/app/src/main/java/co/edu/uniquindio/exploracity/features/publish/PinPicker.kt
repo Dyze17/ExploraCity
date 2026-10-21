@@ -1,7 +1,9 @@
 package co.edu.uniquindio.exploracity.features.publish
 
 import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
+import co.edu.uniquindio.exploracity.core.util.runCatchingNonCancellation
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCheck
+import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.SimilarPlace
 import kotlinx.coroutines.CancellationException
@@ -113,7 +115,7 @@ class PinPicker(
         write { it.copy(addressSearch = AddressSearch.Searching) }
         searchJob = scope.launch {
             val outcome = try {
-                withTimeoutOrNull(ADDRESS_TIMEOUT) { Located(places.addresses.search(query, places.cityBounds)) }
+                withTimeoutOrNull(ADDRESS_TIMEOUT) { Located(places.addresses.search(query, searchBounds())) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: OfflineException) {
@@ -234,7 +236,22 @@ class PinPicker(
 
     private class Located(val point: GeoPoint?)
 
+    /**
+     * 17.b · Alrededor del pin o, si aún no está, de la persona: puede estar en otro municipio (ADR-16). Sin ninguno de
+     * los dos, en la ciudad de la API.
+     */
+    private suspend fun searchBounds(): GeoBounds {
+        val around = location() ?: runCatchingNonCancellation { places.locationProvider.currentLocation() } ?: return places.cityBounds
+        return GeoBounds(
+            southwest = GeoPoint(around.latitude - SEARCH_SPAN_DEGREES, around.longitude - SEARCH_SPAN_DEGREES),
+            northeast = GeoPoint(around.latitude + SEARCH_SPAN_DEGREES, around.longitude + SEARCH_SPAN_DEGREES),
+        )
+    }
+
     companion object {
+        /** 17.b · Unos 11 km a cada lado: un municipio entero y sus alrededores. */
+        const val SEARCH_SPAN_DEGREES = 0.1
+
         /** README · Duplicados: «máx. 500 ms»; después se sigue sin aviso. */
         val NEARBY_TIMEOUT = 500.milliseconds
 

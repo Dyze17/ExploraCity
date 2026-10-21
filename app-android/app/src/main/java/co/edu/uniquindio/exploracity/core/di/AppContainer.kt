@@ -54,6 +54,7 @@ import co.edu.uniquindio.exploracity.core.data.repository.ApiPublicationReposito
 import co.edu.uniquindio.exploracity.core.data.repository.ApiUserRepository
 import co.edu.uniquindio.exploracity.core.data.repository.CityRepository
 import co.edu.uniquindio.exploracity.core.data.repository.DevMailbox
+import co.edu.uniquindio.exploracity.core.data.repository.LocatedTownRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OfflineModerationRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OfflineNotificationRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OfflinePoiRepository
@@ -70,6 +71,7 @@ import co.edu.uniquindio.exploracity.core.data.sync.PublicationDelivery
 import co.edu.uniquindio.exploracity.core.data.sync.PublicationOutbox
 import co.edu.uniquindio.exploracity.core.data.sync.RoomPublicationOutbox
 import co.edu.uniquindio.exploracity.core.data.sync.WorkManagerScheduler
+import co.edu.uniquindio.exploracity.core.util.hasLocationPermission
 import co.edu.uniquindio.exploracity.domain.repository.AccountRepository
 import co.edu.uniquindio.exploracity.domain.repository.AuthRepository
 import co.edu.uniquindio.exploracity.domain.repository.CategorySuggester
@@ -79,6 +81,7 @@ import co.edu.uniquindio.exploracity.domain.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.domain.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.domain.repository.PoiRepository
 import co.edu.uniquindio.exploracity.domain.repository.PublicationRepository
+import co.edu.uniquindio.exploracity.domain.repository.TownRepository
 import co.edu.uniquindio.exploracity.domain.repository.UserRepository
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.CancellationException
@@ -239,6 +242,15 @@ class AppContainer(context: Context) {
 
     /** Dirección aproximada del pin y búsqueda por dirección (17), con el Geocoder de Android. */
     val addressResolver: AddressResolver = OnlineOnlyAddressResolver(GeocoderAddressResolver(context), connectivity)
+
+    /** ADR-16 · El municipio que se explora: el de la persona o, sin su ubicación, la ciudad de la API. */
+    val town: TownRepository = LocatedTownRepository(
+        defaultTown = { city.current.municipality },
+        location = locationProvider,
+        addresses = addressResolver,
+        store = context.cityDataStore,
+        hasPermission = context::hasLocationPermission,
+    )
 
     /** 32–37 · La cola de moderación, guardada en el teléfono para leerla sin conexión (32.c). */
     val moderationRepository: ModerationRepository = OfflineModerationRepository(
