@@ -543,6 +543,19 @@ class FeedViewModelTest {
         assertFalse("La segunda vez ya no se pide", viewModel(town = town).also { advanceUntilIdle() }.state.value.askLocation)
     }
 
+    @Test
+    fun `al dar el permiso en el mismo municipio la lista se recarga para medir desde la persona`() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val vm = viewModel(repository, town = FakeTownRepository())
+        advanceUntilIdle()
+        val loads = repository.queries.size
+
+        vm.onTownLocationAllowed()
+        advanceUntilIdle()
+
+        assertEquals(loads + 1, repository.queries.size)
+    }
+
     /** Guarda las consultas del feed. */
     private class RecordingRepository(private val delegate: FakePoiRepository = FakePoiRepository()) : PoiRepository by delegate {
         val queries = mutableListOf<FeedQuery>()
