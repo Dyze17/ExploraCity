@@ -48,7 +48,7 @@ Es un monorepo con la **app Android** (Kotlin y Jetpack Compose) y su **API REST
 
 ## <img src="docs/img/iconos/instalar.svg" width="28" height="28" align="top"> Instalar la app
 
-1. Desde el teléfono, descarga `ExploraCity-1.2.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
+1. Desde el teléfono, descarga `ExploraCity-1.3.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
 2. Ábrelo. Android pide permitir la instalación de apps desde el navegador.
 3. Crea tu cuenta con tu correo o con «Continuar con Google». La app ya usa la API en la nube, así que no hace falta nada más.
 
@@ -61,9 +61,14 @@ La app está en **español e inglés**: sigue el idioma del teléfono, y en un t
 ## Qué hace
 
 ### <img src="docs/img/iconos/explorar.svg" width="24" height="24" align="top"> Explorar
-- **La ciudad sale de tu ubicación** ([ADR-16](docs/decisiones-arquitectonicas/ADR-16-ciudad-segun-la-ubicacion.md)): «Estás explorando …» muestra el municipio donde estás, y «Toda la ciudad» trae solo sus lugares.
+- **La ciudad sale de tu ubicación, o la eliges tú** ([ADR-16](docs/decisiones-arquitectonicas/ADR-16-ciudad-segun-la-ubicacion.md)): «Estás explorando …» muestra el municipio, y «Toda la ciudad» trae solo sus lugares.
   - El municipio lo da el Geocoder del teléfono, y se guarda para abrir sin conexión.
-  - El permiso de ubicación se pide la primera vez que se abre Explorar. Sin él se explora Armenia, y un botón junto al nombre de la ciudad lo pide otra vez.
+  - Tocar el nombre de la ciudad abre **«Elegir ciudad»**:
+    - «Usar mi ubicación»;
+    - la búsqueda de cualquier ciudad o pueblo, de cualquier país;
+    - las ciudades que ya tienen lugares, con cuántos tiene cada una.
+  - La ciudad elegida se queda hasta volver a «Usar mi ubicación». Las distancias se miden desde su centro.
+  - El permiso de ubicación se pide la primera vez que se abre Explorar. Sin él y sin ciudad elegida, la app pide elegir una.
 - **Feed en lista y en mapa** (Google Maps), con una tarjeta inferior para el lugar seleccionado. La lista se recarga deslizando hacia abajo.
 - **Marcadores con el color de su categoría**. Los que quedan juntos se agrupan en un círculo con el número de lugares y un anillo repartido por categorías; TalkBack las nombra («3 de gastronomía y 2 de cultura»).
 - **Búsqueda y filtros**:
@@ -72,7 +77,9 @@ La app está en **español e inglés**: sigue el idioma del teléfono, y en un t
   - «Solo verificados».
 
   La búsqueda ignora mayúsculas y tildes: «cafe» encuentra «Café».
-- **Detalle del lugar**: fotos, descripción, horario («Abierto ahora»), rango de precio, ubicación, autor y estado de verificación.
+- **Detalle del lugar**: fotos, descripción, horario, rango de precio, ubicación, autor y estado de verificación.
+  - El horario va por tramos de días, uno por línea («Lunes a jueves, 16:00 a 2:00»), o dice «Siempre abierto · acceso libre».
+  - **«Abierto ahora»** usa la hora del lugar ([ADR-17](docs/decisiones-arquitectonicas/ADR-17-hora-local-de-cada-lugar.md)): un café en Madrid abre a las 4 de la tarde de Madrid. Un tramo que cierra pasada la medianoche sigue abierto la madrugada siguiente.
 - **Interacción**:
   - el voto «Es importante»;
   - «Marcar como visitado», con una experiencia opcional;
@@ -85,7 +92,10 @@ La app está en **español e inglés**: sigue el idioma del teléfono, y en un t
   1. título y descripción;
   2. categoría, **sugerida por IA** (DeepSeek por OpenRouter, en menos de un segundo);
   3. ubicación en el mapa, con la dirección aproximada del pin y su municipio. La búsqueda por dirección mira alrededor del pin o de la persona;
-  4. horario y rango de precio;
+  4. horario y rango de precio. El horario se cuenta de tres formas:
+     - **tiene horario:** tramos de días, cada uno con su franja. Un día va en un solo tramo, y si cierra antes de abrir, es al día siguiente;
+     - **siempre abierto · acceso libre:** plazas, parques y cascadas, sin puertas ni horario. Propone «Entrada libre»;
+     - **no sé el horario:** se publica sin él;
   5. de 1 a 5 fotos.
 - **Posibles duplicados**: al confirmar la ubicación se buscan lugares con un nombre parecido a 50 m. La persona puede abrir el existente o confirmar que es otro lugar; en ese caso, el moderador ve la marca «posible duplicado».
 - **Borrador persistente**: sobrevive a la rotación, al cierre de la app y a la falta de conexión. Un envío sin red queda en la cola y sale solo al volver la conexión.
@@ -129,8 +139,10 @@ La app está en **español e inglés**: sigue el idioma del teléfono, y en un t
   - tras 5 intentos fallidos con el mismo correo, pide esperar 15 minutos;
   - si la sesión vence, avisa «Tu sesión terminó. Vuelve a entrar.».
 - **Recuperación de contraseña**: el enlace del correo **abre directo la app** en «Nueva contraseña» (App Links). Vence a los 30 minutos y se puede reenviar después de 60 s. La app nunca revela si un correo tiene cuenta.
-- **Editar perfil**: foto, nombre, «Sobre mí» y «De visita» o «Residente».
-- **Ajustes**: tema claro, oscuro o del sistema; **idioma** (sistema, español o English); documentos legales; **descargar mis datos** en JSON; cerrar sesión.
+- **Editar perfil**: foto, nombre, «Sobre mí», «De visita» o «Residente» y **tu ciudad**.
+  - La app la llena sola la primera vez que sabe dónde estás, si no tenías una. Después se cambia o se quita aquí, y no se vuelve a llenar.
+  - El perfil y el perfil público dicen «Residente · Calarcá · desde marzo».
+- **Ajustes**: tema claro, oscuro o del sistema; **idioma** (sistema, español o English); el permiso de ubicación, el único que pide la app; documentos legales; **descargar mis datos** en JSON; cerrar sesión.
 - **Cambiar correo**: pide la contraseña y se confirma con un enlace en el correo nuevo.
 - **Eliminar la cuenta**: muestra qué se borra y qué se conserva de forma anónima, y pide escribir **ELIMINAR** (en inglés, **DELETE**).
 
@@ -163,10 +175,10 @@ Se envían con SendGrid.
 
 ## <img src="docs/img/iconos/estado.svg" width="28" height="28" align="top"> Estado del proyecto
 
-**Versión 1.2.0, publicada.** Trae la ciudad según la ubicación, los grupos del mapa por categoría y la app en inglés y español.
+**Versión 1.3.0, publicada.** Trae la elección de la ciudad a mano, la ciudad de cada persona en su perfil, la hora local de cada lugar y los horarios por tramos.
 - Todas las pantallas del diseño están implementadas.
 - La app trabaja con la API desplegada en Google Cloud, sin datos de ejemplo.
-- La ciudad de partida es **Armenia**, la que se explora sin permiso de ubicación. Se cambia en `api-ktor/src/main/resources/application.conf`.
+- La ciudad de la configuración es **Armenia**: los lugares sin municipio cuentan como ella, y el mapa empieza ahí si no hay ubicación ni ciudad elegida. Se cambia en `api-ktor/src/main/resources/application.conf`.
 
 | Área | Pantallas (numeración del diseño) | Estado |
 |---|---|---|
@@ -179,6 +191,10 @@ Se envían con SendGrid.
 | Entrar y registrarse con Google ([ADR-15](docs/decisiones-arquitectonicas/ADR-15-entrar-con-google.md)) | sin número | ✅ |
 | La ciudad según la ubicación ([ADR-16](docs/decisiones-arquitectonicas/ADR-16-ciudad-segun-la-ubicacion.md)) | 7, 9 y 17.b | ✅ |
 | Grupos del mapa por categoría | 8 | ✅ |
+| Elegir la ciudad a mano ([ADR-16](docs/decisiones-arquitectonicas/ADR-16-ciudad-segun-la-ubicacion.md)) | 7 | ✅ |
+| La ciudad de cada persona en su perfil | 26, 28 y 31 | ✅ |
+| La hora local de cada lugar ([ADR-17](docs/decisiones-arquitectonicas/ADR-17-hora-local-de-cada-lugar.md)) | 7, 8 y 13 | ✅ |
+| Horario por tramos, cierre pasada la medianoche y acceso libre | 13, 18, 23 y 33 | ✅ |
 | Inglés y español (Ajustes › Idioma) | todas, 29 | ✅ |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ |
 | API ([contrato](docs/api/README.md)) | — | ✅ |
@@ -267,6 +283,7 @@ Paquetes `routes/`, `service/`, `repository/`, `model/`, `integration/`, `config
 **Stack:**
 - Ktor 3.6 (Netty) con autenticación JWT.
 - Exposed y HikariCP sobre PostgreSQL con **PostGIS** y **pg_trgm**, con las migraciones de Flyway.
+- **Timeshape**, para la zona horaria de cada lugar desde sus coordenadas, sin red.
 - BCrypt para las contraseñas.
 - Entrar con Google: la API verifica el ID token que la app recibe de Credential Manager y entrega su propia sesión. Revisa la firma con las claves públicas de Google, el emisor, la audiencia (el cliente «Web»), el vencimiento y que el correo esté verificado.
 - Integraciones con Ktor Client:
@@ -283,7 +300,13 @@ La IA y la detección de duplicados corren en el backend, así que ninguna clave
   - Si llega uno que ya se usó, se cierran todas las sesiones de la cuenta.
 - Tras 5 intentos fallidos en 15 minutos con el mismo correo, el inicio de sesión queda bloqueado 15 minutos.
 
-**Búsqueda:** el feed, el mapa y el perfil público ordenan por cercanía con PostGIS. Miden desde la ubicación de la persona o, sin ella, desde el centro de la ciudad. «Toda la ciudad» filtra por el municipio de cada lugar, que la app manda al publicar; los que no tienen, cuentan como la ciudad de la configuración.
+**Búsqueda:** el feed, el mapa y el perfil público ordenan por cercanía con PostGIS. Miden desde la ubicación de la persona, desde el centro de la ciudad elegida o, sin ninguna de las dos, desde el centro de la ciudad de la configuración. «Toda la ciudad» filtra por el municipio de cada lugar, que la app manda al publicar; los que no tienen, cuentan como la ciudad de la configuración. `/v1/places/towns` da las ciudades con lugares para «Elegir ciudad».
+
+**Horario** ([ADR-17](docs/decisiones-arquitectonicas/ADR-17-hora-local-de-cada-lugar.md)):
+- Cada lugar guarda los tramos de su horario (`place_hours`) o la marca de siempre abierto.
+- Cada lugar guarda también la zona horaria de su pin, calculada con Timeshape al publicar o mover el pin. Los lugares que no la tienen la reciben al arrancar la API.
+- «Abierto ahora» se calcula con la hora del lugar. Las zonas del mundo (unos 210 MB) se cargan la primera vez que hacen falta, no en cada arranque.
+- La app 1.2 sigue funcionando: recibe el primer tramo en `hours` y la ciudad de la persona en `city`.
 
 **Reputación:**
 - Votar o visitar un lugar propio no suma ni puntos ni avance de insignias.
@@ -360,7 +383,6 @@ Estas opciones solo aparecen en las compilaciones de depuración:
 - **Correo de prueba**: aparece en «Revisa tu correo» (6.a) y en «Confirma tu correo nuevo». Lee el buzón de desarrollo de la API, así que necesita `DEV_MAILBOX=true`.
   - «Abrir el enlace del correo» hace lo que haría el enlace real: abre «Nueva contraseña» (6.b) o confirma el correo nuevo.
   - «Abrir un enlace vencido» lleva a la pantalla de enlace vencido.
-- **Muestrario del sistema de diseño**: un acceso desde Ajustes.
 
 No hay cuentas de prueba: se crean en el registro de la app, contra la API. Una cuenta con uno de los correos de `MODERATOR_EMAILS` tiene la pestaña «Moderación». Si la lista cambia, el rol se pone al día al reiniciar la API, y la app lo ve al volver a entrar.
 
