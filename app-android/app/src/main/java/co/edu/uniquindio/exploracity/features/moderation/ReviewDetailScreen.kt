@@ -90,6 +90,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.InitialsAvatar
 import co.edu.uniquindio.exploracity.core.ui.components.LevelChip
 import co.edu.uniquindio.exploracity.core.ui.components.NoNavigationBarScrim
 import co.edu.uniquindio.exploracity.core.ui.components.PhotoViewer
+import co.edu.uniquindio.exploracity.core.ui.components.ViewerPhoto
 import co.edu.uniquindio.exploracity.core.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.core.ui.components.SheetHandle
 import co.edu.uniquindio.exploracity.core.ui.components.StatusBadge
@@ -307,7 +308,7 @@ private fun Review(item: ReviewItem, now: Instant, callbacks: ReviewDetailCallba
         ReviewMap(item, onOpen = { bigMap = true })
         AuthorCard(item)
     }
-    viewer?.let { index -> PhotoViewer(item.photos, index, onDismiss = { viewer = null }) }
+    viewer?.let { index -> PhotoViewer(item.photos.map { ViewerPhoto(it.url) }, index, onDismiss = { viewer = null }) }
     if (bigMap) MapDialog(item, onDismiss = { bigMap = false })
 }
 

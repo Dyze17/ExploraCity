@@ -43,6 +43,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -93,9 +94,11 @@ import co.edu.uniquindio.exploracity.core.ui.components.ExploraButtonStyle
 import co.edu.uniquindio.exploracity.core.ui.components.ExploraSnackbarHost
 import co.edu.uniquindio.exploracity.core.ui.components.LevelChip
 import co.edu.uniquindio.exploracity.core.ui.components.OfflineBanner
+import co.edu.uniquindio.exploracity.core.ui.components.PhotoViewer
 import co.edu.uniquindio.exploracity.core.ui.components.RemotePhoto
 import co.edu.uniquindio.exploracity.core.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.core.ui.components.StatusBadge
+import co.edu.uniquindio.exploracity.core.ui.components.ViewerPhoto
 import co.edu.uniquindio.exploracity.core.ui.components.colors
 import co.edu.uniquindio.exploracity.core.ui.components.initialFocus
 import co.edu.uniquindio.exploracity.core.ui.components.labelRes
@@ -134,6 +137,7 @@ import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
 import java.time.Instant
+import kotlinx.coroutines.launch
 
 /** 13 · Detalle del POI, conectado a su ViewModel. */
 @Composable
@@ -329,11 +333,18 @@ private fun SavedBanner(savedAt: Instant, offline: Boolean, onRetry: () -> Unit)
     )
 }
 
-/** Galería (HorizontalPager): cada foto dice qué muestra y su posición («Patio interior del café. Foto 1 de 3»). */
+/**
+ * Galería (HorizontalPager): cada foto dice qué muestra y su posición («Patio interior del café. Foto 1 de 3»). Aquí
+ * van recortadas para llenar la franja; al tocarlas se abren enteras a pantalla completa, en la misma foto, y al cerrar
+ * la galería queda en la última que se vio.
+ */
 @Composable
 private fun Gallery(details: PoiDetails) {
     val photos = details.photos
     val pagerState = rememberPagerState { photos.size }
+    val scope = rememberCoroutineScope()
+    var viewer by rememberSaveable { mutableStateOf<Int?>(null) }
+    val openAction = stringResource(R.string.review_photo_open)
     Box(Modifier.fillMaxWidth().height(200.dp)) {
         HorizontalPager(pagerState, Modifier.fillMaxSize()) { page ->
             val description = stringResource(R.string.detail_photo_description, photos[page].description, page + 1, photos.size)
@@ -342,6 +353,7 @@ private fun Gallery(details: PoiDetails) {
                 Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clickable(onClickLabel = openAction) { viewer = page }
                     .semantics {
                         contentDescription = description
                         role = Role.Image
@@ -351,6 +363,13 @@ private fun Gallery(details: PoiDetails) {
                 Icon(painterResource(R.drawable.ic_photo_camera), null, tint = MaterialTheme.exploraColors.textPlaceholder, modifier = Modifier.size(40.dp))
                 RemotePhoto(photos[page].url)
             }
+        }
+        if (photos.isNotEmpty()) {
+            GalleryCounter(
+                page = pagerState.currentPage,
+                count = photos.size,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 8.dp),
+            )
         }
         if (photos.size > 1) {
             Row(
@@ -370,6 +389,40 @@ private fun Gallery(details: PoiDetails) {
                     )
                 }
             }
+        }
+    }
+    viewer?.let { start ->
+        val descriptions = photos.mapIndexed { index, photo -> stringResource(R.string.detail_photo_description, photo.description, index + 1, photos.size) }
+        PhotoViewer(
+            photos = photos.mapIndexed { index, photo -> ViewerPhoto(photo.url, descriptions[index]) },
+            startIndex = start,
+            onDismiss = { viewer = null },
+            onPageChange = { page -> scope.launch { pagerState.scrollToPage(page) } },
+        )
+    }
+}
+
+/**
+ * «1/5» con el icono de ampliar, sobre surface al 92 % como los botones de arriba: dice que la galería se puede tocar.
+ * Con una sola foto, solo el icono. El lector ya lo oye en cada foto («ver a pantalla completa»).
+ */
+@Composable
+private fun GalleryCounter(page: Int, count: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .clearAndSetSemantics { }
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), CircleShape)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(R.drawable.ic_open_in_full), null, tint = MaterialTheme.exploraColors.textSecondary, modifier = Modifier.size(14.dp))
+        if (count > 1) {
+            Text(
+                stringResource(R.string.detail_photo_counter, page + 1, count),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.exploraColors.textSecondary,
+            )
         }
     }
 }
