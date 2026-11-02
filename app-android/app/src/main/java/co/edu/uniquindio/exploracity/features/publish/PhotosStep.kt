@@ -103,7 +103,11 @@ internal fun PhotosSection(
         if (withCover) Note(R.drawable.ic_info, stringResource(R.string.publish_photos_rules))
     } else {
         Text(
-            pluralStringResource(R.plurals.publish_photos_count, photos.size.coerceAtLeast(1), photos.size.coerceAtLeast(1)),
+            pluralStringResource(
+                if (withCover) R.plurals.publish_photos_count else R.plurals.add_photos_count,
+                photos.size.coerceAtLeast(1),
+                photos.size.coerceAtLeast(1),
+            ),
             style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.W700),
             color = MaterialTheme.exploraColors.textSecondary,
         )

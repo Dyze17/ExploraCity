@@ -484,6 +484,11 @@
         <item quantity="other">Puedes agregar hasta %1$d fotos a %2$s. Un moderador las revisará antes de que se vean.</item>
     </plurals>
     <string name="add_photos_send">Enviar fotos</string>
+    <plurals name="add_photos_count">
+        <item quantity="one">%d foto elegida</item>
+        <item quantity="many">%d fotos elegidas</item>
+        <item quantity="other">%d fotos elegidas</item>
+    </plurals>
     <string name="add_photos_discard_body">Las fotos que elegiste no se enviarán.</string>
     <string name="add_photos_need_one">agrega al menos una foto</string>
     <string name="add_photos_wait_upload">espera a que terminen de subir</string>
