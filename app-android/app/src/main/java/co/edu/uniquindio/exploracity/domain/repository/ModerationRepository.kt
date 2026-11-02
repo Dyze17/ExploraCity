@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewQueue
@@ -66,4 +67,16 @@ interface ModerationRepository {
      * como nota interna. Lanza [StateChangedException] si ya no es pública.
      */
     suspend fun reopen(id: String, reason: String)
+
+    /**
+     * v1.4.0 · «Reportados»: los lugares públicos con reportes abiertos, los más reportados primero y, entre iguales, el
+     * que espera desde hace más. Lanza excepción si falla la red.
+     */
+    suspend fun reported(): List<ReportedPlace>
+
+    /**
+     * v1.4.0 · «Descartar»: el lugar queda como está y se cierran sus reportes, sin aviso a nadie. Lanza
+     * [AlreadyReviewedException] si otro moderador ya los cerró o el lugar dejó de ser público.
+     */
+    suspend fun dismissReports(id: String)
 }

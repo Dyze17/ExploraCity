@@ -428,6 +428,23 @@
     <string name="report_failed">We couldn’t send the report. Try again.</string>
     <string name="report_offline">No connection: we couldn’t send the report. Try when the internet is back.</string>
 
+    <!-- v1.4.0 · Report a place (13). Buttons, reason label and errors come from 31A. -->
+    <string name="detail_report">Report this place</string>
+    <string name="place_report_title">What’s wrong with %1$s?</string>
+    <string name="place_report_body">A moderator will review it. The report is anonymous: nobody will know it was you, not even whoever posted it.</string>
+    <string name="place_report_reason_closed">It closed or no longer exists</string>
+    <string name="place_report_reason_wrong_location">The location on the map is wrong</string>
+    <string name="place_report_reason_outdated">The hours, price or other details are out of date</string>
+    <string name="place_report_reason_bad_photos">The photos are inappropriate or not of this place</string>
+    <string name="place_report_reason_inappropriate">The content is offensive or false</string>
+    <string name="place_report_reason_duplicate">It’s a duplicate</string>
+    <string name="place_report_reason_other">Something else</string>
+    <string name="place_report_detail">Tell us what’s wrong (optional)</string>
+    <string name="place_report_detail_required">Tell us what’s wrong</string>
+    <string name="place_report_detail_placeholder">For example: it now opens at 9:00, not 8:00</string>
+    <string name="place_report_tell_us">tell us what’s wrong</string>
+    <string name="place_report_sent">Thank you. A moderator will review this place.</string>
+
     <!-- My posts (22) -->
     <string name="my_publications_title">My posts</string>
     <string name="my_publications_filters">Filter by status</string>
@@ -1492,6 +1509,48 @@
     <string name="resolved_change_state">change status</string>
     <string name="resolved_decided_by">%1$s · by %2$s</string>
     <string name="resolved_author">Posted by %1$s</string>
+
+    <!-- v1.4.0 · “Reported”: public places with open reports. -->
+    <string name="moderation_reported">Reported</string>
+    <string name="moderation_reported_count">Reported · %1$d</string>
+    <plurals name="moderation_see_reported">
+        <item quantity="one">See %1$d reported place</item>
+        <item quantity="other">See %1$d reported places</item>
+    </plurals>
+    <string name="reported_title">Reported places</string>
+    <plurals name="reported_places_count">
+        <item quantity="one">%1$d place</item>
+        <item quantity="other">%1$d places</item>
+    </plurals>
+    <plurals name="reported_reports_count">
+        <item quantity="one">%1$d report</item>
+        <item quantity="other">%1$d reports</item>
+    </plurals>
+    <string name="reported_first">First report: %1$s</string>
+    <string name="reported_offline_body">“Reported” needs internet. Try again when you are online.</string>
+    <string name="reported_error_title">We couldn’t load the reported places</string>
+    <string name="reported_empty_title">There are no reported places</string>
+    <string name="reported_empty_body">When someone reports a published place, it will show up here with the reason.</string>
+    <string name="reported_report_description">%1$s, %2$s</string>
+    <string name="reported_open_place">See the place</string>
+    <string name="reported_dismiss">Dismiss</string>
+    <string name="reported_change_state">Change status</string>
+    <string name="reported_dismiss_title">Dismiss the reports?</string>
+    <plurals name="reported_dismiss_body">
+        <item quantity="one">%2$s stays as it is and its report is closed. Nobody gets notified.</item>
+        <item quantity="other">%2$s stays as it is and its %1$d reports are closed. Nobody gets notified.</item>
+    </plurals>
+    <string name="reported_dismiss_confirm">Dismiss</string>
+    <string name="reported_dismiss_cancel">Cancel</string>
+    <string name="reported_dismissed">Reports dismissed. The place stayed as it was.</string>
+    <string name="reported_already_reviewed">Another moderator already reviewed these reports.</string>
+    <string name="reported_dismiss_failed">We couldn’t dismiss the reports. Try again.</string>
+    <string name="reported_dismiss_offline">No connection: we couldn’t dismiss the reports.</string>
+    <plurals name="review_reports_title">
+        <item quantity="one">One person reported this post</item>
+        <item quantity="other">%1$d people reported this post</item>
+    </plurals>
+    <string name="review_reports_hint">Check it before deciding: the reports close when you verify or reject it.</string>
     <string name="resolved_reason">Reason: %1$s</string>
     <string name="resolved_note">Internal note: “%1$s”</string>
     <string name="decided_verified_ago">Verified %1$s</string>

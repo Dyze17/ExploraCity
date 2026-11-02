@@ -9,6 +9,8 @@ import co.edu.uniquindio.exploracity.model.FeedPageResponse
 import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.MapAreaResponse
 import co.edu.uniquindio.exploracity.model.PlaceDetailsResponse
+import co.edu.uniquindio.exploracity.model.PlaceReportReason
+import co.edu.uniquindio.exploracity.model.PlaceReportRequest
 import co.edu.uniquindio.exploracity.model.TownResponse
 import co.edu.uniquindio.exploracity.model.TownsResponse
 import co.edu.uniquindio.exploracity.model.VisitRequest
@@ -19,6 +21,7 @@ import co.edu.uniquindio.exploracity.plugins.ApiException
 import co.edu.uniquindio.exploracity.repository.CommentRow
 import co.edu.uniquindio.exploracity.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.repository.PlaceFilter
+import co.edu.uniquindio.exploracity.repository.PlaceReportRepository
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.PlaceRow
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -29,11 +32,13 @@ import java.util.UUID
 
 /**
  * Componente de Puntos de Interés y Social (SAD) · El feed y el mapa (7, 8, 9 y 10), el detalle (13), el voto «Es
- * importante», «Marcar como visitado» (14.b) y los comentarios (14). Solo se ven los lugares verificados y finalizados.
+ * importante», «Marcar como visitado» (14.b), los comentarios (14) y los reportes (v1.4.0). Solo se ven los lugares
+ * verificados y finalizados.
  */
 class PlaceService(
     private val database: Database,
     private val places: PlaceRepository,
+    private val reports: PlaceReportRepository,
     private val notifications: NotificationRepository,
     private val reputation: ReputationService,
     private val cards: PlaceCards,
@@ -158,6 +163,21 @@ class PlaceService(
         }
     }
 
+    /**
+     * v1.4.0 · Reporte anónimo para la moderación: el motivo y, si se quiere, qué pasa (hasta 300; con «Otro»,
+     * obligatorio). Reportar otra vez el mismo lugar cambia el reporte abierto. El propio no se reporta: se edita (23).
+     */
+    suspend fun report(userId: UUID, placeId: String, request: PlaceReportRequest) {
+        val detail = request.detail?.trim()?.ifEmpty { null }
+        if ((detail?.length ?: 0) > TEXT_MAX) throw invalidReport()
+        if (request.reason == PlaceReportReason.OTHER && detail == null) throw invalidReport()
+        database.query {
+            val place = place(placeId, near = null)
+            if (place.authorId == userId) throw ApiException.badRequest("cannot_report_own")
+            reports.report(place.id, userId, request.reason, detail, clock.instant())
+        }
+    }
+
     /** Dentro de una transacción: el lugar público, o 404 si no existe o no se ve. */
     private fun place(placeId: String, near: GeoPoint?): PlaceRow {
         val id = runCatching { UUID.fromString(placeId) }.getOrNull() ?: throw placeNotFound()
@@ -180,6 +200,8 @@ class PlaceService(
         const val TEXT_MAX = 300
 
         fun placeNotFound() = ApiException.notFound("place_not_found")
+
+        private fun invalidReport() = ApiException.badRequest("invalid_report")
 
         private val encoder = Base64.getUrlEncoder().withoutPadding()
         private val decoder = Base64.getUrlDecoder()

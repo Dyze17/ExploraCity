@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.core.data.remote.dto.CountDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.FeedPageDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.MapAreaDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.PlaceDetailsDto
+import co.edu.uniquindio.exploracity.core.data.remote.dto.PlaceReportRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.TownsDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.VisitDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.VisitRequest
@@ -15,6 +16,7 @@ import co.edu.uniquindio.exploracity.domain.model.Comment
 import co.edu.uniquindio.exploracity.domain.model.GeoBounds
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.LocationScope
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.TownOption
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
@@ -34,7 +36,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.encodeURLPathPart
 
 /**
- * /v1/places · Explorar y Social (7, 8, 9, 13, 14 y 14.b). Piden el token de acceso. [near] es la ubicación de la
+ * /v1/places · Explorar y Social (7, 8, 9, 13, 14 y 14.b) y los reportes de lugares (v1.4.0). Piden el token de acceso. [near] es la ubicación de la
  * persona: la API mide desde ahí la distancia y el orden; sin ella, desde el centro de la ciudad.
  */
 class PoiApi(private val client: HttpClient) {
@@ -83,6 +85,11 @@ class PoiApi(private val client: HttpClient) {
     suspend fun addComment(id: String, text: String, clientId: String): Comment = client.post("${place(id)}/comments") {
         jsonBody(CommentRequest(text, clientId))
     }.body<CommentDto>().toDomain()
+
+    /** v1.4.0 · Reporte anónimo para la moderación. */
+    suspend fun report(id: String, reason: PlaceReportReason, detail: String?) {
+        client.post("${place(id)}/reports") { jsonBody(PlaceReportRequest(reason, detail)) }
+    }
 
     private fun place(id: String) = "v1/places/${id.encodeURLPathPart()}"
 

@@ -304,7 +304,7 @@ private fun Review(item: ReviewItem, now: Instant, callbacks: ReviewDetailCallba
             color = MaterialTheme.exploraColors.textSecondary,
         )
         InfoCard(item)
-        item.reportReason?.let { ReportCard(it) }
+        if (item.reports.isNotEmpty()) ReportsCard(item.reports) else item.reportReason?.let { ReportCard(it) }
         ReviewMap(item, onOpen = { bigMap = true })
         AuthorCard(item)
     }

@@ -265,6 +265,21 @@ object UserReports : Table("user_reports") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** v1.4.0 · Reportes de lugares (V14): anónimos, a lo sumo uno abierto por persona y lugar. */
+object PlaceReports : Table("place_reports") {
+    val id = javaUUID("id").autoGenerate()
+    val placeId = reference("place_id", Places.id, onDelete = ReferenceOption.CASCADE)
+    val reporterId = optReference("reporter_id", Users.id, onDelete = ReferenceOption.SET_NULL)
+    val reason = enumerationByName<PlaceReportReason>("reason", ENUM_LENGTH)
+    val detail = text("detail").nullable()
+    val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
+    val resolvedAt = timestampWithTimeZone("resolved_at").nullable()
+    val resolvedBy = optReference("resolved_by", Users.id, onDelete = ReferenceOption.SET_NULL)
+    val resolution = enumerationByName<ReportResolution>("resolution", ENUM_LENGTH).nullable()
+
+    override val primaryKey = PrimaryKey(id)
+}
+
 /** Vista de solo lectura: los puntos de cada persona (26). */
 object UserPoints : Table("user_points") {
     val userId = javaUUID("user_id")

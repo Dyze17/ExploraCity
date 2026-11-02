@@ -58,6 +58,20 @@ class ModerationViewModelsTest {
     }
 
     @Test
+    fun `la cola cuenta los lugares reportados, y si no se pueden pedir queda en cero`() = runTest(dispatcher) {
+        moderation.reportedPlaces += listOf(reportedPlace("x"), reportedPlace("y"))
+        val vm = queue()
+        advanceUntilIdle()
+        assertEquals(2, vm.state.value.reported)
+
+        moderation.reportedError = IOException("500")
+        val failing = queue()
+        advanceUntilIdle()
+        assertEquals(0, failing.state.value.reported)
+        assertEquals(3, failing.state.value.items.size)
+    }
+
+    @Test
     fun `sin red y sin nada guardado se puede reintentar`() = runTest(dispatcher) {
         moderation.queueError = OfflineException()
         val vm = queue()

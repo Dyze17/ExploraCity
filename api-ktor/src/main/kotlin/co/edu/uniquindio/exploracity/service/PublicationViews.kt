@@ -5,6 +5,7 @@ import co.edu.uniquindio.exploracity.model.DecisionAction
 import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.HoursResponse
 import co.edu.uniquindio.exploracity.model.PhotoResponse
+import co.edu.uniquindio.exploracity.model.PlaceReportResponse
 import co.edu.uniquindio.exploracity.model.PublicationResponse
 import co.edu.uniquindio.exploracity.model.PublicationStatus
 import co.edu.uniquindio.exploracity.model.RejectionReason
@@ -15,6 +16,8 @@ import co.edu.uniquindio.exploracity.model.SuspicionResponse
 import co.edu.uniquindio.exploracity.model.iso
 import co.edu.uniquindio.exploracity.repository.OwnPlaceRow
 import co.edu.uniquindio.exploracity.repository.PlaceFields
+import co.edu.uniquindio.exploracity.repository.PlaceReportRepository
+import co.edu.uniquindio.exploracity.repository.PlaceReportRow
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.PublicationRepository
 import java.util.UUID
@@ -26,6 +29,7 @@ import java.util.UUID
 class PublicationViews(
     private val publications: PublicationRepository,
     private val places: PlaceRepository,
+    private val reports: PlaceReportRepository,
     private val cards: PlaceCards,
 ) {
 
@@ -61,6 +65,8 @@ class PublicationViews(
     fun reviewItemOf(place: OwnPlaceRow): ReviewItemResponse {
         val (verified, rejected) = place.authorId?.let { publications.authorHistory(it) } ?: (0 to 0)
         val author = checkNotNull(places.author(place.authorId)) { "Una pendiente siempre tiene autor" }
+        // v1.4.0 · Los reportes que tenía al volver a pendiente (o al editarla quien la publicó) siguen abiertos.
+        val open = reports.open(listOf(place.id))
         return ReviewItemResponse(
             id = place.id.toString(),
             title = place.fields.title,
@@ -76,6 +82,8 @@ class PublicationViews(
             location = place.location(),
             submittedAt = place.submittedAt.iso(),
             author = ReviewAuthorResponse(PlaceCards.authorOf(author), verified, rejected),
+            reportReason = reasonsOf(open).takeIf { it.isNotEmpty() }?.joinToString(", ") { ModerationTexts.label(it) },
+            reports = open.map(::reportOf).ifEmpty { null },
             duplicate = if (place.possibleDuplicate) {
                 SuspicionResponse(candidatesOf(publications.similarIds(place.id), place.location()), place.duplicateNote)
             } else {
@@ -83,6 +91,12 @@ class PublicationViews(
             },
         )
     }
+
+    /** v1.4.0 · Los motivos de [reports], del más repetido al menos; entre iguales, el del reporte más reciente. */
+    fun reasonsOf(reports: List<PlaceReportRow>) =
+        reports.groupBy { it.reason }.entries.sortedByDescending { it.value.size }.map { it.key }
+
+    fun reportOf(row: PlaceReportRow) = PlaceReportResponse(row.reason, row.detail, row.createdAt.iso())
 
     /** 33A · Los lugares publicados de [ids] vistos desde [from]: quién los publicó, cuándo y cuántas fotos tienen. */
     fun candidatesOf(ids: Collection<UUID>, from: GeoPoint): List<CandidateResponse> =

@@ -20,6 +20,7 @@ import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.Rejection
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RequiredFix
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewAuthor
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
@@ -231,6 +232,11 @@ class FakeModerationRepository internal constructor(
         }
         items()
     }
+
+    /** v1.4.0 · El ejemplo no tiene lugares reportados. */
+    override suspend fun reported(): List<ReportedPlace> = emptyList()
+
+    override suspend fun dismissReports(id: String) = throw AlreadyReviewedException()
 
     /** La cola al día; de paso, el badge. */
     private fun items(): List<ReviewItem> {

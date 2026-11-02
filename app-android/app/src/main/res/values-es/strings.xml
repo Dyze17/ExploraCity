@@ -448,6 +448,23 @@
     <string name="report_failed">No pudimos enviar el reporte. Intenta de nuevo.</string>
     <string name="report_offline">Sin conexión: no pudimos enviar el reporte. Inténtalo cuando vuelva el internet.</string>
 
+    <!-- v1.4.0 · Reportar un lugar (13). Los botones, el motivo y los errores son los de 31A. -->
+    <string name="detail_report">Reportar este lugar</string>
+    <string name="place_report_title">¿Qué pasa con %1$s?</string>
+    <string name="place_report_body">Un moderador lo revisará. El reporte es anónimo: nadie sabrá que fuiste tú, ni quien lo publicó.</string>
+    <string name="place_report_reason_closed">Cerró o ya no existe</string>
+    <string name="place_report_reason_wrong_location">La ubicación en el mapa está mal</string>
+    <string name="place_report_reason_outdated">El horario, el precio u otros datos están desactualizados</string>
+    <string name="place_report_reason_bad_photos">Las fotos son inapropiadas o no son del lugar</string>
+    <string name="place_report_reason_inappropriate">El contenido es ofensivo o falso</string>
+    <string name="place_report_reason_duplicate">Está repetido</string>
+    <string name="place_report_reason_other">Otro motivo</string>
+    <string name="place_report_detail">Cuéntanos qué pasa (opcional)</string>
+    <string name="place_report_detail_required">Cuéntanos qué pasa</string>
+    <string name="place_report_detail_placeholder">Por ejemplo: ahora abre a las 9:00, no a las 8:00</string>
+    <string name="place_report_tell_us">cuéntanos qué pasa</string>
+    <string name="place_report_sent">Gracias. Un moderador revisará este lugar.</string>
+
     <!-- Mis publicaciones (22) -->
     <string name="my_publications_title">Mis publicaciones</string>
     <string name="my_publications_filters">Filtrar por estado</string>
@@ -1581,6 +1598,53 @@
     <string name="resolved_change_state">cambiar estado</string>
     <string name="resolved_decided_by">%1$s · por %2$s</string>
     <string name="resolved_author">Publicada por %1$s</string>
+
+    <!-- v1.4.0 · «Reportados»: los lugares públicos con reportes abiertos. -->
+    <string name="moderation_reported">Reportados</string>
+    <string name="moderation_reported_count">Reportados · %1$d</string>
+    <plurals name="moderation_see_reported">
+        <item quantity="one">Ver %1$d lugar reportado</item>
+        <item quantity="many">Ver %1$d lugares reportados</item>
+        <item quantity="other">Ver %1$d lugares reportados</item>
+    </plurals>
+    <string name="reported_title">Lugares reportados</string>
+    <plurals name="reported_places_count">
+        <item quantity="one">%1$d lugar</item>
+        <item quantity="many">%1$d lugares</item>
+        <item quantity="other">%1$d lugares</item>
+    </plurals>
+    <plurals name="reported_reports_count">
+        <item quantity="one">%1$d reporte</item>
+        <item quantity="many">%1$d reportes</item>
+        <item quantity="other">%1$d reportes</item>
+    </plurals>
+    <string name="reported_first">Primer reporte: %1$s</string>
+    <string name="reported_offline_body">«Reportados» necesita internet. Vuelve a intentarlo cuando haya conexión.</string>
+    <string name="reported_error_title">No pudimos cargar los lugares reportados</string>
+    <string name="reported_empty_title">No hay lugares reportados</string>
+    <string name="reported_empty_body">Cuando alguien reporte un lugar publicado, aparecerá aquí con el motivo.</string>
+    <string name="reported_report_description">%1$s, %2$s</string>
+    <string name="reported_open_place">Ver el lugar</string>
+    <string name="reported_dismiss">Descartar</string>
+    <string name="reported_change_state">Cambiar estado</string>
+    <string name="reported_dismiss_title">¿Descartar los reportes?</string>
+    <plurals name="reported_dismiss_body">
+        <item quantity="one">%2$s queda como está y se cierra su reporte. Nadie recibe aviso.</item>
+        <item quantity="many">%2$s queda como está y se cierran sus %1$d reportes. Nadie recibe aviso.</item>
+        <item quantity="other">%2$s queda como está y se cierran sus %1$d reportes. Nadie recibe aviso.</item>
+    </plurals>
+    <string name="reported_dismiss_confirm">Descartar</string>
+    <string name="reported_dismiss_cancel">Cancelar</string>
+    <string name="reported_dismissed">Reportes descartados. El lugar quedó como estaba.</string>
+    <string name="reported_already_reviewed">Otro moderador ya revisó estos reportes.</string>
+    <string name="reported_dismiss_failed">No pudimos descartar los reportes. Intenta de nuevo.</string>
+    <string name="reported_dismiss_offline">Sin conexión: no pudimos descartar los reportes.</string>
+    <plurals name="review_reports_title">
+        <item quantity="one">Una persona reportó esta publicación</item>
+        <item quantity="many">%1$d personas reportaron esta publicación</item>
+        <item quantity="other">%1$d personas reportaron esta publicación</item>
+    </plurals>
+    <string name="review_reports_hint">Revísalo antes de decidir: los reportes se cierran al verificarla o rechazarla.</string>
     <string name="resolved_reason">Motivo: %1$s</string>
     <string name="resolved_note">Nota interna: «%1$s»</string>
     <string name="decided_verified_ago">Verificada %1$s</string>

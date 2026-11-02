@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.model.Category
 import co.edu.uniquindio.exploracity.model.CommentRequest
 import co.edu.uniquindio.exploracity.model.GeoBounds
 import co.edu.uniquindio.exploracity.model.GeoPoint
+import co.edu.uniquindio.exploracity.model.PlaceReportRequest
 import co.edu.uniquindio.exploracity.model.VisitRequest
 import co.edu.uniquindio.exploracity.plugins.ACCESS
 import co.edu.uniquindio.exploracity.plugins.ApiException
@@ -26,7 +27,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
 /**
- * /v1/places · Explorar y Social (7, 8, 9, 10, 13, 14 y 14.b). Los criterios van en la consulta:
+ * /v1/places · Explorar y Social (7, 8, 9, 10, 13, 14 y 14.b) y los reportes de lugares (v1.4.0). Los criterios van en la consulta:
  * `categories=NATURE,CULTURE`, `scope=NEARBY|CITY`, `verifiedOnly=true`, `q=texto` y `near=lat,lng` (la ubicación de la
  * persona; sin ella, el centro de la ciudad).
  */
@@ -73,6 +74,10 @@ fun Route.placeRoutes(places: PlaceService) {
                 post("/comments") {
                     val (comment, created) = places.addComment(call.user().id, call.placeId(), call.receive<CommentRequest>())
                     call.respond(if (created) HttpStatusCode.Created else HttpStatusCode.OK, comment)
+                }
+                post("/reports") {
+                    places.report(call.user().id, call.placeId(), call.receive<PlaceReportRequest>())
+                    call.respond(HttpStatusCode.NoContent)
                 }
             }
         }

@@ -15,7 +15,10 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-/** /v1/moderation · Solo con el rol de moderador (403 con otro): la cola, las decisiones y «Resueltas» (32–37). */
+/**
+ * /v1/moderation · Solo con el rol de moderador (403 con otro): la cola, las decisiones y «Resueltas» (32–37), y
+ * «Reportados» (v1.4.0).
+ */
 fun Route.moderationRoutes(moderation: ModerationService) {
     moderatorOnly {
         route("/moderation") {
@@ -60,6 +63,20 @@ fun Route.moderationRoutes(moderation: ModerationService) {
                     }
                     post("/reopen") {
                         moderation.reopen(call.user().id, call.parameters["id"].orEmpty(), call.receive<ReopenRequest>().reason)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
+                }
+            }
+            route("/reports") {
+                get {
+                    call.respond(moderation.reported(call.user().id))
+                }
+                route("/{id}") {
+                    get {
+                        call.respond(moderation.reportedItem(call.user().id, call.parameters["id"].orEmpty()))
+                    }
+                    post("/dismiss") {
+                        moderation.dismissReports(call.user().id, call.parameters["id"].orEmpty())
                         call.respond(HttpStatusCode.NoContent)
                     }
                 }

@@ -9,6 +9,7 @@ import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewQueue
@@ -182,5 +183,9 @@ class OfflineModerationRepositoryTest {
         override suspend fun finalize(id: String, reason: FinalizeReason) = throw IOException("500")
 
         override suspend fun reopen(id: String, reason: String) = throw IOException("500")
+
+        override suspend fun reported(): List<ReportedPlace> = throw IOException("500")
+
+        override suspend fun dismissReports(id: String) = throw IOException("500")
     }
 }

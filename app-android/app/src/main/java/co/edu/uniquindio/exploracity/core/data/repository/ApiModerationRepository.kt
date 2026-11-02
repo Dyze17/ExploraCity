@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewQueue
@@ -72,6 +73,18 @@ class ApiModerationRepository(private val api: ModerationApi) : ModerationReposi
     override suspend fun finalize(id: String, reason: FinalizeReason) = changeState { api.finalize(id, reason) }
 
     override suspend fun reopen(id: String, reason: String) = changeState { api.reopen(id, reason) }
+
+    override suspend fun reported(): List<ReportedPlace> = api.reported()
+
+    /** Ya cerrados por otro moderador (409) o el lugar ya no es público (409 o 404): [AlreadyReviewedException]. */
+    override suspend fun dismissReports(id: String) {
+        try {
+            api.dismissReports(id)
+        } catch (e: ApiException) {
+            if (e.status == HttpStatusCode.NotFound.value || e.code == ALREADY_REVIEWED || e.code == STATE_CHANGED) throw AlreadyReviewedException()
+            throw e
+        }
+    }
 
     /** Verificar o rechazar. Si ya no estaba pendiente, sale de la cola igual y se avisa con [AlreadyReviewedException]. */
     private suspend fun decide(id: String, send: suspend () -> Unit) {

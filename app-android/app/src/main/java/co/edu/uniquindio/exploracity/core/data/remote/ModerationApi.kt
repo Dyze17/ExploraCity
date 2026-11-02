@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.core.data.remote.dto.ModerationSummaryDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ModerationWorkDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.RejectRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ReopenRequest
+import co.edu.uniquindio.exploracity.core.data.remote.dto.ReportedPlacesDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ResolvedDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ReviewItemDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ReviewQueueDto
@@ -14,6 +15,7 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.repository.ModerationSummary
@@ -24,7 +26,7 @@ import io.ktor.client.request.post
 import io.ktor.http.encodeURLPathPart
 
 /**
- * /v1/moderation · La cola, las decisiones y «Resueltas» (32–37). Solo con el rol de moderador: con otro, ApiException
+ * /v1/moderation · La cola, las decisiones y «Resueltas» (32–37), y «Reportados» (v1.4.0). Solo con el rol de moderador: con otro, ApiException
  * 403. Los errores de cada decisión los traduce ApiModerationRepository.
  */
 class ModerationApi(private val client: HttpClient) {
@@ -59,6 +61,13 @@ class ModerationApi(private val client: HttpClient) {
 
     suspend fun reopen(id: String, reason: String) {
         client.post("${resolved(id)}/reopen") { jsonBody(ReopenRequest(reason.trim())) }
+    }
+
+    /** v1.4.0 · Los lugares públicos con reportes abiertos, los más reportados primero; nunca los del propio moderador. */
+    suspend fun reported(): List<ReportedPlace> = client.get("v1/moderation/reports").body<ReportedPlacesDto>().items.map { it.toDomain() }
+
+    suspend fun dismissReports(id: String) {
+        client.post("v1/moderation/reports/${id.encodeURLPathPart()}/dismiss")
     }
 
     private fun pending(id: String) = "v1/moderation/queue/${id.encodeURLPathPart()}"

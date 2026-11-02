@@ -3,16 +3,22 @@ package co.edu.uniquindio.exploracity.features.explore
 import androidx.lifecycle.SavedStateHandle
 import co.edu.uniquindio.exploracity.core.data.connectivity.FakeConnectivity
 import co.edu.uniquindio.exploracity.core.data.repository.FakeOfflineRepository
+import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.data.repository.FakePoiRepository
+import co.edu.uniquindio.exploracity.core.data.repository.sampleCurrentUser
 import co.edu.uniquindio.exploracity.core.data.repository.sampleDetails
 import co.edu.uniquindio.exploracity.core.data.repository.samplePois
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
 import co.edu.uniquindio.exploracity.domain.model.VisitResult
 import co.edu.uniquindio.exploracity.domain.model.VoteResult
+import co.edu.uniquindio.exploracity.domain.repository.ContributionRepository
 import co.edu.uniquindio.exploracity.domain.repository.PoiRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -37,6 +43,7 @@ class PoiDetailViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val connectivity = FakeConnectivity()
+    private val contributions = MemoryContributions()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -48,7 +55,7 @@ class PoiDetailViewModelTest {
         repository: PoiRepository = FakePoiRepository(),
         poiId: String = "cafe-las-acacias",
         savedState: SavedStateHandle = SavedStateHandle(mapOf(PoiDetailViewModel.POI_ID_KEY to poiId)),
-    ) = PoiDetailViewModel(repository, connectivity, savedState)
+    ) = PoiDetailViewModel(repository, contributions, connectivity, MutableStateFlow(sampleCurrentUser), savedState)
 
     private val PoiDetailViewModel.details: PoiDetails get() = requireNotNull(state.value.details) { "El detalle debería estar cargado" }
 
@@ -274,6 +281,101 @@ class PoiDetailViewModelTest {
         assertEquals(savedCafe, vm.details)
         advanceUntilIdle()
         assertNull(vm.details.savedAt)
+    }
+
+    @Test
+    fun `reportar un lugar de otra persona manda el motivo y lo escrito, y avisa`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.canReport)
+
+        vm.onOpenReport()
+        assertFalse(checkNotNull(vm.state.value.report).canSend)
+        vm.onReportReasonChange(PlaceReportReason.OUTDATED_INFO)
+        vm.onReportDetailChange("  Ahora abre a las 9:00.  ")
+        vm.onConfirmReport()
+        runCurrent()
+        assertTrue(checkNotNull(vm.state.value.report).sending)
+        advanceUntilIdle()
+
+        assertEquals(listOf(Triple("cafe-las-acacias", PlaceReportReason.OUTDATED_INFO, "Ahora abre a las 9:00.")), contributions.sent)
+        assertNull(vm.state.value.report)
+        assertEquals(DetailMessage.ReportSent, vm.state.value.message)
+    }
+
+    @Test
+    fun `lo que publicó la persona no se reporta`() = runTest(dispatcher) {
+        val vm = viewModel(poiId = "quinta-de-bolivar")
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.canReport)
+        vm.onOpenReport()
+        assertNull(vm.state.value.report)
+    }
+
+    @Test
+    fun `con Otro hace falta contar qué pasa y el texto tiene hasta 300 caracteres`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onOpenReport()
+
+        vm.onReportReasonChange(PlaceReportReason.OTHER)
+        vm.onReportDetailChange("   ")
+        assertFalse(checkNotNull(vm.state.value.report).canSend)
+        vm.onConfirmReport()
+        advanceUntilIdle()
+        assertEquals(emptyList<Any>(), contributions.sent)
+
+        vm.onReportDetailChange("a".repeat(320))
+        assertEquals(300, checkNotNull(vm.state.value.report).detail.length)
+        assertTrue(checkNotNull(vm.state.value.report).canSend)
+    }
+
+    @Test
+    fun `sin red el aviso queda en el diálogo con lo escrito`() = runTest(dispatcher) {
+        contributions.error = OfflineException()
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onOpenReport()
+        vm.onReportReasonChange(PlaceReportReason.CLOSED)
+        vm.onReportDetailChange("Cerró en septiembre.")
+
+        vm.onConfirmReport()
+        advanceUntilIdle()
+
+        val report = checkNotNull(vm.state.value.report)
+        assertEquals(PlaceReportError.OFFLINE, report.error)
+        assertFalse(report.sending)
+        assertEquals("Cerró en septiembre.", report.detail)
+        // Elegir otro motivo quita el aviso.
+        vm.onReportReasonChange(PlaceReportReason.WRONG_LOCATION)
+        assertNull(checkNotNull(vm.state.value.report).error)
+    }
+
+    @Test
+    fun `el reporte a medio escribir vuelve si Android cierra la app`() = runTest(dispatcher) {
+        val saved = SavedStateHandle(mapOf(PoiDetailViewModel.POI_ID_KEY to "cafe-las-acacias"))
+        val first = viewModel(savedState = saved)
+        advanceUntilIdle()
+        first.onOpenReport()
+        first.onReportReasonChange(PlaceReportReason.BAD_PHOTOS)
+        first.onReportDetailChange("La segunda foto es de otro café.")
+
+        val restored = viewModel(savedState = saved)
+
+        assertEquals(PlaceReportState(PlaceReportReason.BAD_PHOTOS, "La segunda foto es de otro café."), restored.state.value.report)
+    }
+
+    /** Los reportes enviados, en orden; con [error], el envío falla. */
+    private class MemoryContributions : ContributionRepository {
+        val sent = mutableListOf<Triple<String, PlaceReportReason, String?>>()
+        var error: Exception? = null
+
+        override suspend fun reportPlace(placeId: String, reason: PlaceReportReason, detail: String?) {
+            delay(500)
+            error?.let { throw it }
+            sent += Triple(placeId, reason, detail)
+        }
     }
 
     private class FailingRepository(

@@ -142,9 +142,9 @@ data class PublicationResponse(
     val rejection: RejectionResponse? = null,
 )
 
-/** 7.c · Cuántas esperan y desde hace cuántos días la más antigua. */
+/** 7.c · Cuántas esperan y desde hace cuántos días la más antigua. v1.4.0 · [reported]: los lugares con reportes abiertos. */
 @Serializable
-data class ModerationSummaryResponse(val pending: Int, val oldestWaitingDays: Int)
+data class ModerationSummaryResponse(val pending: Int, val oldestWaitingDays: Int, val reported: Int)
 
 /** 33 · Quién publicó y su historial con la moderación. */
 @Serializable
@@ -182,12 +182,39 @@ data class ReviewItemResponse(
     val location: GeoPoint,
     val submittedAt: String,
     val author: ReviewAuthorResponse,
+    /** Los motivos de los reportes abiertos, en español, para la app 1.3; la de ahora lee [reports]. */
     val reportReason: String? = null,
+    /** v1.4.0 · Los reportes abiertos, del más reciente al más antiguo; no viene sin reportes. */
+    val reports: List<PlaceReportResponse>? = null,
     val duplicate: SuspicionResponse? = null,
 )
 
 @Serializable
 data class ReviewQueueResponse(val items: List<ReviewItemResponse>)
+
+/** v1.4.0 · Un reporte de un lugar, sin quién lo hizo (es anónimo). */
+@Serializable
+data class PlaceReportResponse(val reason: PlaceReportReason, val detail: String? = null, val createdAt: String)
+
+/**
+ * v1.4.0 · «Reportados» · Un lugar público con reportes abiertos: [reasons] van del más repetido al menos, y [reports]
+ * del más reciente al más antiguo.
+ */
+@Serializable
+data class ReportedPlaceResponse(
+    val id: String,
+    val title: String,
+    val category: Category,
+    val status: PublicationStatus,
+    val photo: String? = null,
+    val authorName: String? = null,
+    val reasons: List<PlaceReportReason>,
+    val reports: List<PlaceReportResponse>,
+    val firstReportedAt: String,
+)
+
+@Serializable
+data class ReportedPlacesResponse(val items: List<ReportedPlaceResponse>)
 
 /** 34 · La nota interna, que solo ven los moderadores. */
 @Serializable

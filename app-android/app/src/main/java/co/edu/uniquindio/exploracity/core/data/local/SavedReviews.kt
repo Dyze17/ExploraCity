@@ -14,6 +14,8 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.DuplicateSuspicion
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
+import co.edu.uniquindio.exploracity.domain.model.PlaceReport
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
@@ -105,7 +107,12 @@ private class SavedReview(
     val reportReason: String? = null,
     val candidates: List<SavedCandidate>? = null,
     val authorNote: String? = null,
+    /** v1.4.0 · Va en el mismo JSON: no cambia el esquema de Room. */
+    val reports: List<SavedReport> = emptyList(),
 )
+
+@Serializable
+private class SavedReport(val reason: PlaceReportReason, val detail: String?, val createdAtMillis: Long)
 
 @Serializable
 private class SavedReviewPhoto(val id: String, val url: String)
@@ -186,6 +193,7 @@ fun ReviewItem.toEntity(position: Int): SavedReviewEntity {
             )
         },
         authorNote = duplicate?.authorNote,
+        reports = reports.map { SavedReport(it.reason, it.detail, it.createdAt.toEpochMilli()) },
     )
     return SavedReviewEntity(id, position, reviewJson.encodeToString(SavedReview.serializer(), saved))
 }
@@ -206,6 +214,7 @@ fun SavedReviewEntity.toDomain(): ReviewItem {
         submittedAt = Instant.ofEpochMilli(saved.submittedAtMillis),
         author = ReviewAuthor(Author(saved.authorId, saved.authorName, saved.authorPoints), saved.authorVerified, saved.authorRejected),
         reportReason = saved.reportReason,
+        reports = saved.reports.map { PlaceReport(it.reason, it.detail, Instant.ofEpochMilli(it.createdAtMillis)) },
         duplicate = saved.candidates?.let { candidates ->
             DuplicateSuspicion(
                 candidates.map { c ->
