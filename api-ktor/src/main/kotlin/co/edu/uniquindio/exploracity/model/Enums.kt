@@ -38,11 +38,14 @@ enum class FixKind { TITLE, DESCRIPTION, CATEGORY, LOCATION, SCHEDULE, PRICE, PH
 /** 27 · Qué cuenta el avance de una insignia. */
 enum class BadgeMetric { PUBLICATIONS, VERIFIED_PLACES, CATEGORY_PLACES, COMMENTS, VISITS, VOTES_RECEIVED }
 
-/** 25 · Tipos de aviso. */
-enum class NotificationType { VERIFIED, FINALIZED, COMMENTED, REJECTED, DUPLICATE_REJECTED, ACHIEVEMENT }
+/** 25 · Tipos de aviso. v1.4.0 · PHOTO_APPROVED y PHOTO_REJECTED: la revisión de una foto agregada (V15). */
+enum class NotificationType { VERIFIED, FINALIZED, COMMENTED, REJECTED, DUPLICATE_REJECTED, ACHIEVEMENT, PHOTO_APPROVED, PHOTO_REJECTED }
 
 /** 31A · Motivos de reporte de un perfil. */
 enum class ReportReason { IMPERSONATION, INAPPROPRIATE_CONTENT, SPAM }
+
+/** v1.4.0 · Por qué no se publica una foto agregada a un lugar. */
+enum class PhotoRejectionReason { NOT_THE_PLACE, INAPPROPRIATE, LOW_QUALITY }
 
 /** v1.4.0 · Motivos de reporte de un lugar (13). Con [OTHER], el detalle es obligatorio. */
 enum class PlaceReportReason { CLOSED, WRONG_LOCATION, OUTDATED_INFO, BAD_PHOTOS, INAPPROPRIATE, DUPLICATE, OTHER }

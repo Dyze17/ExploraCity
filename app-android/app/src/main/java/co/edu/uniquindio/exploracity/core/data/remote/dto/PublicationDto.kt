@@ -10,6 +10,9 @@ import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
+import co.edu.uniquindio.exploracity.domain.model.PendingPhoto
+import co.edu.uniquindio.exploracity.domain.model.PendingPhotoPlace
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.PlaceReport
 import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
@@ -347,6 +350,40 @@ data class ReportedPlaceDto(
 
 @Serializable
 data class ReportedPlacesDto(val items: List<ReportedPlaceDto>)
+
+/** v1.4.0 · «Fotos por revisar». */
+@Serializable
+data class PhotoPlaceDto(
+    val id: String,
+    val title: String,
+    val category: Category,
+    val status: PublicationStatus,
+    val authorName: String? = null,
+    val photos: List<String>,
+)
+
+@Serializable
+data class PendingPhotoDto(
+    val id: String,
+    val url: String,
+    val submittedAt: String,
+    val contributor: AuthorDto? = null,
+    val place: PhotoPlaceDto,
+) {
+    fun toDomain() = PendingPhoto(
+        id = id,
+        url = url,
+        submittedAt = Instant.parse(submittedAt),
+        contributor = contributor?.toDomain(),
+        place = PendingPhotoPlace(place.id, place.title, place.category, place.status, place.authorName, place.photos),
+    )
+}
+
+@Serializable
+data class PendingPhotosDto(val items: List<PendingPhotoDto>)
+
+@Serializable
+data class RejectPhotoRequest(val reason: PhotoRejectionReason)
 
 @Serializable
 data class ReviewQueueDto(val items: List<ReviewItemDto>)

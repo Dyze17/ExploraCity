@@ -20,6 +20,8 @@ import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.Rejection
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RequiredFix
+import co.edu.uniquindio.exploracity.domain.model.PendingPhoto
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewAuthor
@@ -237,6 +239,13 @@ class FakeModerationRepository internal constructor(
     override suspend fun reported(): List<ReportedPlace> = emptyList()
 
     override suspend fun dismissReports(id: String) = throw AlreadyReviewedException()
+
+    /** v1.4.0 · Ni fotos agregadas. */
+    override suspend fun pendingPhotos(): List<PendingPhoto> = emptyList()
+
+    override suspend fun approvePhoto(id: String) = throw AlreadyReviewedException()
+
+    override suspend fun rejectPhoto(id: String, reason: PhotoRejectionReason) = throw AlreadyReviewedException()
 
     /** La cola al día; de paso, el badge. */
     private fun items(): List<ReviewItem> {

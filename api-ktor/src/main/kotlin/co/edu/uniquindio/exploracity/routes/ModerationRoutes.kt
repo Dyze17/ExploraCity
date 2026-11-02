@@ -1,6 +1,7 @@
 package co.edu.uniquindio.exploracity.routes
 
 import co.edu.uniquindio.exploracity.model.FinalizeRequest
+import co.edu.uniquindio.exploracity.model.RejectPhotoRequest
 import co.edu.uniquindio.exploracity.model.RejectRequest
 import co.edu.uniquindio.exploracity.model.ReopenRequest
 import co.edu.uniquindio.exploracity.model.VerifyRequest
@@ -17,7 +18,7 @@ import io.ktor.server.routing.route
 
 /**
  * /v1/moderation · Solo con el rol de moderador (403 con otro): la cola, las decisiones y «Resueltas» (32–37), y
- * «Reportados» (v1.4.0).
+ * «Reportados» y «Fotos por revisar» (v1.4.0).
  */
 fun Route.moderationRoutes(moderation: ModerationService) {
     moderatorOnly {
@@ -63,6 +64,21 @@ fun Route.moderationRoutes(moderation: ModerationService) {
                     }
                     post("/reopen") {
                         moderation.reopen(call.user().id, call.parameters["id"].orEmpty(), call.receive<ReopenRequest>().reason)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
+                }
+            }
+            route("/photos") {
+                get {
+                    call.respond(moderation.photos(call.user().id))
+                }
+                route("/{id}") {
+                    post("/approve") {
+                        moderation.approvePhoto(call.user().id, call.parameters["id"].orEmpty())
+                        call.respond(HttpStatusCode.NoContent)
+                    }
+                    post("/reject") {
+                        moderation.rejectPhoto(call.user().id, call.parameters["id"].orEmpty(), call.receive<RejectPhotoRequest>().reason)
                         call.respond(HttpStatusCode.NoContent)
                     }
                 }

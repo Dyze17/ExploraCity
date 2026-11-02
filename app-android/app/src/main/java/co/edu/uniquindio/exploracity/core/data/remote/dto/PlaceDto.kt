@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.domain.model.HoursBlock
 import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
@@ -109,12 +110,20 @@ data class HoursDto(val days: List<String>, val opens: String, val closes: Strin
     }
 }
 
+/** v1.4.0 · Una foto del detalle y quién la agregó, si no fue quien publicó el lugar. */
+@Serializable
+data class GalleryPhotoDto(val url: String, val contributor: String? = null)
+
 /** 13 · Sin [author], la cuenta que lo publicó se eliminó. */
 @Serializable
 data class PlaceDetailsDto(
     val place: PlaceDto,
     val description: String,
     val photos: List<String>,
+    /** v1.4.0 · Las mismas de [photos], con quién agregó cada una; una API anterior no la manda. */
+    val gallery: List<GalleryPhotoDto>? = null,
+    val photoSlots: Int = 0,
+    val myPendingPhotos: Int = 0,
     val address: String? = null,
     /** El primer tramo, para la app 1.2; con [schedule] no se lee. */
     val hours: HoursDto? = null,
@@ -129,12 +138,14 @@ data class PlaceDetailsDto(
         poi = place.toDomain(),
         description = description,
         // El formulario no pide descripción por foto: el lector oye «Mirador de la Secreta. Foto 1 de 3».
-        photos = photos.map { PoiPhoto(it, place.title) },
+        photos = gallery?.map { PoiPhoto(it.url, place.title, it.contributor) } ?: photos.map { PoiPhoto(it, place.title) },
         address = address.orEmpty(),
         hours = HoursDto.scheduleOf(hours, schedule, alwaysOpen),
         author = author?.toDomain(),
         voted = voted,
         visited = visited,
+        photoSlots = photoSlots,
+        myPendingPhotos = myPendingPhotos,
     )
 }
 
@@ -172,6 +183,10 @@ data class CommentsPageDto(
 @Serializable
 data class CommentRequest(val text: String, val clientId: String)
 
+/** v1.4.0 · Agregar fotos ya subidas a un lugar público. */
+@Serializable
+data class AddPhotosRequest(val urls: List<String>)
+
 /** v1.4.0 · Reportar un lugar (13). */
 @Serializable
 data class PlaceReportRequest(val reason: PlaceReportReason, val detail: String? = null)
@@ -199,6 +214,8 @@ data class NotificationDto(
     val nextBadgeId: String? = null,
     val rejectionReason: String? = null,
     val finalizeReason: String? = null,
+    /** v1.4.0 · El motivo de PHOTO_REJECTED. */
+    val photoRejectionReason: String? = null,
 ) {
     /** null si es de un tipo que la app no conoce o le falta un dato: no se muestra. */
     fun toDomain(): Notification? {
@@ -220,6 +237,11 @@ data class NotificationDto(
                 id, at, read, placeId ?: return null, placeTitle ?: return null, existingPlaceId ?: return null, existingTitle ?: return null,
             )
             "ACHIEVEMENT" -> Notification.Achievement(id, at, read, achievement ?: return null, nextBadge, remaining, achievementId, nextBadgeId)
+            "PHOTO_APPROVED" -> Notification.PhotoApproved(id, at, read, placeId ?: return null, placeTitle ?: return null)
+            "PHOTO_REJECTED" -> Notification.PhotoRejected(
+                id, at, read, placeId ?: return null, placeTitle ?: return null, reason,
+                PhotoRejectionReason.entries.firstOrNull { it.name == photoRejectionReason },
+            )
             else -> null
         }
     }

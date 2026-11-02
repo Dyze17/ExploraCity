@@ -445,6 +445,77 @@
     <string name="place_report_tell_us">tell us what’s wrong</string>
     <string name="place_report_sent">Thank you. A moderator will review this place.</string>
 
+    <!-- v1.4.0 · Community photos: adding them from the detail (13), the viewer, the alerts (25) and their review. -->
+    <plurals name="detail_add_photos">
+        <item quantity="one">Add photos · %1$d more fits</item>
+        <item quantity="other">Add photos · %1$d more fit</item>
+    </plurals>
+    <plurals name="detail_my_pending_photos">
+        <item quantity="one">Your photo is waiting for review: it will show once a moderator approves it.</item>
+        <item quantity="other">Your %1$d photos are waiting for review: they will show once a moderator approves them.</item>
+    </plurals>
+    <string name="photo_viewer_credit">Photo by %1$s</string>
+    <string name="add_photos_title">Add photos</string>
+    <plurals name="add_photos_intro">
+        <item quantity="one">You can add 1 photo to %2$s. A moderator will review it before it shows.</item>
+        <item quantity="other">You can add up to %1$d photos to %2$s. A moderator will review them before they show.</item>
+    </plurals>
+    <string name="add_photos_send">Send photos</string>
+    <plurals name="add_photos_count">
+        <item quantity="one">%d photo chosen</item>
+        <item quantity="other">%d photos chosen</item>
+    </plurals>
+    <string name="add_photos_discard_body">The photos you chose won’t be sent.</string>
+    <string name="add_photos_need_one">add at least one photo</string>
+    <string name="add_photos_wait_upload">wait for the uploads to finish</string>
+    <string name="add_photos_sent">Thank you. Your photos will show once a moderator reviews them.</string>
+    <string name="add_photos_full">That many photos no longer fit: someone added others in the meantime. Remove one and try again.</string>
+    <string name="add_photos_failed">We couldn’t send the photos. Try again.</string>
+    <string name="add_photos_offline">No connection: we couldn’t send the photos. Try when the internet is back.</string>
+    <string name="notification_photo_approved">Your photo of %1$s is now on the place.</string>
+    <string name="notification_photo_rejected">Your photo of %1$s wasn’t published: %2$s.</string>
+    <string name="notification_photo_rejected_plain">Your photo of %1$s wasn’t published.</string>
+    <string name="photo_reason_not_the_place">it doesn’t show the place</string>
+    <string name="photo_reason_inappropriate">it has inappropriate content</string>
+    <string name="photo_reason_low_quality">it’s hard to see (blurry, dark or too small)</string>
+    <string name="photo_reason_not_the_place_label">It doesn’t show the place</string>
+    <string name="photo_reason_inappropriate_label">It has inappropriate content</string>
+    <string name="photo_reason_low_quality_label">It’s hard to see: blurry, dark or too small</string>
+    <string name="moderation_photos">Photos to review</string>
+    <string name="moderation_photos_count">Photos to review · %1$d</string>
+    <plurals name="moderation_see_photos">
+        <item quantity="one">Review %1$d added photo</item>
+        <item quantity="other">Review %1$d added photos</item>
+    </plurals>
+    <string name="photos_review_title">Photos to review</string>
+    <plurals name="photos_review_count">
+        <item quantity="one">%1$d photo</item>
+        <item quantity="other">%1$d photos</item>
+    </plurals>
+    <string name="photos_review_offline_body">“Photos to review” needs internet. Try again when you are online.</string>
+    <string name="photos_review_error_title">We couldn’t load the photos to review</string>
+    <string name="photos_review_empty_title">There are no photos to review</string>
+    <string name="photos_review_empty_body">When someone adds photos to a published place, they will show up here.</string>
+    <string name="photos_review_photo">Photo added to %1$s</string>
+    <string name="photos_review_from">Added by %1$s, %2$s</string>
+    <plurals name="photos_review_place_has">
+        <item quantity="one">The place has %1$d photo:</item>
+        <item quantity="other">The place has %1$d photos:</item>
+    </plurals>
+    <string name="photos_review_approve">Publish</string>
+    <string name="photos_review_reject">Reject</string>
+    <string name="photos_review_reject_title">Why isn’t it published?</string>
+    <string name="photos_review_reject_body">%1$s will get the reason and the photo will be deleted.</string>
+    <string name="photos_review_reasons">Reason</string>
+    <string name="photos_review_choose_reason">choose a reason</string>
+    <string name="photos_review_cancel">Cancel</string>
+    <string name="photos_review_approved">Photo published. Whoever added it will be notified.</string>
+    <string name="photos_review_rejected">Photo rejected. Whoever added it will get the reason.</string>
+    <string name="photos_review_already">Another moderator already reviewed this photo.</string>
+    <string name="photos_review_full">The place already has 5 photos: this one can only be rejected.</string>
+    <string name="photos_review_failed">We couldn’t save the decision. Try again.</string>
+    <string name="photos_review_offline">No connection: we couldn’t save the decision.</string>
+
     <!-- My posts (22) -->
     <string name="my_publications_title">My posts</string>
     <string name="my_publications_filters">Filter by status</string>

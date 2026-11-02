@@ -145,6 +145,7 @@ class AccountService(
             comments = personalData.comments(user.id).map { ExportComment(it.placeTitle, it.text, it.createdAt.iso()) },
             votes = personalData.votes(user.id),
             visits = personalData.visits(user.id).map { ExportVisit(it.placeTitle, it.recommends, it.text?.ifBlank { null }, it.showName) },
+            contributedPhotos = personalData.contributedPhotos(user.id),
         )
         DataExportFile(
             fileName = "exploracity-mis-datos-${LocalDate.ofInstant(now, city.timeZone)}.json",
@@ -162,7 +163,8 @@ class AccountService(
         val photos = database.query {
             val user = user(userId)
             // Antes de borrar nada: las fotos de las publicaciones pendientes se van con ellas.
-            val ids = personalData.photoIds(user.id) + listOfNotNull(user.photoPublicId)
+            val ids = personalData.photoIds(user.id) + listOfNotNull(user.photoPublicId) +
+                personalData.deletePendingPhotosOnUnpublished(user.id)
             personalData.deleteUnpublished(user.id)
             users.delete(user.id)
             ids

@@ -30,7 +30,7 @@ class DetailGalleryTest {
     private val details = PoiDetails(
         poi = samplePois.first { it.id == "plaza-de-bolivar" },
         description = "Capitolio, catedral y alcaldía alrededor de la plaza.",
-        photos = listOf(PoiPhoto(null, "Fachada"), PoiPhoto(null, "Catedral"), PoiPhoto(null, "Pila")),
+        photos = listOf(PoiPhoto(null, "Fachada"), PoiPhoto(null, "Catedral", contributor = "Laura Gómez"), PoiPhoto(null, "Pila")),
         address = "Carrera 14 con calle 20",
         hours = null,
         author = null,
@@ -67,5 +67,15 @@ class DetailGalleryTest {
         compose.onNodeWithContentDescription("Cerrar las fotos").performClick()
 
         compose.onNodeWithContentDescription("Pila. Foto 3 de 3").assertExists()
+    }
+
+    @Test
+    fun `el visor dice quién agregó la foto si no fue quien publicó el lugar`() {
+        showDetail()
+
+        compose.onNodeWithContentDescription("Fachada. Foto 1 de 3").performClick()
+        compose.onNode(hasScrollToIndexAction() and hasAnyAncestor(isDialog())).performScrollToIndex(1)
+
+        compose.onNodeWithContentDescription("Catedral. Foto 2 de 3. Foto de Laura Gómez", useUnmergedTree = true).assertExists()
     }
 }

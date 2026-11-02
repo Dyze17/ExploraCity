@@ -27,6 +27,7 @@ import co.edu.uniquindio.exploracity.features.access.RecoveryEmailSentRoute
 import co.edu.uniquindio.exploracity.features.access.RegisterRoute
 import co.edu.uniquindio.exploracity.features.access.SplashDestination
 import co.edu.uniquindio.exploracity.features.access.SplashRoute
+import co.edu.uniquindio.exploracity.features.explore.AddPhotosRoute
 import co.edu.uniquindio.exploracity.features.explore.CommentsRoute
 import co.edu.uniquindio.exploracity.features.explore.FeedMapRoute
 import co.edu.uniquindio.exploracity.features.explore.FeedRoute
@@ -38,6 +39,7 @@ import co.edu.uniquindio.exploracity.features.moderation.Decision
 import co.edu.uniquindio.exploracity.features.moderation.DecisionNotice
 import co.edu.uniquindio.exploracity.features.moderation.ModerationQueueRoute
 import co.edu.uniquindio.exploracity.features.moderation.RejectPublicationRoute
+import co.edu.uniquindio.exploracity.features.moderation.PendingPhotosRoute
 import co.edu.uniquindio.exploracity.features.moderation.ReportedPlacesRoute
 import co.edu.uniquindio.exploracity.features.moderation.ResolvedPublicationsRoute
 import co.edu.uniquindio.exploracity.features.moderation.ReviewDetailRoute
@@ -144,6 +146,9 @@ private const val VERIFY_DISTINCT_KEY = "verificar_distinto"
 
 /** Marca en «Resueltas» con el cambio de estado hecho en 36, para decirlo una vez. */
 private const val STATE_CHANGED_KEY = "estado_cambiado"
+
+/** v1.4.0 · «Agregar fotos» → 13: las fotos se enviaron. */
+private const val PHOTOS_SENT_KEY = "fotos_enviadas"
 
 /** C1 · Abre la siguiente pendiente en lugar de la revisión (y de 33A y 35, si estaban encima), con el aviso de lo decidido. */
 private fun NavController.toNextReview(id: String, decision: Decision, remaining: Int) {
@@ -326,6 +331,7 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
             )
         }
         composable<PoiDetail> { entry ->
+            val photosSent by entry.savedStateHandle.getStateFlow(PHOTOS_SENT_KEY, false).collectAsStateWithLifecycle()
             PoiDetailRoute(
                 focusComment = entry.toRoute<PoiDetail>().focusComment,
                 onBack = nav.back(),
@@ -333,6 +339,18 @@ private fun NavGraphBuilder.exploreGraph(nav: NavController, role: UserRole) {
                 onAddComment = { nav.navigate(Comments(it, write = true)) },
                 onOpenAuthor = { nav.navigate(PublicProfile(it)) },
                 onOpenMap = { nav.navigate(FeedMap(focusPoiId = it)) },
+                onAddPhotos = { id, title, slots -> nav.navigate(AddPhotos(id, title, slots)) },
+                photosSent = photosSent,
+                onPhotosSentShown = { entry.savedStateHandle[PHOTOS_SENT_KEY] = false },
+            )
+        }
+        composable<AddPhotos> {
+            AddPhotosRoute(
+                onSent = {
+                    nav.previousBackStackEntry?.savedStateHandle?.set(PHOTOS_SENT_KEY, true)
+                    nav.popBackStack()
+                },
+                onLeave = { nav.popBackStack() },
             )
         }
         composable<Comments> { CommentsRoute(onBack = nav.back()) }
@@ -497,6 +515,7 @@ private fun NavGraphBuilder.moderationGraph(nav: NavController) {
                 onOpenReview = { id -> nav.navigate(ReviewDetail(id)) },
                 onOpenResolved = { nav.navigate(ResolvedPublications) },
                 onOpenReported = { nav.navigate(ReportedPlaces) },
+                onOpenPhotos = { nav.navigate(PendingPhotos) },
                 onExplore = { nav.navigateToTab(TopLevelDestination.EXPLORE) },
                 allReviewed = allReviewed?.let(Decision::valueOf),
                 onAllReviewedShown = { entry.savedStateHandle[ALL_REVIEWED_KEY] = null },
@@ -552,6 +571,9 @@ private fun NavGraphBuilder.moderationGraph(nav: NavController) {
                 notice = changed?.let(StateTarget::valueOf),
                 onNoticeShown = { entry.savedStateHandle[STATE_CHANGED_KEY] = null },
             )
+        }
+        composable<PendingPhotos> {
+            PendingPhotosRoute(onBack = nav.back(), onOpenPlace = { id -> nav.navigate(PoiDetail(id)) })
         }
         composable<ReportedPlaces> { entry ->
             val changed by entry.savedStateHandle.getStateFlow<String?>(STATE_CHANGED_KEY, null).collectAsStateWithLifecycle()

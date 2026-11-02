@@ -56,6 +56,8 @@ data class ModerationQueueUiState(
     val message: QueueMessage? = null,
     /** v1.4.0 · Cuántos lugares tienen reportes abiertos, para «Reportados · 2»; 0 si no se pudo pedir. */
     val reported: Int = 0,
+    /** v1.4.0 · Cuántas fotos agregadas esperan revisión, para «Fotos por revisar · 3»; 0 si no se pudo pedir. */
+    val pendingPhotos: Int = 0,
 ) {
     private val queue: ReviewQueue? get() = (content as? QueueContent.Loaded)?.queue
 
@@ -121,9 +123,18 @@ class ModerationQueueViewModel(
                     message = if (announce && hadQueue && queue.savedAt == null) QueueMessage.Updated(newOnes) else it.message,
                 )
             }
-            if (queue.savedAt == null) loadReported()
+            if (queue.savedAt == null) {
+                loadReported()
+                loadPendingPhotos()
+            }
             if (queue.items.isEmpty() && queue.savedAt == null) loadWork()
         }
+    }
+
+    /** «Fotos por revisar», igual: si falla, el botón queda sin número. */
+    private suspend fun loadPendingPhotos() {
+        val count = catchingNonCancellation { moderation.pendingPhotos().size }.getOrNull() ?: return
+        _state.update { it.copy(pendingPhotos = count) }
     }
 
     /** «Reportados» necesita red y no es parte de la cola: si falla, el botón queda sin número. */

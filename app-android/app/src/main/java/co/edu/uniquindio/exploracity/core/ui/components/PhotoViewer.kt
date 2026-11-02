@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +43,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -50,8 +52,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import co.edu.uniquindio.exploracity.R
 
-/** Una foto del visor: su dirección (null si no la hay) y lo que dice el lector (por omisión, «Foto 2 de 5»). */
-data class ViewerPhoto(val url: String?, val description: String? = null)
+/**
+ * Una foto del visor: su dirección (null si no la hay), lo que dice el lector (por omisión, «Foto 2 de 5») y, v1.4.0,
+ * quién la agregó si no fue quien publicó el lugar («Foto de Laura Gómez»), a la vista.
+ */
+data class ViewerPhoto(val url: String?, val description: String? = null, val caption: String? = null)
 
 /**
  * Fotos a pantalla completa (33: «cada foto es tocable a pantalla completa con zoom»; 13 desde la galería del detalle):
@@ -86,12 +91,16 @@ fun PhotoViewer(photos: List<ViewerPhoto>, startIndex: Int, onDismiss: () -> Uni
                     Icon(painterResource(R.drawable.ic_close), stringResource(R.string.photo_viewer_close), tint = Color.White)
                 }
             }
-            Text(
-                stringResource(R.string.photo_viewer_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f),
-                modifier = Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
-            )
+            Column(
+                Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                photos.getOrNull(pagerState.currentPage)?.caption?.let { caption ->
+                    Text(caption, style = MaterialTheme.typography.labelLarge, color = Color.White, modifier = Modifier.clearAndSetSemantics { })
+                }
+                Text(stringResource(R.string.photo_viewer_hint), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f))
+            }
         }
     }
 }

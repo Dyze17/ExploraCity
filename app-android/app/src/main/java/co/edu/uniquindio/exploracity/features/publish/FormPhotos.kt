@@ -46,6 +46,8 @@ class FormPhotos(
     private val awaitReady: suspend () -> Unit,
     /** Se agregó o se quitó una foto (el formulario borra, por ejemplo, un aviso de envío fallido). */
     private val onChanged: () -> Unit = {},
+    /** v1.4.0 · Cuántas caben: 5 en una publicación, las que queden libres al agregarlas a un lugar ya publicado. */
+    private val max: Int = PhotoRules.MAX,
 ) {
     private val jobs = mutableMapOf<String, Job>()
 
@@ -59,7 +61,7 @@ class FormPhotos(
         }
     }
 
-    private val left: Int get() = (PhotoRules.MAX - photos().size).coerceAtLeast(0)
+    private val left: Int get() = (max - photos().size).coerceAtLeast(0)
 
     /** «Cámara»: dónde escribirá la foto la app de cámara; null si ya hay 5. */
     fun onCameraShot(): String? {

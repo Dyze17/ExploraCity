@@ -87,6 +87,7 @@ fun ModerationQueueRoute(
     onOpenReview: (String) -> Unit,
     onOpenResolved: () -> Unit,
     onOpenReported: () -> Unit,
+    onOpenPhotos: () -> Unit,
     onExplore: () -> Unit,
     allReviewed: Decision? = null,
     onAllReviewedShown: () -> Unit = {},
@@ -106,6 +107,7 @@ fun ModerationQueueRoute(
             onOpenReview = onOpenReview,
             onOpenResolved = onOpenResolved,
             onOpenReported = onOpenReported,
+            onOpenPhotos = onOpenPhotos,
             onExplore = onExplore,
             onFilterChange = viewModel::onFilterChange,
             onRetry = viewModel::onRetry,
@@ -118,6 +120,7 @@ class ModerationQueueCallbacks(
     val onOpenReview: (String) -> Unit = {},
     val onOpenResolved: () -> Unit = {},
     val onOpenReported: () -> Unit = {},
+    val onOpenPhotos: () -> Unit = {},
     val onExplore: () -> Unit = {},
     val onFilterChange: (QueueFilter) -> Unit = {},
     val onRetry: () -> Unit = {},
@@ -164,7 +167,7 @@ fun ModerationQueueScreen(state: ModerationQueueUiState, callbacks: ModerationQu
                         ) { RetryButton(callbacks.onRetry) }
                     }
                     is QueueContent.Loaded -> when {
-                        state.empty -> EmptyQueue(state.work, content.queue.savedAt != null, state.reported, callbacks)
+                        state.empty -> EmptyQueue(state.work, content.queue.savedAt != null, state.reported, state.pendingPhotos, callbacks)
                         state.visible.isEmpty() -> Centered {
                             EmptyState(
                                 icon = R.drawable.ic_done_all,
@@ -257,6 +260,12 @@ private fun Filters(state: ModerationQueueUiState, callbacks: ModerationQueueCal
                     style = ExploraButtonStyle.SECONDARY,
                     icon = R.drawable.ic_flag,
                 )
+                ExploraButton(
+                    if (state.pendingPhotos > 0) stringResource(R.string.moderation_photos_count, state.pendingPhotos) else stringResource(R.string.moderation_photos),
+                    onClick = callbacks.onOpenPhotos,
+                    style = ExploraButtonStyle.SECONDARY,
+                    icon = R.drawable.ic_photo_library,
+                )
             }
             val sortDescription = stringResource(R.string.moderation_sort_description)
             Row(
@@ -343,10 +352,10 @@ private fun OfflineHint() {
 
 /**
  * 37 · Cola vacía: cierra el trabajo del día y ofrece seguir. Guardada sin conexión, no hay cifras de hoy. v1.4.0 · Con
- * lugares reportados, los ofrece primero.
+ * lugares reportados o fotos por revisar, los ofrece primero.
  */
 @Composable
-private fun EmptyQueue(work: ModerationWork?, offline: Boolean, reported: Int, callbacks: ModerationQueueCallbacks) {
+private fun EmptyQueue(work: ModerationWork?, offline: Boolean, reported: Int, photos: Int, callbacks: ModerationQueueCallbacks) {
     val verified = MaterialTheme.exploraColors.status.verified
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 24.dp),
@@ -370,6 +379,14 @@ private fun EmptyQueue(work: ModerationWork?, offline: Boolean, reported: Int, c
             textAlign = TextAlign.Center,
         )
         if (work != null && !offline) WorkCard(work)
+        if (!offline && photos > 0) {
+            ExploraButton(
+                pluralStringResource(R.plurals.moderation_see_photos, photos, photos),
+                onClick = callbacks.onOpenPhotos,
+                modifier = Modifier.fillMaxWidth(),
+                icon = R.drawable.ic_photo_library,
+            )
+        }
         if (!offline && reported > 0) {
             ExploraButton(
                 pluralStringResource(R.plurals.moderation_see_reported, reported, reported),

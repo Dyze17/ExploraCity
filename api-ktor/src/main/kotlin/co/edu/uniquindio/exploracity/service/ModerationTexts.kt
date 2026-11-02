@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.service
 import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.FixKind
 import co.edu.uniquindio.exploracity.model.FixResponse
+import co.edu.uniquindio.exploracity.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.model.RejectionReason
 
@@ -47,6 +48,13 @@ object ModerationTexts {
         PlaceReportReason.INAPPROPRIATE -> "el contenido es ofensivo o falso"
         PlaceReportReason.DUPLICATE -> "está repetido"
         PlaceReportReason.OTHER -> "otro motivo"
+    }
+
+    /** v1.4.0 · «Tu foto de Mirador de La Peña no se publicó: no muestra el lugar». */
+    fun sentence(reason: PhotoRejectionReason): String = when (reason) {
+        PhotoRejectionReason.NOT_THE_PLACE -> "no muestra el lugar"
+        PhotoRejectionReason.INAPPROPRIATE -> "tiene contenido inapropiado"
+        PhotoRejectionReason.LOW_QUALITY -> "no se ve bien (borrosa, oscura o muy pequeña)"
     }
 
     /** Quien decidió, si su cuenta ya no existe. */

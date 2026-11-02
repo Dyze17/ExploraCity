@@ -3,6 +3,8 @@ package co.edu.uniquindio.exploracity.domain.repository
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.PendingPhoto
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
@@ -79,4 +81,17 @@ interface ModerationRepository {
      * [AlreadyReviewedException] si otro moderador ya los cerró o el lugar dejó de ser público.
      */
     suspend fun dismissReports(id: String)
+
+    /** v1.4.0 · «Fotos por revisar»: las agregadas a lugares públicos, de la más antigua a la más reciente. Lanza excepción si falla la red. */
+    suspend fun pendingPhotos(): List<PendingPhoto>
+
+    /**
+     * v1.4.0 · Publica la foto al final de las del lugar y avisa a quien la agregó. Lanza [AlreadyReviewedException] si
+     * otro moderador ya la decidió, y [co.edu.uniquindio.exploracity.domain.model.PlaceFullException] si el lugar ya
+     * tiene 5.
+     */
+    suspend fun approvePhoto(id: String)
+
+    /** v1.4.0 · No la publica: se borra y quien la agregó recibe el motivo. Lanza [AlreadyReviewedException] si ya se decidió. */
+    suspend fun rejectPhoto(id: String, reason: PhotoRejectionReason)
 }

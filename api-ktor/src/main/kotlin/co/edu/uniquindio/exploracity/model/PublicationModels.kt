@@ -142,9 +142,12 @@ data class PublicationResponse(
     val rejection: RejectionResponse? = null,
 )
 
-/** 7.c · Cuántas esperan y desde hace cuántos días la más antigua. v1.4.0 · [reported]: los lugares con reportes abiertos. */
+/**
+ * 7.c · Cuántas esperan y desde hace cuántos días la más antigua. v1.4.0 · [reported]: los lugares con reportes
+ * abiertos; [pendingPhotos]: las fotos agregadas que esperan revisión.
+ */
 @Serializable
-data class ModerationSummaryResponse(val pending: Int, val oldestWaitingDays: Int, val reported: Int)
+data class ModerationSummaryResponse(val pending: Int, val oldestWaitingDays: Int, val reported: Int, val pendingPhotos: Int)
 
 /** 33 · Quién publicó y su historial con la moderación. */
 @Serializable
@@ -215,6 +218,34 @@ data class ReportedPlaceResponse(
 
 @Serializable
 data class ReportedPlacesResponse(val items: List<ReportedPlaceResponse>)
+
+/** v1.4.0 · El lugar al que va una foto agregada, con las fotos que ya tiene para comparar. */
+@Serializable
+data class PhotoPlaceResponse(
+    val id: String,
+    val title: String,
+    val category: Category,
+    val status: PublicationStatus,
+    val authorName: String? = null,
+    val photos: List<String>,
+)
+
+/** v1.4.0 · «Fotos por revisar» · Una foto agregada a un lugar público: [id] es el de la foto. */
+@Serializable
+data class PendingPhotoResponse(
+    val id: String,
+    val url: String,
+    val submittedAt: String,
+    /** Quien la agregó; no viene si su cuenta se eliminó. */
+    val contributor: AuthorResponse? = null,
+    val place: PhotoPlaceResponse,
+)
+
+@Serializable
+data class PendingPhotosResponse(val items: List<PendingPhotoResponse>)
+
+@Serializable
+data class RejectPhotoRequest(val reason: PhotoRejectionReason)
 
 /** 34 · La nota interna, que solo ven los moderadores. */
 @Serializable

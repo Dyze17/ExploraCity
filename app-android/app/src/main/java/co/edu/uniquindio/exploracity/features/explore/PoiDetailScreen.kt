@@ -149,10 +149,21 @@ fun PoiDetailRoute(
     onOpenAuthor: (String) -> Unit,
     onOpenMap: (String) -> Unit,
     focusComment: Boolean = false,
+    /** v1.4.0 · «Agregar fotos» con el id, el nombre del lugar y cuántas caben. */
+    onAddPhotos: (String, String, Int) -> Unit = { _, _, _ -> },
+    /** v1.4.0 · Se volvió de «Agregar fotos» con las fotos enviadas. */
+    photosSent: Boolean = false,
+    onPhotosSentShown: () -> Unit = {},
     viewModel: PoiDetailViewModel = viewModel(factory = PoiDetailViewModel.factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResumed() }
+    val currentOnPhotosSentShown by rememberUpdatedState(onPhotosSentShown)
+    LaunchedEffect(photosSent) {
+        if (!photosSent) return@LaunchedEffect
+        viewModel.onPhotosSent()
+        currentOnPhotosSentShown()
+    }
     val context = LocalContext.current
     val shareChooser = stringResource(R.string.detail_share_chooser)
     val poiId = viewModel.poiId
@@ -173,6 +184,7 @@ fun PoiDetailRoute(
             onOpenAuthor = onOpenAuthor,
             onOpenMap = { onOpenMap(poiId) },
             onMessageShown = viewModel::onMessageShown,
+            onAddPhotos = { details -> onAddPhotos(poiId, details.poi.title, details.photoSlots) },
             onOpenReport = viewModel::onOpenReport,
             onReportReasonChange = viewModel::onReportReasonChange,
             onReportDetailChange = viewModel::onReportDetailChange,
@@ -196,6 +208,7 @@ class DetailCallbacks(
     val onOpenAuthor: (String) -> Unit = {},
     val onOpenMap: () -> Unit = {},
     val onMessageShown: () -> Unit = {},
+    val onAddPhotos: (PoiDetails) -> Unit = {},
     val onOpenReport: () -> Unit = {},
     val onReportReasonChange: (PlaceReportReason) -> Unit = {},
     val onReportDetailChange: (String) -> Unit = {},
@@ -305,6 +318,7 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
     val visitQueued = stringResource(R.string.visit_queued)
     val visitSaved = stringResource(R.string.visit_saved)
     val reportSent = stringResource(R.string.place_report_sent)
+    val photosSent = stringResource(R.string.add_photos_sent)
     val points = (message as? DetailMessage.VisitSaved)?.points ?: 0
     val visitSavedPoints = pluralStringResource(R.plurals.visit_saved_points, points, points)
     LaunchedEffect(message) {
@@ -318,6 +332,7 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
             DetailMessage.VisitQueued -> visitQueued
             is DetailMessage.VisitSaved -> if (message.points > 0) visitSavedPoints else visitSaved
             DetailMessage.ReportSent -> reportSent
+            DetailMessage.PhotosSent -> photosSent
         }
         // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
         hostState.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Long)
@@ -337,6 +352,8 @@ private fun DetailLoaded(
         Column(Modifier.weight(1f).verticalScroll(scrollState)) {
             Gallery(details)
             details.savedAt?.let { savedAt -> SavedBanner(savedAt, state.offline, callbacks.onRetry) }
+            // v1.4.0 · Con lo que llegó del servidor: lo guardado no sabe cuántas caben ahora.
+            if (details.savedAt == null) PhotoContribution(details, onAdd = { callbacks.onAddPhotos(details) })
             DetailBody(details, state.voting, callbacks)
         }
         CommentsBar(details.poi.comments, callbacks.onOpenComments, callbacks.onAddComment, focusComment)
@@ -416,13 +433,47 @@ private fun Gallery(details: PoiDetails) {
         }
     }
     viewer?.let { start ->
-        val descriptions = photos.mapIndexed { index, photo -> stringResource(R.string.detail_photo_description, photo.description, index + 1, photos.size) }
+        val captions = photos.map { photo -> photo.contributor?.let { stringResource(R.string.photo_viewer_credit, it) } }
+        val descriptions = photos.mapIndexed { index, photo ->
+            val position = stringResource(R.string.detail_photo_description, photo.description, index + 1, photos.size)
+            listOfNotNull(position, captions[index]).joinToString(". ")
+        }
         PhotoViewer(
-            photos = photos.mapIndexed { index, photo -> ViewerPhoto(photo.url, descriptions[index]) },
+            photos = photos.mapIndexed { index, photo -> ViewerPhoto(photo.url, descriptions[index], captions[index]) },
             startIndex = start,
             onDismiss = { viewer = null },
             onPageChange = { page -> scope.launch { pagerState.scrollToPage(page) } },
         )
+    }
+}
+
+/**
+ * v1.4.0 · Debajo de la galería: «Agregar fotos · caben 3 más» mientras quepan (C1, también para quien lo publicó) y,
+ * si quien mira tiene fotos esperando revisión, que se verán cuando las apruebe un moderador (D1).
+ */
+@Composable
+private fun PhotoContribution(details: PoiDetails, onAdd: () -> Unit) {
+    if (details.photoSlots <= 0 && details.myPendingPhotos <= 0) return
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (details.myPendingPhotos > 0) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(painterResource(R.drawable.ic_schedule), null, tint = MaterialTheme.exploraColors.iconSecondary, modifier = Modifier.size(18.dp.scaledWithFont()))
+                Text(
+                    pluralStringResource(R.plurals.detail_my_pending_photos, details.myPendingPhotos, details.myPendingPhotos),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 19.sp),
+                    color = MaterialTheme.exploraColors.textSecondary,
+                )
+            }
+        }
+        if (details.photoSlots > 0) {
+            ExploraButton(
+                pluralStringResource(R.plurals.detail_add_photos, details.photoSlots, details.photoSlots),
+                onClick = onAdd,
+                modifier = Modifier.fillMaxWidth(),
+                style = ExploraButtonStyle.SECONDARY,
+                icon = R.drawable.ic_add_a_photo,
+            )
+        }
     }
 }
 

@@ -8,6 +8,9 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateSuspicion
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.PendingPhoto
+import co.edu.uniquindio.exploracity.domain.model.PendingPhotoPlace
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.PlaceReport
 import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.Poi
@@ -51,6 +54,12 @@ internal class MemoryModeration(initial: List<ReviewItem>) : ModerationRepositor
     var reportedError: Exception? = null
     var dismissError: Exception? = null
     val dismissed = mutableListOf<String>()
+
+    /** v1.4.0 · «Fotos por revisar». */
+    val photos = mutableListOf<PendingPhoto>()
+    var photoError: Exception? = null
+    val approved = mutableListOf<String>()
+    val rejectedPhotos = mutableListOf<Pair<String, PhotoRejectionReason>>()
 
     override val pendingCount = MutableStateFlow(initial.size)
 
@@ -123,6 +132,25 @@ internal class MemoryModeration(initial: List<ReviewItem>) : ModerationRepositor
         return reportedPlaces.toList()
     }
 
+    override suspend fun pendingPhotos(): List<PendingPhoto> {
+        delay(1.seconds)
+        return photos.toList()
+    }
+
+    override suspend fun approvePhoto(id: String) {
+        approved += id
+        delay(1.seconds)
+        photoError?.let { throw it }
+        photos.removeAll { it.id == id }
+    }
+
+    override suspend fun rejectPhoto(id: String, reason: PhotoRejectionReason) {
+        rejectedPhotos += id to reason
+        delay(1.seconds)
+        photoError?.let { throw it }
+        photos.removeAll { it.id == id }
+    }
+
     override suspend fun dismissReports(id: String) {
         dismissed += id
         delay(1.seconds)
@@ -130,6 +158,15 @@ internal class MemoryModeration(initial: List<ReviewItem>) : ModerationRepositor
         reportedPlaces.removeAll { it.id == id }
     }
 }
+
+/** v1.4.0 · Una foto agregada de prueba al lugar [placeId]. */
+internal fun pendingPhoto(id: String, placeId: String = "mirador") = PendingPhoto(
+    id = id,
+    url = "https://medios.test/$id.jpg",
+    submittedAt = Instant.parse("2026-10-01T15:00:00Z"),
+    contributor = Author("laura", "Laura Gómez", 35),
+    place = PendingPhotoPlace(placeId, "Lugar $placeId", Category.NATURE, PublicationStatus.VERIFIED, "Ana Ríos", emptyList()),
+)
 
 /** v1.4.0 · Un lugar reportado de prueba, con un reporte por cada motivo de [reasons]. */
 internal fun reportedPlace(id: String, vararg reasons: PlaceReportReason = arrayOf(PlaceReportReason.CLOSED)) = ReportedPlace(

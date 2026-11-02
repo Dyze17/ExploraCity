@@ -14,6 +14,7 @@ import co.edu.uniquindio.exploracity.repository.AccountLinkRepository
 import co.edu.uniquindio.exploracity.repository.LoginAttemptRepository
 import co.edu.uniquindio.exploracity.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.repository.NotificationRepository
+import co.edu.uniquindio.exploracity.repository.PendingPhotoRepository
 import co.edu.uniquindio.exploracity.repository.PersonalDataRepository
 import co.edu.uniquindio.exploracity.repository.PlaceReportRepository
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
@@ -105,16 +106,18 @@ fun Application.exploraModule(
     )
     val profiles = ProfileService(database, users, reputation, places, cards, config.city, integrations.media, clock)
     val placeReports = PlaceReportRepository()
-    val placeService = PlaceService(database, places, placeReports, notifications, reputation, cards, clock)
+    val pendingPhotos = PendingPhotoRepository()
+    val placeService = PlaceService(database, places, placeReports, pendingPhotos, notifications, reputation, cards, clock)
     val notificationService = NotificationService(database, notifications, clock)
     val publicationRepository = PublicationRepository()
     val views = PublicationViews(publicationRepository, places, placeReports, cards)
     val publicationService = PublicationService(
-        database, publicationRepository, places, users, reputation, views, integrations.classifier, integrations.media, zones, clock,
+        database, publicationRepository, places, pendingPhotos, users, reputation, views, integrations.classifier, integrations.media, zones,
+        clock,
     )
     val moderationService = ModerationService(
-        database, publicationRepository, places, ModerationRepository(), placeReports, notifications, reputation, views, config.city,
-        clock,
+        database, publicationRepository, places, ModerationRepository(), placeReports, pendingPhotos, integrations.media, notifications,
+        reputation, views, config.city, clock,
     )
     val devMailbox = devMailbox(config, integrations)?.let { DevMailboxService(database, it, mail, users, links, clock) }
 

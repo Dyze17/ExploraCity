@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.model.DecisionAction
 import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.ModerationDecisions
+import co.edu.uniquindio.exploracity.model.PendingPhotos
 import co.edu.uniquindio.exploracity.model.Photos
 import co.edu.uniquindio.exploracity.model.PlaceHours
 import co.edu.uniquindio.exploracity.model.PlaceSimilar
@@ -30,6 +31,7 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.java.UUIDColumnType
+import org.jetbrains.exposed.v1.core.notInSubQuery
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.jdbc.Query
@@ -142,11 +144,21 @@ class PublicationRepository {
         it[createdAt] = at.atOffset(ZoneOffset.UTC)
     }[Photos.id]
 
-    /** Las fotos de [ownerId] con esas direcciones; las que no son suyas no vienen. */
+    /**
+     * Las fotos de [ownerId] con esas direcciones; las que no son suyas no vienen, ni las que esperan revisión en otro
+     * lugar (v1.4.0): esas ya tienen a dónde ir.
+     */
     fun ownPhotos(ownerId: UUID, urls: Collection<String>): List<StoredPhoto> {
         if (urls.isEmpty()) return emptyList()
-        return Photos.selectAll().where { (Photos.ownerId eq ownerId) and (Photos.url inList urls) }.map { it.toPhoto() }
+        return Photos.selectAll()
+            .where {
+                (Photos.ownerId eq ownerId) and (Photos.url inList urls) and
+                    (Photos.id notInSubQuery PendingPhotos.select(PendingPhotos.photoId))
+            }
+            .map { it.toPhoto() }
     }
+
+    fun photoExists(id: UUID): Boolean = Photos.select(Photos.id).where { Photos.id eq id }.any()
 
     fun photosOf(placeId: UUID): List<StoredPhoto> =
         Photos.selectAll().where { Photos.placeId eq placeId }.orderBy(Photos.position).map { it.toPhoto() }

@@ -67,6 +67,27 @@ sealed interface Notification {
         val existingTitle: String,
     ) : Notification
 
+    /** v1.4.0 · «Tu foto de Mirador de la Secreta ya se ve en el lugar» → 13. */
+    data class PhotoApproved(
+        override val id: String,
+        override val createdAt: Instant,
+        override val read: Boolean,
+        val poiId: String,
+        val poiTitle: String,
+    ) : Notification
+
+    /** v1.4.0 · «Tu foto de … no se publicó: no muestra el lugar» → 13, donde se puede agregar otra. */
+    data class PhotoRejected(
+        override val id: String,
+        override val createdAt: Instant,
+        override val read: Boolean,
+        val poiId: String,
+        val poiTitle: String,
+        /** La frase del motivo en español, por si llega un código que la app no conoce. */
+        val reason: String?,
+        val photoRejectionReason: PhotoRejectionReason?,
+    ) : Notification
+
     /** «Nuevo logro: 3 lugares verificados. Te faltan 7 para la insignia de …» → 27. */
     data class Achievement(
         override val id: String,
@@ -88,4 +109,6 @@ fun Notification.markedRead(): Notification = when (this) {
     is Notification.Rejected -> copy(read = true)
     is Notification.DuplicateRejected -> copy(read = true)
     is Notification.Achievement -> copy(read = true)
+    is Notification.PhotoApproved -> copy(read = true)
+    is Notification.PhotoRejected -> copy(read = true)
 }

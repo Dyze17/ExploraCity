@@ -65,8 +65,9 @@ data class SavedDetailsEntity(
     val hoursJson: String? = null,
 )
 
+/** v1.4.0 · [contributor] va en el mismo JSON: el esquema de Room no cambia. */
 @Serializable
-data class SavedPhoto(val url: String?, val description: String)
+data class SavedPhoto(val url: String?, val description: String, val contributor: String? = null)
 
 /** Sin autor (cuenta eliminada) en saved_details: un id vacío, así la tabla no cambia de esquema. */
 internal const val DELETED_AUTHOR = ""
@@ -118,7 +119,7 @@ fun SavedPoiEntity.toDomain() = Poi(
 fun PoiDetails.toEntity(savedAt: Instant) = SavedDetailsEntity(
     poiId = poi.id,
     description = description,
-    photos = photos.map { SavedPhoto(it.url, it.description) },
+    photos = photos.map { SavedPhoto(it.url, it.description, it.contributor) },
     address = address,
     openDays = null,
     opensAt = null,
@@ -135,7 +136,7 @@ fun PoiDetails.toEntity(savedAt: Instant) = SavedDetailsEntity(
 fun SavedDetailsEntity.toDomain(poi: SavedPoiEntity) = PoiDetails(
     poi = poi.toDomain(),
     description = description,
-    photos = photos.map { PoiPhoto(it.url, it.description) },
+    photos = photos.map { PoiPhoto(it.url, it.description, it.contributor) },
     address = address,
     hours = hoursJson?.let(StoredHours::decode) ?: if (openDays != null && opensAt != null && closesAt != null) {
         OpeningHours.of(openDays.split(',').map(DayOfWeek::valueOf).toSet(), LocalTime.parse(opensAt), LocalTime.parse(closesAt))

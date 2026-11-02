@@ -52,11 +52,21 @@ data class MapAreaResponse(val items: List<PlaceSummaryResponse>, val total: Int
 data class HoursResponse(val days: List<String>, val opens: String, val closes: String)
 
 /** 13 · El detalle. Sin [author], la cuenta que lo publicó se eliminó («Usuario eliminado»). */
+/** v1.4.0 · Una foto del detalle: [contributor] es quien la agregó, si no es quien publicó el lugar. */
+@Serializable
+data class GalleryPhotoResponse(val url: String, val contributor: String? = null)
+
 @Serializable
 data class PlaceDetailsResponse(
     val place: PlaceSummaryResponse,
     val description: String,
     val photos: List<String>,
+    /** v1.4.0 · Las mismas fotos de [photos], en el mismo orden, con quién agregó cada una. */
+    val gallery: List<GalleryPhotoResponse>,
+    /** v1.4.0 · Cuántas fotos más caben: 5 menos las publicadas y las que esperan revisión. */
+    val photoSlots: Int,
+    /** v1.4.0 · Cuántas de quien mira esperan revisión en este lugar. */
+    val myPendingPhotos: Int,
     val address: String? = null,
     /** El primer tramo del horario, para la app 1.2; la de ahora lee [schedule]. */
     val hours: HoursResponse? = null,
@@ -129,6 +139,8 @@ data class NotificationResponse(
     val nextBadgeId: String? = null,
     val rejectionReason: RejectionReason? = null,
     val finalizeReason: FinalizeReason? = null,
+    /** v1.4.0 · El motivo de PHOTO_REJECTED. */
+    val photoRejectionReason: PhotoRejectionReason? = null,
 )
 
 @Serializable
@@ -149,6 +161,10 @@ data class PublicProfileResponse(
     /** Insignias desbloqueadas. */
     val badges: Int,
 )
+
+/** v1.4.0 · Agregar a un lugar público las fotos de [urls], ya subidas con `POST /v1/photos`. */
+@Serializable
+data class AddPhotosRequest(val urls: List<String>)
 
 /** v1.4.0 · Reportar un lugar (13): el motivo y, si se quiere, qué pasa (hasta 300; con `OTHER`, obligatorio). */
 @Serializable

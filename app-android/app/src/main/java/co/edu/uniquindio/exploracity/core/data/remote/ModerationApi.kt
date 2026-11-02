@@ -4,6 +4,8 @@ import co.edu.uniquindio.exploracity.core.data.remote.dto.CandidateDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.FinalizeRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ModerationSummaryDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ModerationWorkDto
+import co.edu.uniquindio.exploracity.core.data.remote.dto.PendingPhotosDto
+import co.edu.uniquindio.exploracity.core.data.remote.dto.RejectPhotoRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.RejectRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ReopenRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.ReportedPlacesDto
@@ -14,6 +16,8 @@ import co.edu.uniquindio.exploracity.core.data.remote.dto.VerifyRequest
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.PendingPhoto
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
@@ -69,6 +73,19 @@ class ModerationApi(private val client: HttpClient) {
     suspend fun dismissReports(id: String) {
         client.post("v1/moderation/reports/${id.encodeURLPathPart()}/dismiss")
     }
+
+    /** v1.4.0 · Las fotos agregadas que esperan revisión; nunca las del propio moderador. */
+    suspend fun pendingPhotos(): List<PendingPhoto> = client.get("v1/moderation/photos").body<PendingPhotosDto>().items.map { it.toDomain() }
+
+    suspend fun approvePhoto(id: String) {
+        client.post("${photo(id)}/approve")
+    }
+
+    suspend fun rejectPhoto(id: String, reason: PhotoRejectionReason) {
+        client.post("${photo(id)}/reject") { jsonBody(RejectPhotoRequest(reason)) }
+    }
+
+    private fun photo(id: String) = "v1/moderation/photos/${id.encodeURLPathPart()}"
 
     private fun pending(id: String) = "v1/moderation/queue/${id.encodeURLPathPart()}"
 

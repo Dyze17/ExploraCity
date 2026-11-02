@@ -24,6 +24,7 @@ import co.edu.uniquindio.exploracity.plugins.ApiException
 import co.edu.uniquindio.exploracity.repository.HoursBlock
 import co.edu.uniquindio.exploracity.repository.OwnPlaceRow
 import co.edu.uniquindio.exploracity.repository.PlaceFields
+import co.edu.uniquindio.exploracity.repository.PendingPhotoRepository
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.PublicationRepository
 import co.edu.uniquindio.exploracity.repository.StoredPhoto
@@ -46,6 +47,7 @@ class PublicationService(
     private val database: Database,
     private val publications: PublicationRepository,
     private val places: PlaceRepository,
+    private val pendingPhotos: PendingPhotoRepository,
     private val users: UserRepository,
     private val reputation: ReputationService,
     private val views: PublicationViews,
@@ -209,16 +211,40 @@ class PublicationService(
         return result
     }
 
-    /** 23 · La borra con sus fotos (también del almacén), comentarios y votos. Sus puntos dejan de contar. */
+    /**
+     * 23 · La borra con sus fotos (también del almacén), comentarios y votos. Sus puntos dejan de contar. v1.4.0 · Las
+     * fotos que otras personas agregaron y esperaban revisión se van con ella.
+     */
     suspend fun delete(userId: UUID, publicationId: String) {
         val id = idOf(publicationId)
         val photos = database.query {
             own(userId, id)
-            val ids = publications.photosOf(id).map { it.publicId }
+            val waiting = pendingPhotos.of(id)
+            val ids = publications.photosOf(id).map { it.publicId } + waiting.map { it.publicId }
+            publications.deletePhotos(waiting.map { it.photoId })
             publications.delete(id)
             ids
         }
         discard(photos)
+    }
+
+    /**
+     * v1.4.0 · Agrega a un lugar público las fotos de [urls] (ya subidas con [uploadPhoto]), de quien publicó el lugar o
+     * de cualquier otra persona (C1). Esperan a un moderador antes de verse (D1). Caben 5 entre las publicadas y las que
+     * esperan; si no caben todas, no se agrega ninguna (409 too_many_photos).
+     */
+    suspend fun contributePhotos(userId: UUID, placeId: String, urls: List<String>) {
+        val clean = urls.map { it.trim() }
+        if (clean.isEmpty() || clean.size != clean.toSet().size) throw invalidPhotos()
+        database.query {
+            val id = uuidOrNull(placeId) ?: throw PlaceService.placeNotFound()
+            val place = publications.find(id, lock = true)?.takeIf { it.status in PUBLIC } ?: throw PlaceService.placeNotFound()
+            val photos = ownedPhotos(userId, clean, allowedPlace = null)
+            if (photos.any { it.placeId != null }) throw invalidPhotos()
+            val taken = publications.photosOf(place.id).size + pendingPhotos.of(place.id).size
+            if (taken + photos.size > PHOTOS_MAX) throw ApiException.conflict("too_many_photos")
+            pendingPhotos.add(place.id, photos.map { it.id }, clock.instant())
+        }
     }
 
     /** 19 · Una foto que terminó de subir después del envío se agrega al final. Agregarla otra vez no cambia nada. */
@@ -257,13 +283,19 @@ class PublicationService(
         return Duplicate(found.isNotEmpty(), found, null)
     }
 
-    /** Las fotos de [urls], en ese orden: todas de la persona y sin otra publicación (o de [allowedPlace]). */
+    /**
+     * Las fotos de [urls], en ese orden: de la persona y sin otra publicación, o ya en [allowedPlace]. v1.4.0 · En la
+     * edición (23) valen también las que otra persona agregó a ese lugar: quien lo publicó las puede dejar o quitar.
+     */
     private fun ownedPhotos(userId: UUID, urls: List<String>, allowedPlace: UUID?): List<StoredPhoto> {
+        val onPlace = allowedPlace?.let { publications.photosOf(it) }.orEmpty().associateBy { it.url }
         val byUrl = publications.ownPhotos(userId, urls).associateBy { it.url }
         return urls.map { url ->
-            val photo = byUrl[url] ?: throw invalidPhotos()
-            if (photo.placeId != null && photo.placeId != allowedPlace) throw invalidPhotos()
-            photo
+            onPlace[url] ?: run {
+                val photo = byUrl[url] ?: throw invalidPhotos()
+                if (photo.placeId != null && photo.placeId != allowedPlace) throw invalidPhotos()
+                photo
+            }
         }
     }
 
@@ -385,6 +417,9 @@ class PublicationService(
         const val TITLE_MAX = 60
         const val DESCRIPTION_MIN = 30
         const val DESCRIPTION_MAX = 600
+
+        /** Los estados de un lugar que se ve en el feed: solo a esos se les agregan fotos (v1.4.0). */
+        private val PUBLIC = setOf(PublicationStatus.VERIFIED, PublicationStatus.FINALIZED)
 
         /** README 19: de 1 a 5 fotos. */
         const val PHOTOS_MIN = 1

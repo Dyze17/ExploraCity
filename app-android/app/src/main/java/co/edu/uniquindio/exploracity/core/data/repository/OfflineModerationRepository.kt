@@ -9,6 +9,8 @@ import co.edu.uniquindio.exploracity.domain.model.AlreadyReviewedException
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.PendingPhoto
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
@@ -84,6 +86,13 @@ class OfflineModerationRepository(
     override suspend fun reported(): List<ReportedPlace> = online { remote.reported() }
 
     override suspend fun dismissReports(id: String) = online { remote.dismissReports(id) }
+
+    /** v1.4.0 · «Fotos por revisar» tampoco se guarda. */
+    override suspend fun pendingPhotos(): List<PendingPhoto> = online { remote.pendingPhotos() }
+
+    override suspend fun approvePhoto(id: String) = online { remote.approvePhoto(id) }
+
+    override suspend fun rejectPhoto(id: String, reason: PhotoRejectionReason) = online { remote.rejectPhoto(id, reason) }
 
     override suspend fun reopen(id: String, reason: String) {
         online { remote.reopen(id, reason) }

@@ -6,6 +6,9 @@ import co.edu.uniquindio.exploracity.domain.model.AlreadyReviewedException
 import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.PendingPhoto
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
+import co.edu.uniquindio.exploracity.domain.model.PlaceFullException
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
@@ -86,6 +89,26 @@ class ApiModerationRepository(private val api: ModerationApi) : ModerationReposi
         }
     }
 
+    override suspend fun pendingPhotos(): List<PendingPhoto> = api.pendingPhotos()
+
+    override suspend fun approvePhoto(id: String) = decidePhoto { api.approvePhoto(id) }
+
+    override suspend fun rejectPhoto(id: String, reason: PhotoRejectionReason) = decidePhoto { api.rejectPhoto(id, reason) }
+
+    /** v1.4.0 · Ya decidida (409) o borrada (404): [AlreadyReviewedException]; el lugar ya tiene 5: [PlaceFullException]. */
+    private suspend fun decidePhoto(send: suspend () -> Unit) {
+        try {
+            send()
+        } catch (e: ApiException) {
+            when {
+                e.code == TOO_MANY_PHOTOS -> throw PlaceFullException()
+                e.code == STATE_CHANGED -> throw StateChangedException()
+                e.status == HttpStatusCode.NotFound.value || e.code == ALREADY_REVIEWED -> throw AlreadyReviewedException()
+                else -> throw e
+            }
+        }
+    }
+
     /** Verificar o rechazar. Si ya no estaba pendiente, sale de la cola igual y se avisa con [AlreadyReviewedException]. */
     private suspend fun decide(id: String, send: suspend () -> Unit) {
         try {
@@ -120,5 +143,6 @@ class ApiModerationRepository(private val api: ModerationApi) : ModerationReposi
     private companion object {
         const val ALREADY_REVIEWED = "already_reviewed"
         const val STATE_CHANGED = "state_changed"
+        const val TOO_MANY_PHOTOS = "too_many_photos"
     }
 }

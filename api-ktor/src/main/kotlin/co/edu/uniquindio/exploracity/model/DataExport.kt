@@ -15,6 +15,8 @@ data class ExportFile(
     @SerialName("comentarios") val comments: List<ExportComment>,
     @SerialName("votos") val votes: List<String>,
     @SerialName("visitados") val visits: List<ExportVisit>,
+    /** v1.4.0 · Las fotos que agregó a lugares de otras personas; no viene si no agregó ninguna. */
+    @SerialName("fotosAportadas") val contributedPhotos: List<String> = emptyList(),
 )
 
 @Serializable
