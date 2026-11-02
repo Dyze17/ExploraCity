@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.core.data.remote
 
+import co.edu.uniquindio.exploracity.core.data.remote.dto.AddPhotosRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.CommentDto
 import co.edu.uniquindio.exploracity.core.data.remote.dto.CommentRequest
 import co.edu.uniquindio.exploracity.core.data.remote.dto.CommentsPageDto
@@ -85,6 +86,11 @@ class PoiApi(private val client: HttpClient) {
     suspend fun addComment(id: String, text: String, clientId: String): Comment = client.post("${place(id)}/comments") {
         jsonBody(CommentRequest(text, clientId))
     }.body<CommentDto>().toDomain()
+
+    /** v1.4.0 · Fotos ya subidas para un lugar público: esperan revisión. */
+    suspend fun addPhotos(id: String, urls: List<String>) {
+        client.post("${place(id)}/photos") { jsonBody(AddPhotosRequest(urls)) }
+    }
 
     /** v1.4.0 · Reporte anónimo para la moderación. */
     suspend fun report(id: String, reason: PlaceReportReason, detail: String?) {

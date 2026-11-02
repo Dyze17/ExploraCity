@@ -465,6 +465,79 @@
     <string name="place_report_tell_us">cuéntanos qué pasa</string>
     <string name="place_report_sent">Gracias. Un moderador revisará este lugar.</string>
 
+    <!-- v1.4.0 · Fotos de la comunidad: agregarlas desde el detalle (13), el visor, los avisos (25) y su revisión. -->
+    <plurals name="detail_add_photos">
+        <item quantity="one">Agregar fotos · cabe %1$d más</item>
+        <item quantity="many">Agregar fotos · caben %1$d más</item>
+        <item quantity="other">Agregar fotos · caben %1$d más</item>
+    </plurals>
+    <plurals name="detail_my_pending_photos">
+        <item quantity="one">Tu foto espera revisión: se verá cuando la apruebe un moderador.</item>
+        <item quantity="many">Tus %1$d fotos esperan revisión: se verán cuando las apruebe un moderador.</item>
+        <item quantity="other">Tus %1$d fotos esperan revisión: se verán cuando las apruebe un moderador.</item>
+    </plurals>
+    <string name="photo_viewer_credit">Foto de %1$s</string>
+    <string name="add_photos_title">Agregar fotos</string>
+    <plurals name="add_photos_intro">
+        <item quantity="one">Puedes agregar 1 foto a %2$s. Un moderador la revisará antes de que se vea.</item>
+        <item quantity="many">Puedes agregar hasta %1$d fotos a %2$s. Un moderador las revisará antes de que se vean.</item>
+        <item quantity="other">Puedes agregar hasta %1$d fotos a %2$s. Un moderador las revisará antes de que se vean.</item>
+    </plurals>
+    <string name="add_photos_send">Enviar fotos</string>
+    <string name="add_photos_discard_body">Las fotos que elegiste no se enviarán.</string>
+    <string name="add_photos_need_one">agrega al menos una foto</string>
+    <string name="add_photos_wait_upload">espera a que terminen de subir</string>
+    <string name="add_photos_sent">Gracias. Tus fotos se verán cuando las revise un moderador.</string>
+    <string name="add_photos_full">Ya no caben tantas fotos: alguien agregó otras mientras tanto. Quita alguna e intenta de nuevo.</string>
+    <string name="add_photos_failed">No pudimos enviar las fotos. Intenta de nuevo.</string>
+    <string name="add_photos_offline">Sin conexión: no pudimos enviar las fotos. Inténtalo cuando vuelva el internet.</string>
+    <string name="notification_photo_approved">Tu foto de %1$s ya se ve en el lugar.</string>
+    <string name="notification_photo_rejected">Tu foto de %1$s no se publicó: %2$s.</string>
+    <string name="notification_photo_rejected_plain">Tu foto de %1$s no se publicó.</string>
+    <string name="photo_reason_not_the_place">no muestra el lugar</string>
+    <string name="photo_reason_inappropriate">tiene contenido inapropiado</string>
+    <string name="photo_reason_low_quality">no se ve bien (borrosa, oscura o muy pequeña)</string>
+    <string name="photo_reason_not_the_place_label">No muestra el lugar</string>
+    <string name="photo_reason_inappropriate_label">Tiene contenido inapropiado</string>
+    <string name="photo_reason_low_quality_label">No se ve bien: borrosa, oscura o muy pequeña</string>
+    <string name="moderation_photos">Fotos por revisar</string>
+    <string name="moderation_photos_count">Fotos por revisar · %1$d</string>
+    <plurals name="moderation_see_photos">
+        <item quantity="one">Revisar %1$d foto agregada</item>
+        <item quantity="many">Revisar %1$d fotos agregadas</item>
+        <item quantity="other">Revisar %1$d fotos agregadas</item>
+    </plurals>
+    <string name="photos_review_title">Fotos por revisar</string>
+    <plurals name="photos_review_count">
+        <item quantity="one">%1$d foto</item>
+        <item quantity="many">%1$d fotos</item>
+        <item quantity="other">%1$d fotos</item>
+    </plurals>
+    <string name="photos_review_offline_body">«Fotos por revisar» necesita internet. Vuelve a intentarlo cuando haya conexión.</string>
+    <string name="photos_review_error_title">No pudimos cargar las fotos por revisar</string>
+    <string name="photos_review_empty_title">No hay fotos por revisar</string>
+    <string name="photos_review_empty_body">Cuando alguien agregue fotos a un lugar publicado, aparecerán aquí.</string>
+    <string name="photos_review_photo">Foto agregada a %1$s</string>
+    <string name="photos_review_from">Agregada por %1$s, %2$s</string>
+    <plurals name="photos_review_place_has">
+        <item quantity="one">El lugar tiene %1$d foto:</item>
+        <item quantity="many">El lugar tiene %1$d fotos:</item>
+        <item quantity="other">El lugar tiene %1$d fotos:</item>
+    </plurals>
+    <string name="photos_review_approve">Publicar</string>
+    <string name="photos_review_reject">Rechazar</string>
+    <string name="photos_review_reject_title">¿Por qué no se publica?</string>
+    <string name="photos_review_reject_body">%1$s recibirá el motivo y la foto se borrará.</string>
+    <string name="photos_review_reasons">Motivo</string>
+    <string name="photos_review_choose_reason">elige un motivo</string>
+    <string name="photos_review_cancel">Cancelar</string>
+    <string name="photos_review_approved">Foto publicada. Quien la agregó recibirá el aviso.</string>
+    <string name="photos_review_rejected">Foto rechazada. Quien la agregó recibirá el motivo.</string>
+    <string name="photos_review_already">Otro moderador ya revisó esta foto.</string>
+    <string name="photos_review_full">El lugar ya tiene 5 fotos: esta solo se puede rechazar.</string>
+    <string name="photos_review_failed">No pudimos guardar la decisión. Intenta de nuevo.</string>
+    <string name="photos_review_offline">Sin conexión: no pudimos guardar la decisión.</string>
+
     <!-- Mis publicaciones (22) -->
     <string name="my_publications_title">Mis publicaciones</string>
     <string name="my_publications_filters">Filtrar por estado</string>

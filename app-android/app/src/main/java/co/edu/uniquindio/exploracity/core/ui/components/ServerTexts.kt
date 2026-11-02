@@ -8,6 +8,7 @@ import co.edu.uniquindio.exploracity.domain.model.Badge
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.Rejection
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RequiredFix
 
@@ -55,6 +56,24 @@ fun rejectionSentence(reason: RejectionReason?, fallback: String): String = when
     RejectionReason.INAPPROPRIATE -> stringResource(R.string.notice_reason_inappropriate)
     RejectionReason.OTHER, null -> fallback
 }
+
+/** v1.4.0 · 25 · «Tu foto de … no se publicó: [no muestra el lugar]»; con un código que no conoce, el texto del servidor. */
+@Composable
+fun photoRejectionSentence(reason: PhotoRejectionReason?, fallback: String?): String? = when (reason) {
+    PhotoRejectionReason.NOT_THE_PLACE -> stringResource(R.string.photo_reason_not_the_place)
+    PhotoRejectionReason.INAPPROPRIATE -> stringResource(R.string.photo_reason_inappropriate)
+    PhotoRejectionReason.LOW_QUALITY -> stringResource(R.string.photo_reason_low_quality)
+    null -> fallback
+}
+
+/** v1.4.0 · El motivo en la lista para elegirlo («No muestra el lugar»). */
+@get:StringRes
+val PhotoRejectionReason.labelRes: Int
+    get() = when (this) {
+        PhotoRejectionReason.NOT_THE_PLACE -> R.string.photo_reason_not_the_place_label
+        PhotoRejectionReason.INAPPROPRIATE -> R.string.photo_reason_inappropriate_label
+        PhotoRejectionReason.LOW_QUALITY -> R.string.photo_reason_low_quality_label
+    }
 
 /** 25 · «… pasó a finalizada: [el lugar cerró de forma permanente]»; null si el aviso no trae motivo. */
 @Composable

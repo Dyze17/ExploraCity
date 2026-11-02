@@ -371,6 +371,8 @@ class PoiDetailViewModelTest {
         val sent = mutableListOf<Triple<String, PlaceReportReason, String?>>()
         var error: Exception? = null
 
+        override suspend fun addPhotos(placeId: String, urls: List<String>) = Unit
+
         override suspend fun reportPlace(placeId: String, reason: PlaceReportReason, detail: String?) {
             delay(500)
             error?.let { throw it }

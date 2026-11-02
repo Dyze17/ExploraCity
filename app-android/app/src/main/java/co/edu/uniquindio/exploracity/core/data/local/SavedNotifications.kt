@@ -9,13 +9,15 @@ import androidx.room.Transaction
 import androidx.room.Upsert
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.Notification
+import co.edu.uniquindio.exploracity.domain.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 // Los últimos avisos que llegaron (25): sin conexión, la lista queda en su último estado conocido con su antigüedad.
 
-enum class NotificationType { VERIFIED, FINALIZED, COMMENTED, REJECTED, DUPLICATE_REJECTED, ACHIEVEMENT }
+/** v1.4.0 · PHOTO_APPROVED y PHOTO_REJECTED: Room guarda el nombre, así que la tabla no cambia. */
+enum class NotificationType { VERIFIED, FINALIZED, COMMENTED, REJECTED, DUPLICATE_REJECTED, ACHIEVEMENT, PHOTO_APPROVED, PHOTO_REJECTED }
 
 /** Un aviso en una sola tabla: cada tipo usa sus columnas y deja las demás en null. */
 @Entity(tableName = "saved_notifications")
@@ -106,6 +108,14 @@ fun Notification.toEntity(position: Int): SavedNotificationEntity {
             existingPoiId = existingPoiId,
             existingTitle = existingTitle,
         )
+        is Notification.PhotoApproved -> base.copy(type = NotificationType.PHOTO_APPROVED, poiId = poiId, title = poiTitle)
+        is Notification.PhotoRejected -> base.copy(
+            type = NotificationType.PHOTO_REJECTED,
+            poiId = poiId,
+            title = poiTitle,
+            reason = reason,
+            reasonCode = photoRejectionReason?.name,
+        )
         is Notification.Achievement -> base.copy(
             type = NotificationType.ACHIEVEMENT,
             achievement = achievement,
@@ -130,5 +140,8 @@ fun SavedNotificationEntity.toDomain(): Notification {
             Notification.DuplicateRejected(id, createdAt, read, publicationId!!, title!!, existingPoiId!!, existingTitle!!)
         NotificationType.ACHIEVEMENT ->
             Notification.Achievement(id, createdAt, read, achievement!!, nextBadge, remaining, achievementId, nextBadgeId)
+        NotificationType.PHOTO_APPROVED -> Notification.PhotoApproved(id, createdAt, read, poiId!!, title!!)
+        NotificationType.PHOTO_REJECTED ->
+            Notification.PhotoRejected(id, createdAt, read, poiId!!, title!!, reason, PhotoRejectionReason.entries.firstOrNull { it.name == reasonCode })
     }
 }

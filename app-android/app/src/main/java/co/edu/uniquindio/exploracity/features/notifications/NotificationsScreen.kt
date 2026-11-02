@@ -68,6 +68,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.SkeletonBlock
 import co.edu.uniquindio.exploracity.core.ui.components.badgeName
 import co.edu.uniquindio.exploracity.core.ui.components.dashedBorder
 import co.edu.uniquindio.exploracity.core.ui.components.finalizeSentence
+import co.edu.uniquindio.exploracity.core.ui.components.photoRejectionSentence
 import co.edu.uniquindio.exploracity.core.ui.components.rejectionSentence
 import co.edu.uniquindio.exploracity.core.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
@@ -107,6 +108,8 @@ fun NotificationsRoute(
                     is Notification.Rejected -> onOpenPublication(notification.publicationId)
                     is Notification.DuplicateRejected -> onOpenPublication(notification.publicationId)
                     is Notification.Achievement -> onOpenBadges()
+                    is Notification.PhotoApproved -> onOpenPoi(notification.poiId)
+                    is Notification.PhotoRejected -> onOpenPoi(notification.poiId)
                 }
             },
             onGoToExisting = { notification ->
@@ -366,6 +369,10 @@ private fun notificationMessage(notification: Notification): String = when (noti
     is Notification.Rejected ->
         stringResource(R.string.notification_rejected, notification.title, rejectionSentence(notification.rejectionReason, notification.reason))
     is Notification.DuplicateRejected -> stringResource(R.string.notification_duplicate, notification.title, notification.existingTitle)
+    is Notification.PhotoApproved -> stringResource(R.string.notification_photo_approved, notification.poiTitle)
+    is Notification.PhotoRejected -> photoRejectionSentence(notification.photoRejectionReason, notification.reason)
+        ?.let { stringResource(R.string.notification_photo_rejected, notification.poiTitle, it) }
+        ?: stringResource(R.string.notification_photo_rejected_plain, notification.poiTitle)
     is Notification.Achievement -> {
         val achievement = stringResource(R.string.notification_achievement, badgeName(notification.achievementId, notification.achievement))
         val next = notification.remaining?.let { remaining ->
@@ -404,6 +411,8 @@ private fun NotificationIcon(notification: Notification) {
         is Notification.Commented -> R.drawable.ic_chat_bubble to scheme.onTertiaryContainer
         is Notification.Rejected -> R.drawable.ic_cancel to explora.status.rejected.content
         is Notification.Achievement -> R.drawable.ic_military_tech to explora.warningAccent
+        is Notification.PhotoApproved -> R.drawable.ic_photo_library to explora.status.verified.content
+        is Notification.PhotoRejected -> R.drawable.ic_cancel to explora.status.rejected.content
         is Notification.DuplicateRejected -> error("dibujado arriba")
     }
     val unread = !notification.read

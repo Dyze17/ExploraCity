@@ -58,6 +58,9 @@ enum class WelcomeNotice { ACCOUNT_READY, WELCOME_EMAIL_FAILED }
 /** 14. Con [write] abre con el teclado listo («Agregar comentario» del detalle). */
 @Serializable data class Comments(val poiId: String, val write: Boolean = false) // 14
 
+/** v1.4.0 · Agregar fotos a un lugar publicado; [slots] es cuántas caben. */
+@Serializable data class AddPhotos(val placeId: String, val placeTitle: String, val slots: Int)
+
 @Serializable data class PublicProfile(val userId: String) // 31
 
 @Serializable data object PublishGraph
@@ -154,4 +157,7 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 
 /** v1.4.0 · Los lugares públicos con reportes abiertos. */
 @Serializable data object ReportedPlaces
+
+/** v1.4.0 · Las fotos que la comunidad agregó y esperan revisión. */
+@Serializable data object PendingPhotos
 

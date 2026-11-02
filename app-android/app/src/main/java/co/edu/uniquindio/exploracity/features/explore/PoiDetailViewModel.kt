@@ -74,6 +74,9 @@ sealed interface DetailMessage {
 
     /** v1.4.0 · «Gracias. Un moderador revisará este lugar». */
     data object ReportSent : DetailMessage
+
+    /** v1.4.0 · Volvió de «Agregar fotos» con las fotos enviadas: «se verán cuando las revise un moderador». */
+    data object PhotosSent : DetailMessage
 }
 
 /** v1.4.0 · Por qué no salió el reporte; el aviso queda dentro del diálogo. Sin red no se encola, como en 31A. */
@@ -254,6 +257,12 @@ class PoiDetailViewModel(
     }
 
     fun onMessageShown() = _state.update { it.copy(message = null) }
+
+    /** v1.4.0 · Volvió de «Agregar fotos» con las fotos enviadas: el aviso, y el detalle se pone al día (espacios libres). */
+    fun onPhotosSent() {
+        _state.update { it.copy(message = DetailMessage.PhotosSent) }
+        onResumed()
+    }
 
     /** v1.4.0 · La bandera: abre el diálogo sin motivo elegido, o con lo que ya se había escrito. */
     fun onOpenReport() {

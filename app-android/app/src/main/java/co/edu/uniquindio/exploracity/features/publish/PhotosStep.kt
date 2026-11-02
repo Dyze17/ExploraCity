@@ -86,13 +86,21 @@ class PhotoCallbacks(
 /**
  * Las fotos (de 1 a 5, la primera es la portada) con su estado, o 19.a si aún no hay ninguna. [cameraFocus] recibe el
  * foco del resumen de 21. Las ya publicadas (23) no tienen archivo en el teléfono: se ven como «Foto 1», «Foto 2»…
+ * v1.4.0 · Al agregar fotos a un lugar ya publicado caben [max] y ninguna es la portada ([withCover] en false).
  */
 @Composable
-internal fun PhotosSection(photos: List<DraftPhoto>, status: PhotoStatus, callbacks: PhotoCallbacks, cameraFocus: FocusRequester = remember { FocusRequester() }) {
+internal fun PhotosSection(
+    photos: List<DraftPhoto>,
+    status: PhotoStatus,
+    callbacks: PhotoCallbacks,
+    cameraFocus: FocusRequester = remember { FocusRequester() },
+    max: Int = PhotoRules.MAX,
+    withCover: Boolean = true,
+) {
     status.problem?.let { ProblemNote(it) }
     if (photos.isEmpty() && status.preparing == 0) {
         EmptyPicker(callbacks, cameraFocus)
-        Note(R.drawable.ic_info, stringResource(R.string.publish_photos_rules))
+        if (withCover) Note(R.drawable.ic_info, stringResource(R.string.publish_photos_rules))
     } else {
         Text(
             pluralStringResource(R.plurals.publish_photos_count, photos.size.coerceAtLeast(1), photos.size.coerceAtLeast(1)),
@@ -101,12 +109,12 @@ internal fun PhotosSection(photos: List<DraftPhoto>, status: PhotoStatus, callba
         )
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             photos.forEachIndexed { index, photo ->
-                PhotoRow(photo, index, photos.size, status.uploads[photo.id], callbacks)
+                PhotoRow(photo, index, photos.size, status.uploads[photo.id], callbacks, cover = withCover && index == 0)
             }
             repeat(status.preparing) { PreparingRow() }
         }
-        val left = (PhotoRules.MAX - photos.size).coerceAtLeast(0)
-        if (left > 0) AddMore(left, callbacks) else Note(R.drawable.ic_info, stringResource(R.string.publish_photos_full, PhotoRules.MAX))
+        val left = (max - photos.size).coerceAtLeast(0)
+        if (left > 0) AddMore(left, callbacks) else Note(R.drawable.ic_info, stringResource(R.string.publish_photos_full, max))
     }
 }
 
@@ -158,14 +166,13 @@ private fun EmptyPicker(callbacks: PhotoCallbacks, cameraFocus: FocusRequester) 
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpload?, callbacks: PhotoCallbacks) {
+private fun PhotoRow(photo: DraftPhoto, index: Int, total: Int, upload: PhotoUpload?, callbacks: PhotoCallbacks, cover: Boolean) {
     val scheme = MaterialTheme.colorScheme
     // Las ya publicadas no traen nombre de archivo (23).
     val name = photo.name.ifEmpty { stringResource(R.string.publish_photo_published, index + 1) }
     val explora = MaterialTheme.exploraColors
     val shape = RoundedCornerShape(16.dp)
     val failed = upload == PhotoUpload.Failed
-    val cover = index == 0
     val status = when {
         photo.uploaded -> stringResource(R.string.publish_photo_uploaded)
         upload is PhotoUpload.Uploading -> stringResource(R.string.publish_photo_uploading, upload.percent)

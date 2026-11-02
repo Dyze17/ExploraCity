@@ -67,8 +67,11 @@ data class Author(val id: String, val name: String, val points: Int) {
     val level: UserLevel get() = UserLevel.fromPoints(points)
 }
 
-/** Foto de la galería; [description] es lo que oye el lector («Patio interior del café»). */
-data class PoiPhoto(val url: String?, val description: String)
+/**
+ * Foto de la galería; [description] es lo que oye el lector («Patio interior del café»). v1.4.0 · [contributor] es
+ * quien la agregó, si no fue quien publicó el lugar.
+ */
+data class PoiPhoto(val url: String?, val description: String, val contributor: String? = null)
 
 /** 13 · Detalle del POI: el lugar del feed más todo lo que se muestra al abrirlo. */
 data class PoiDetails(
@@ -83,6 +86,10 @@ data class PoiDetails(
     val visited: Boolean,
     /** Cuándo se guardó, si viene de lo guardado para ver sin conexión (12.a); null si llegó del servidor. */
     val savedAt: Instant? = null,
+    /** v1.4.0 · Cuántas fotos más caben: 5 menos las publicadas y las que esperan revisión. */
+    val photoSlots: Int = 0,
+    /** v1.4.0 · Cuántas fotos de quien mira esperan revisión en este lugar. */
+    val myPendingPhotos: Int = 0,
 )
 
 /** 14.b · Todo opcional salvo la marca de visitado. */
