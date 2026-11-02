@@ -48,7 +48,7 @@ Es un monorepo con la **app Android** (Kotlin y Jetpack Compose) y su **API REST
 
 ## <img src="docs/img/iconos/instalar.svg" width="28" height="28" align="top"> Instalar la app
 
-1. Desde el teléfono, descarga `ExploraCity-1.3.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
+1. Desde el teléfono, descarga `ExploraCity-1.4.0.apk` de la [última versión](https://github.com/Dyze17/ExploraCity/releases/latest).
 2. Ábrelo. Android pide permitir la instalación de apps desde el navegador.
 3. Crea tu cuenta con tu correo o con «Continuar con Google». La app ya usa la API en la nube, así que no hace falta nada más.
 
@@ -78,12 +78,16 @@ La app está en **español e inglés**: sigue el idioma del teléfono, y en un t
 
   La búsqueda ignora mayúsculas y tildes: «cafe» encuentra «Café».
 - **Detalle del lugar**: fotos, descripción, horario, rango de precio, ubicación, autor y estado de verificación.
+  - **Las fotos se abren a pantalla completa** al tocar el carrusel: se ven enteras, sean verticales u horizontales, se pasan con el dedo y se acercan hasta 4×. El carrusel dice cuál se ve («1/5»).
+  - Una foto que agregó otra persona dice «Foto de Laura Gómez» en el visor.
   - El horario va por tramos de días, uno por línea («Lunes a jueves, 16:00 a 2:00»), o dice «Siempre abierto · acceso libre».
   - **«Abierto ahora»** usa la hora del lugar ([ADR-17](docs/decisiones-arquitectonicas/ADR-17-hora-local-de-cada-lugar.md)): un café en Madrid abre a las 4 de la tarde de Madrid. Un tramo que cierra pasada la medianoche sigue abierto la madrugada siguiente.
 - **Interacción**:
   - el voto «Es importante»;
   - «Marcar como visitado», con una experiencia opcional;
   - comentarios de hasta 300 caracteres, que se envían de forma optimista y se pueden reintentar.
+- **Agregar fotos** a un lugar publicado con menos de 5, aunque no lo hayas publicado tú. Usa la misma cámara y galería del formulario. Las fotos esperan a un moderador antes de verse, y el detalle avisa cuántas tuyas esperan.
+- **Reportar un lugar** con la bandera del detalle: cerró, la ubicación está mal, datos desactualizados, fotos, contenido ofensivo, repetido u otro motivo, con un texto opcional de hasta 300 caracteres. Es anónimo, y el lugar sigue a la vista hasta que un moderador decide. Lo propio no se reporta: se edita.
 - **Perfil público** de otras personas, con la opción de reportarlo.
 - **Cuentas eliminadas**: sus lugares verificados, sus comentarios y los avisos que generaron siguen a la vista como «Usuario eliminado».
 
@@ -105,7 +109,7 @@ La app está en **español e inglés**: sigue el idioma del teléfono, y en un t
   - «Corregir y reenviar», con lo que hay que revisar según el motivo.
 
 ### <img src="docs/img/iconos/social.svg" width="24" height="24" align="top"> Social y reputación
-- **Notificaciones** dentro de la app (sin push): comentarios, verificación, rechazo, rechazo por duplicado, logros y publicaciones finalizadas.
+- **Notificaciones** dentro de la app (sin push): comentarios, verificación, rechazo, rechazo por duplicado, logros, publicaciones finalizadas y fotos agregadas que se publicaron o no, con el motivo.
 - **Puntos**:
   - +20 por la primera publicación;
   - +15 cuando se verifica;
@@ -125,7 +129,11 @@ La app está en **español e inglés**: sigue el idioma del teléfono, y en un t
 
   Cada decisión notifica al autor y abre la siguiente pendiente.
 - **Resueltas**: lo ya decidido, con su motivo y su nota. Con la cola vacía, un resumen del trabajo del día.
-- Un moderador nunca decide sus propias publicaciones: las revisa otro.
+- **Reportados**: los lugares publicados con reportes, los más reportados primero, con cada motivo y lo que escribió quien reportó (nunca quién). Se pueden descartar o cambiar de estado.
+  - Pasar el lugar a finalizada cierra sus reportes.
+  - Si vuelve a pendiente, la revisión muestra los reportes, que se cierran al verificarlo o rechazarlo.
+- **Fotos por revisar**: cada foto agregada, grande, junto a las que ya tiene el lugar. «Publicar» la pone al final de sus fotos; «Rechazar» pide un motivo y la borra. Quien la agregó recibe el aviso.
+- Un moderador nunca decide sus propias publicaciones ni las fotos que agregó: las revisa otro.
 
 ### <img src="docs/img/iconos/cuenta.svg" width="24" height="24" align="top"> Acceso y cuenta
 - **Arranque**: la primera vez va al onboarding de tres paneles; con una sesión guardada, entra directo al feed. Si la red falla, se puede seguir sin conexión con lo guardado.
@@ -175,7 +183,7 @@ Se envían con SendGrid.
 
 ## <img src="docs/img/iconos/estado.svg" width="28" height="28" align="top"> Estado del proyecto
 
-**Versión 1.3.0, publicada.** Trae la elección de la ciudad a mano, la ciudad de cada persona en su perfil, la hora local de cada lugar y los horarios por tramos.
+**Versión 1.4.0, publicada.** Trae las fotos a pantalla completa en el detalle, los reportes de lugares y las fotos que agrega la comunidad, con su revisión.
 - Todas las pantallas del diseño están implementadas.
 - La app trabaja con la API desplegada en Google Cloud, sin datos de ejemplo.
 - La ciudad de la configuración es **Armenia**: los lugares sin municipio cuentan como ella, y el mapa empieza ahí si no hay ubicación ni ciudad elegida. Se cambia en `api-ktor/src/main/resources/application.conf`.
@@ -195,13 +203,16 @@ Se envían con SendGrid.
 | La ciudad de cada persona en su perfil | 26, 28 y 31 | ✅ |
 | La hora local de cada lugar ([ADR-17](docs/decisiones-arquitectonicas/ADR-17-hora-local-de-cada-lugar.md)) | 7, 8 y 13 | ✅ |
 | Horario por tramos, cierre pasada la medianoche y acceso libre | 13, 18, 23 y 33 | ✅ |
+| Fotos a pantalla completa en el detalle | 13 | ✅ |
+| Reportar un lugar y «Reportados» | 13, 32, 33 y 36 | ✅ |
+| Agregar fotos a un lugar y «Fotos por revisar» | 13, 25 y 32 | ✅ |
 | Inglés y español (Ajustes › Idioma) | todas, 29 | ✅ |
 | Moderación y «Resueltas» | 32–37, 33A | ✅ |
 | API ([contrato](docs/api/README.md)) | — | ✅ |
 | Despliegue: la API en Cloud Run y la app en GitHub Releases ([guía](docs/despliegue.md)) | — | ✅ |
 
 **Pendiente:**
-- La API todavía no recibe reportes de lugares, así que la revisión de una pendiente (33) no muestra ninguno.
+- Los reportes de perfiles (31A) se guardan, pero todavía ninguna pantalla de moderación los muestra.
 
 ## <img src="docs/img/iconos/arquitectura.svg" width="28" height="28" align="top"> Arquitectura
 
@@ -318,6 +329,8 @@ La IA y la detección de duplicados corren en el backend, así que ninguna clave
 - Las fotos se suben antes del envío. Repetir un envío que ya llegó, por ejemplo desde la cola sin conexión, no lo duplica.
 - Los lugares parecidos se buscan a 50 m con PostGIS y pg_trgm, nunca entre las pendientes de otras personas.
 - Si dos moderadores deciden a la vez, el segundo recibe un aviso de que ya está decidida.
+- **Reportes** (`place_reports`): cada persona tiene a lo sumo uno abierto por lugar, y reportar otra vez lo cambia. Se cierran al descartarlos, al finalizar el lugar o al decidirlo en la revisión.
+- **Fotos agregadas** (`pending_photos`): mientras esperan no están en el lugar. Caben 5 entre las publicadas y las que esperan. Si quien publicó borra el lugar, se van con él. En la edición puede dejar o quitar las que agregaron otras personas.
 
 **Integraciones:** cada una tiene una versión real y otra de desarrollo. La real se activa cuando su clave está en `api-ktor/.env`.
 - Sin SendGrid, los correos quedan en un buzón en memoria.
