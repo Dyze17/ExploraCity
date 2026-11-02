@@ -86,6 +86,7 @@ import java.time.Instant
 fun ModerationQueueRoute(
     onOpenReview: (String) -> Unit,
     onOpenResolved: () -> Unit,
+    onOpenReported: () -> Unit,
     onExplore: () -> Unit,
     allReviewed: Decision? = null,
     onAllReviewedShown: () -> Unit = {},
@@ -104,6 +105,7 @@ fun ModerationQueueRoute(
         callbacks = ModerationQueueCallbacks(
             onOpenReview = onOpenReview,
             onOpenResolved = onOpenResolved,
+            onOpenReported = onOpenReported,
             onExplore = onExplore,
             onFilterChange = viewModel::onFilterChange,
             onRetry = viewModel::onRetry,
@@ -115,6 +117,7 @@ fun ModerationQueueRoute(
 class ModerationQueueCallbacks(
     val onOpenReview: (String) -> Unit = {},
     val onOpenResolved: () -> Unit = {},
+    val onOpenReported: () -> Unit = {},
     val onExplore: () -> Unit = {},
     val onFilterChange: (QueueFilter) -> Unit = {},
     val onRetry: () -> Unit = {},
@@ -161,7 +164,7 @@ fun ModerationQueueScreen(state: ModerationQueueUiState, callbacks: ModerationQu
                         ) { RetryButton(callbacks.onRetry) }
                     }
                     is QueueContent.Loaded -> when {
-                        state.empty -> EmptyQueue(state.work, content.queue.savedAt != null, callbacks)
+                        state.empty -> EmptyQueue(state.work, content.queue.savedAt != null, state.reported, callbacks)
                         state.visible.isEmpty() -> Centered {
                             EmptyState(
                                 icon = R.drawable.ic_done_all,
@@ -216,7 +219,7 @@ private fun Header(state: ModerationQueueUiState, queue: ReviewQueue?, now: Inst
     }
 }
 
-/** «Pendientes · 7», «Posibles duplicados · 2» (filtros de una sola elección), «Resueltas» y el orden. */
+/** «Pendientes · 7», «Posibles duplicados · 2» (filtros de una sola elección), «Resueltas», «Reportados» y el orden. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Filters(state: ModerationQueueUiState, callbacks: ModerationQueueCallbacks, modifier: Modifier = Modifier) {
@@ -248,6 +251,12 @@ private fun Filters(state: ModerationQueueUiState, callbacks: ModerationQueueCal
         ) {
             if (!state.readOnly) {
                 ExploraButton(stringResource(R.string.moderation_resolved), onClick = callbacks.onOpenResolved, style = ExploraButtonStyle.SECONDARY)
+                ExploraButton(
+                    if (state.reported > 0) stringResource(R.string.moderation_reported_count, state.reported) else stringResource(R.string.moderation_reported),
+                    onClick = callbacks.onOpenReported,
+                    style = ExploraButtonStyle.SECONDARY,
+                    icon = R.drawable.ic_flag,
+                )
             }
             val sortDescription = stringResource(R.string.moderation_sort_description)
             Row(
@@ -332,9 +341,12 @@ private fun OfflineHint() {
     }
 }
 
-/** 37 · Cola vacía: cierra el trabajo del día y ofrece seguir. Guardada sin conexión, no hay cifras de hoy. */
+/**
+ * 37 · Cola vacía: cierra el trabajo del día y ofrece seguir. Guardada sin conexión, no hay cifras de hoy. v1.4.0 · Con
+ * lugares reportados, los ofrece primero.
+ */
 @Composable
-private fun EmptyQueue(work: ModerationWork?, offline: Boolean, callbacks: ModerationQueueCallbacks) {
+private fun EmptyQueue(work: ModerationWork?, offline: Boolean, reported: Int, callbacks: ModerationQueueCallbacks) {
     val verified = MaterialTheme.exploraColors.status.verified
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 24.dp),
@@ -358,6 +370,14 @@ private fun EmptyQueue(work: ModerationWork?, offline: Boolean, callbacks: Moder
             textAlign = TextAlign.Center,
         )
         if (work != null && !offline) WorkCard(work)
+        if (!offline && reported > 0) {
+            ExploraButton(
+                pluralStringResource(R.plurals.moderation_see_reported, reported, reported),
+                onClick = callbacks.onOpenReported,
+                modifier = Modifier.fillMaxWidth(),
+                icon = R.drawable.ic_flag,
+            )
+        }
         if (!offline) {
             ExploraButton(
                 stringResource(R.string.moderation_see_resolved),

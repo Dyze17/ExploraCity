@@ -7,6 +7,7 @@ import co.edu.uniquindio.exploracity.domain.model.HoursBlock
 import co.edu.uniquindio.exploracity.domain.model.Municipality
 import co.edu.uniquindio.exploracity.domain.model.Notification
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.PoiPhoto
@@ -170,6 +171,10 @@ data class CommentsPageDto(
 
 @Serializable
 data class CommentRequest(val text: String, val clientId: String)
+
+/** v1.4.0 · Reportar un lugar (13). */
+@Serializable
+data class PlaceReportRequest(val reason: PlaceReportReason, val detail: String? = null)
 
 /** 25 · Un aviso: cada tipo trae los campos de su frase. El tipo va como texto, así uno nuevo no rompe la lista. */
 @Serializable

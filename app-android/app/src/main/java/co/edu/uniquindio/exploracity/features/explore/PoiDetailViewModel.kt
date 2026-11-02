@@ -13,8 +13,12 @@ import co.edu.uniquindio.exploracity.core.data.connectivity.ConnectivityObserver
 import co.edu.uniquindio.exploracity.core.data.connectivity.OfflineException
 import co.edu.uniquindio.exploracity.core.util.catchingNonCancellation
 import co.edu.uniquindio.exploracity.core.util.runCatchingNonCancellation
+import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.PlaceReport
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
+import co.edu.uniquindio.exploracity.domain.repository.ContributionRepository
 import co.edu.uniquindio.exploracity.domain.repository.PoiRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -67,6 +71,23 @@ sealed interface DetailMessage {
 
     /** Sin red: la visita quedó en la cola de envío (14.b: «se guarda y se envía luego»). */
     data object VisitQueued : DetailMessage
+
+    /** v1.4.0 · «Gracias. Un moderador revisará este lugar». */
+    data object ReportSent : DetailMessage
+}
+
+/** v1.4.0 · Por qué no salió el reporte; el aviso queda dentro del diálogo. Sin red no se encola, como en 31A. */
+enum class PlaceReportError { OFFLINE, FAILED }
+
+/** v1.4.0 · El diálogo de reportar abierto: el motivo elegido, lo escrito y si se está enviando. */
+data class PlaceReportState(
+    val reason: PlaceReportReason? = null,
+    val detail: String = "",
+    val sending: Boolean = false,
+    val error: PlaceReportError? = null,
+) {
+    /** «Reportar» pide un motivo y, con «Otro», contar qué pasa. */
+    val canSend: Boolean get() = reason != null && (reason != PlaceReportReason.OTHER || detail.isNotBlank())
 }
 
 data class PoiDetailUiState(
@@ -77,17 +98,30 @@ data class PoiDetailUiState(
     val message: DetailMessage? = null,
     /** Sin internet: el detalle, si se ve, es el guardado (12.a). */
     val offline: Boolean = false,
+    /** v1.4.0 · Quien mira: lo que publicó no lo reporta, lo edita (23). */
+    val viewerId: String = "",
+    val report: PlaceReportState? = null,
 ) {
     val details: PoiDetails? get() = (content as? DetailContent.Loaded)?.details
+
+    /** v1.4.0 · La bandera: en un lugar cargado que no es de quien mira (uno sin autor también se reporta). */
+    val canReport: Boolean get() = details?.let { it.author?.id != viewerId } ?: false
 }
 
 /** Borrador de 14.b que sobrevive si Android cierra la app (el texto no se pierde). */
 @Serializable
 private data class SavedVisitDraft(val recommends: Boolean?, val text: String, val showName: Boolean)
 
+/** v1.4.0 · El reporte a medio escribir, por la misma razón. */
+@Serializable
+private data class SavedReport(val reason: PlaceReportReason?, val detail: String)
+
 class PoiDetailViewModel(
     private val poiRepository: PoiRepository,
+    private val contributions: ContributionRepository,
     private val connectivity: ConnectivityObserver,
+    /** La persona de la sesión: lo suyo no se reporta. */
+    private val currentUser: StateFlow<Author>,
     private val savedStateHandle: SavedStateHandle,
     private val timeout: Duration = LOAD_TIMEOUT,
 ) : ViewModel() {
@@ -96,7 +130,12 @@ class PoiDetailViewModel(
     val poiId: String = checkNotNull(savedStateHandle[POI_ID_KEY]) { "Falta el id del lugar" }
 
     private val _state = MutableStateFlow(
-        PoiDetailUiState(visitSheet = restoredDraft()?.let { VisitSheetState(it) }, offline = !connectivity.isOnline.value),
+        PoiDetailUiState(
+            visitSheet = restoredDraft()?.let { VisitSheetState(it) },
+            offline = !connectivity.isOnline.value,
+            viewerId = currentUser.value.id,
+            report = restoredReport(),
+        ),
     )
     val state: StateFlow<PoiDetailUiState> = _state.asStateFlow()
 
@@ -104,6 +143,7 @@ class PoiDetailViewModel(
 
     init {
         load()
+        viewModelScope.launch { currentUser.collect { user -> _state.update { it.copy(viewerId = user.id) } } }
         viewModelScope.launch {
             // Al volver la red: lo que no se pudo abrir se carga, y lo guardado se pone al día sin la silueta.
             connectivity.isOnline.drop(1).collect { online ->
@@ -215,6 +255,57 @@ class PoiDetailViewModel(
 
     fun onMessageShown() = _state.update { it.copy(message = null) }
 
+    /** v1.4.0 · La bandera: abre el diálogo sin motivo elegido, o con lo que ya se había escrito. */
+    fun onOpenReport() {
+        if (!_state.value.canReport) return
+        updateReport(_state.value.report ?: PlaceReportState())
+    }
+
+    fun onReportReasonChange(reason: PlaceReportReason) {
+        val report = _state.value.report ?: return
+        if (report.sending) return
+        updateReport(report.copy(reason = reason, error = null))
+    }
+
+    fun onReportDetailChange(detail: String) {
+        val report = _state.value.report ?: return
+        if (report.sending) return
+        updateReport(report.copy(detail = detail.take(PlaceReport.DETAIL_MAX), error = null))
+    }
+
+    /** «Cancelar», tocar fuera o atrás: se descarta lo escrito. Mientras se envía no se cierra. */
+    fun onDismissReport() {
+        if (_state.value.report?.sending == true) return
+        updateReport(null)
+    }
+
+    /** «Reportar»: al enviarse, el diálogo se cierra y se avisa en el detalle; si falla, el aviso queda en el diálogo. */
+    fun onConfirmReport() {
+        val report = _state.value.report ?: return
+        val reason = report.reason ?: return
+        if (!report.canSend || report.sending) return
+        updateReport(report.copy(sending = true, error = null))
+        viewModelScope.launch {
+            val result = catchingNonCancellation { contributions.reportPlace(poiId, reason, report.detail.trim().ifEmpty { null }) }
+            if (result.isSuccess) {
+                updateReport(null)
+                _state.update { it.copy(message = DetailMessage.ReportSent) }
+            } else {
+                val error = if (result.exceptionOrNull() is OfflineException) PlaceReportError.OFFLINE else PlaceReportError.FAILED
+                updateReport(_state.value.report?.copy(sending = false, error = error))
+            }
+        }
+    }
+
+    private fun updateReport(report: PlaceReportState?) {
+        _state.update { it.copy(report = report) }
+        savedStateHandle[REPORT_KEY] = report?.let { Json.encodeToString(SavedReport(it.reason, it.detail)) }
+    }
+
+    private fun restoredReport(): PlaceReportState? = savedStateHandle.get<String>(REPORT_KEY)
+        ?.let { runCatching { Json.decodeFromString<SavedReport>(it) }.getOrNull() }
+        ?.let { PlaceReportState(it.reason, it.detail) }
+
     private fun load() {
         loadJob?.cancel()
         _state.update { it.copy(content = DetailContent.Loading) }
@@ -254,11 +345,18 @@ class PoiDetailViewModel(
 
         const val POI_ID_KEY = "poiId"
         private const val DRAFT_KEY = "visitDraft"
+        private const val REPORT_KEY = "report"
 
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ExploraApplication).container
-                PoiDetailViewModel(container.poiRepository, container.connectivity, createSavedStateHandle())
+                PoiDetailViewModel(
+                    container.poiRepository,
+                    container.contributionRepository,
+                    container.connectivity,
+                    container.sessionUser.author,
+                    createSavedStateHandle(),
+                )
             }
         }
     }

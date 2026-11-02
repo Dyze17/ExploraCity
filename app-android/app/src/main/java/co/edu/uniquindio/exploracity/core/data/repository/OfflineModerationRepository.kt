@@ -10,6 +10,7 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateCandidate
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
 import co.edu.uniquindio.exploracity.domain.model.ReviewQueue
@@ -26,8 +27,8 @@ import java.time.Instant
 
 /**
  * Envuelve al servidor de moderación ([remote]) y guarda en Room la última cola: sin conexión se lee lo guardado con su
- * antigüedad (32.c) y no se decide nada, para no dejar decisiones a medias. El badge sale de lo guardado. «Resueltas» y
- * los cambios de estado (36) necesitan red: no se guardan.
+ * antigüedad (32.c) y no se decide nada, para no dejar decisiones a medias. El badge sale de lo guardado. «Resueltas»,
+ * «Reportados» y los cambios de estado (36) necesitan red: no se guardan.
  */
 class OfflineModerationRepository(
     private val remote: ModerationRepository,
@@ -78,6 +79,11 @@ class OfflineModerationRepository(
     override suspend fun resolvedItem(id: String): ResolvedPublication? = online { remote.resolvedItem(id) }
 
     override suspend fun finalize(id: String, reason: FinalizeReason) = online { remote.finalize(id, reason) }
+
+    /** v1.4.0 · «Reportados» tampoco se guarda. */
+    override suspend fun reported(): List<ReportedPlace> = online { remote.reported() }
+
+    override suspend fun dismissReports(id: String) = online { remote.dismissReports(id) }
 
     override suspend fun reopen(id: String, reason: String) {
         online { remote.reopen(id, reason) }

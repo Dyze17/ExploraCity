@@ -54,6 +54,8 @@ data class ModerationQueueUiState(
     /** 37 · «Tu trabajo de hoy»; null mientras no llega o si no se pudo pedir. */
     val work: ModerationWork? = null,
     val message: QueueMessage? = null,
+    /** v1.4.0 · Cuántos lugares tienen reportes abiertos, para «Reportados · 2»; 0 si no se pudo pedir. */
+    val reported: Int = 0,
 ) {
     private val queue: ReviewQueue? get() = (content as? QueueContent.Loaded)?.queue
 
@@ -119,8 +121,15 @@ class ModerationQueueViewModel(
                     message = if (announce && hadQueue && queue.savedAt == null) QueueMessage.Updated(newOnes) else it.message,
                 )
             }
+            if (queue.savedAt == null) loadReported()
             if (queue.items.isEmpty() && queue.savedAt == null) loadWork()
         }
+    }
+
+    /** «Reportados» necesita red y no es parte de la cola: si falla, el botón queda sin número. */
+    private suspend fun loadReported() {
+        val count = catchingNonCancellation { moderation.reported().size }.getOrNull() ?: return
+        _state.update { it.copy(reported = count) }
     }
 
     private suspend fun loadWork() {

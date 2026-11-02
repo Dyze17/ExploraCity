@@ -3,6 +3,7 @@ package co.edu.uniquindio.exploracity.service
 import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.FixKind
 import co.edu.uniquindio.exploracity.model.FixResponse
+import co.edu.uniquindio.exploracity.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.model.RejectionReason
 
 /** Lo que el servidor escribe en los avisos (25) y en la publicación rechazada (24), en español, como hacía la app. */
@@ -35,6 +36,17 @@ object ModerationTexts {
         FinalizeReason.CLOSED -> "el lugar cerró de forma permanente"
         FinalizeReason.EVENT_ENDED -> "fue un evento temporal que ya pasó"
         FinalizeReason.MERGED -> "se unificó con otra publicación"
+    }
+
+    /** v1.4.0 · El motivo de un reporte, para la revisión (33) de la app 1.3: «cerró o ya no existe». */
+    fun label(reason: PlaceReportReason): String = when (reason) {
+        PlaceReportReason.CLOSED -> "cerró o ya no existe"
+        PlaceReportReason.WRONG_LOCATION -> "la ubicación en el mapa está mal"
+        PlaceReportReason.OUTDATED_INFO -> "el horario, el precio u otros datos están desactualizados"
+        PlaceReportReason.BAD_PHOTOS -> "las fotos son inapropiadas o no son del lugar"
+        PlaceReportReason.INAPPROPRIATE -> "el contenido es ofensivo o falso"
+        PlaceReportReason.DUPLICATE -> "está repetido"
+        PlaceReportReason.OTHER -> "otro motivo"
     }
 
     /** Quien decidió, si su cuenta ya no existe. */

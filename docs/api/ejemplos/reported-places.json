@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "id": "c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b",
+      "title": "Mirador de la Secreta",
+      "category": "NATURE",
+      "status": "VERIFIED",
+      "photo": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg",
+      "authorName": "Ana Ríos",
+      "reasons": ["OUTDATED_INFO"],
+      "reports": [
+        {
+          "reason": "OUTDATED_INFO",
+          "detail": "Ahora abre a las 9:00, no a las 8:00.",
+          "createdAt": "2026-10-03T15:00:00Z"
+        }
+      ],
+      "firstReportedAt": "2026-10-03T15:00:00Z"
+    }
+  ]
+}

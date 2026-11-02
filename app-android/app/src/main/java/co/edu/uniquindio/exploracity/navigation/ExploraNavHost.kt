@@ -38,6 +38,7 @@ import co.edu.uniquindio.exploracity.features.moderation.Decision
 import co.edu.uniquindio.exploracity.features.moderation.DecisionNotice
 import co.edu.uniquindio.exploracity.features.moderation.ModerationQueueRoute
 import co.edu.uniquindio.exploracity.features.moderation.RejectPublicationRoute
+import co.edu.uniquindio.exploracity.features.moderation.ReportedPlacesRoute
 import co.edu.uniquindio.exploracity.features.moderation.ResolvedPublicationsRoute
 import co.edu.uniquindio.exploracity.features.moderation.ReviewDetailRoute
 import co.edu.uniquindio.exploracity.features.moderation.StateTarget
@@ -495,6 +496,7 @@ private fun NavGraphBuilder.moderationGraph(nav: NavController) {
             ModerationQueueRoute(
                 onOpenReview = { id -> nav.navigate(ReviewDetail(id)) },
                 onOpenResolved = { nav.navigate(ResolvedPublications) },
+                onOpenReported = { nav.navigate(ReportedPlaces) },
                 onExplore = { nav.navigateToTab(TopLevelDestination.EXPLORE) },
                 allReviewed = allReviewed?.let(Decision::valueOf),
                 onAllReviewedShown = { entry.savedStateHandle[ALL_REVIEWED_KEY] = null },
@@ -547,6 +549,16 @@ private fun NavGraphBuilder.moderationGraph(nav: NavController) {
             ResolvedPublicationsRoute(
                 onBack = nav.back(),
                 onOpen = { id -> nav.navigate(FinalizePublication(id)) },
+                notice = changed?.let(StateTarget::valueOf),
+                onNoticeShown = { entry.savedStateHandle[STATE_CHANGED_KEY] = null },
+            )
+        }
+        composable<ReportedPlaces> { entry ->
+            val changed by entry.savedStateHandle.getStateFlow<String?>(STATE_CHANGED_KEY, null).collectAsStateWithLifecycle()
+            ReportedPlacesRoute(
+                onBack = nav.back(),
+                onOpenPlace = { id -> nav.navigate(PoiDetail(id)) },
+                onChangeState = { id -> nav.navigate(FinalizePublication(id)) },
                 notice = changed?.let(StateTarget::valueOf),
                 onNoticeShown = { entry.savedStateHandle[STATE_CHANGED_KEY] = null },
             )

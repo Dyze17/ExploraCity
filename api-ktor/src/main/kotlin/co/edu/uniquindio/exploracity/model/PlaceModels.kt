@@ -149,3 +149,7 @@ data class PublicProfileResponse(
     /** Insignias desbloqueadas. */
     val badges: Int,
 )
+
+/** v1.4.0 · Reportar un lugar (13): el motivo y, si se quiere, qué pasa (hasta 300; con `OTHER`, obligatorio). */
+@Serializable
+data class PlaceReportRequest(val reason: PlaceReportReason, val detail: String? = null)

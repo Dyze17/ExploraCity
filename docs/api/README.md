@@ -51,6 +51,8 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `bio_too_long` | 400 | «Sobre mí» pasa de 150 caracteres (28) |
 | `photo_missing` | 400 | El multipart no trae una foto |
 | `cannot_report_self` | 400 | La persona intenta reportar su propio perfil |
+| `cannot_report_own` | 400 | La persona intenta reportar un lugar que publicó; lo propio se edita (23) |
+| `invalid_report` | 400 | El detalle de un reporte pasa de 300 caracteres, o falta con el motivo `OTHER` |
 | `invalid_query` | 400 | Un criterio de búsqueda no se entiende (categoría, alcance, punto, área, página) |
 | `invalid_comment` | 400 | El comentario queda vacío o pasa de 300 caracteres (14) |
 | `invalid_experience` | 400 | La experiencia de «Visitado» pasa de 300 caracteres (14.b) |
@@ -209,11 +211,13 @@ En cada lugar:
 | `PUT /v1/places/{id}/visit` | Token | `{ "recommends", "text", "showName" }`, todo opcional | Los puntos que ganó con esta visita | [`visit.json`](ejemplos/visit.json) |
 | `GET /v1/places/{id}/comments` | Token | — | Del más reciente al más antiguo (`pageSize` de 1 a 50, 20 por omisión). `nextCursor` pide la página siguiente y no viene en la última | [`comments-page.json`](ejemplos/comments-page.json) |
 | `POST /v1/places/{id}/comments` | Token | `{ "text", "clientId" }` | `201` con el comentario. Con un `clientId` que ya llegó responde `200` con el que estaba | [`comment.json`](ejemplos/comment.json) |
+| `POST /v1/places/{id}/reports` | Token | `{ "reason", "detail" }` | `204`. Reporte anónimo para la moderación (v1.4.0). Reportar otra vez el mismo lugar cambia el reporte abierto | — |
 
 - **Puntos (G2):** marcar un lugar como visitado da **+5** la primera vez. Marcarlo otra vez solo cambia la experiencia. Comentar no da puntos.
 - **Lo propio no suma (C1):** se puede votar y marcar como visitado un lugar propio. El voto cuenta en el total del lugar, pero no para la insignia «Voz de la comunidad»; la visita da 0 puntos y no cuenta para «Caminante».
 - **Comentarios:** tienen de 1 a 300 caracteres, sin los espacios de los extremos. `clientId` es un UUID que pone la app; así, si la cola sin conexión reenvía un comentario, no se duplica. Sin `author`, la cuenta que lo escribió se eliminó («Usuario eliminado»). `mine` dice si lo escribió quien lo lee.
 - **Aviso a quien publicó:** cuando otra persona comenta, le llega un aviso `COMMENTED`. No llega por los comentarios propios.
+- **Reportes (v1.4.0):** `reason` es `CLOSED` (cerró o ya no existe), `WRONG_LOCATION`, `OUTDATED_INFO` (horario, precio u otros datos), `BAD_PHOTOS`, `INAPPROPRIATE`, `DUPLICATE` u `OTHER`. `detail` es opcional, de hasta 300 caracteres; con `OTHER` es obligatorio. Solo se reportan lugares públicos de otra persona. Nadie ve quién reportó, ni quien publicó ni los moderadores, y el lugar sigue a la vista hasta que un moderador decide (A1).
 
 ### Avisos (25 y 27)
 
@@ -279,7 +283,7 @@ Solo con el rol de moderador (`403 forbidden` con otro rol). Un moderador nunca 
 
 | Método y ruta | Cuerpo | Respuesta | Ejemplo |
 |---|---|---|---|
-| `GET /v1/moderation/summary` | — | Cuántas esperan y desde hace cuántos días la más antigua (7.c) | [`moderation-summary.json`](ejemplos/moderation-summary.json) |
+| `GET /v1/moderation/summary` | — | Cuántas esperan y desde hace cuántos días la más antigua (7.c), y cuántos lugares tienen reportes abiertos | [`moderation-summary.json`](ejemplos/moderation-summary.json) |
 | `GET /v1/moderation/queue` | — | Las pendientes, de la más antigua a la más reciente, con el historial del autor y, si es posible duplicado, los lugares con que se compara (33A) | [`review-queue.json`](ejemplos/review-queue.json) |
 | `GET /v1/moderation/queue/{id}` | — | Una pendiente | Un ítem de [`review-queue.json`](ejemplos/review-queue.json) |
 | `POST /v1/moderation/queue/{id}/verify` | `{ "note" }` (hasta 300, interna) | `204`. Entra al feed; el autor recibe el aviso y +15 la primera vez | — |
@@ -290,10 +294,13 @@ Solo con el rol de moderador (`403 forbidden` con otro rol). Un moderador nunca 
 | `GET /v1/moderation/resolved/{id}` | — | Una resuelta; `404` si volvió a pendiente | Un ítem de [`resolved.json`](ejemplos/resolved.json) |
 | `POST /v1/moderation/resolved/{id}/finalize` | `{ "reason" }` (`CLOSED`, `EVENT_ENDED` o `MERGED`) | `204`. Sigue en el feed con su chip; los puntos se quedan | — |
 | `POST /v1/moderation/resolved/{id}/reopen` | `{ "reason" }` (20 a 300, interna) | `204`. Sale del feed y entra a la cola como recién enviada | — |
+| `GET /v1/moderation/reports` | — | «Reportados» (v1.4.0): los lugares públicos con reportes abiertos, los más reportados primero y, entre iguales, el que espera desde hace más | [`reported-places.json`](ejemplos/reported-places.json) |
+| `GET /v1/moderation/reports/{id}` | — | Un lugar reportado; `404` si ya no tiene reportes abiertos o dejó de ser público | Un ítem de [`reported-places.json`](ejemplos/reported-places.json) |
+| `POST /v1/moderation/reports/{id}/dismiss` | — | `204`. «Descartar»: el lugar queda como está y se cierran sus reportes. `409 already_reviewed` si otro moderador ya los cerró | — |
 
 - **Dos moderadores a la vez:** si otra persona ya decidió, la respuesta es `409 already_reviewed`; si la publicación cambió de estado, `409 state_changed`.
 - **Qué corregir (E1):** sale del motivo del rechazo. `PHOTO` pide una foto donde se reconozca el lugar y `LOCATION`, el pin sobre la entrada. Los demás motivos llevan solo el mensaje. Sin mensaje del moderador, va el del motivo.
-- **Lo que no existe todavía:** el reporte de un lugar. `reportReason` no viene en la revisión.
+- **Reportes (v1.4.0):** pasar un lugar reportado a finalizada cierra sus reportes. Volver a pendiente los deja abiertos: la revisión (33) los trae en `reports`, del más reciente al más antiguo, y en `reportReason`, en español para la app 1.3. Se cierran al verificarla o rechazarla. Si quien publicó edita un lugar reportado, también llega a la revisión con sus reportes.
 - **Lugares sin autor:** una pendiente cuya cuenta se eliminó no sale en la cola, y un lugar sin autor no vuelve a pendiente (`409 cannot_reopen`).
 
 ### Desarrollo

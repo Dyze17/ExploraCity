@@ -8,9 +8,12 @@ import co.edu.uniquindio.exploracity.domain.model.DuplicateSuspicion
 import co.edu.uniquindio.exploracity.domain.model.FinalizeReason
 import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
+import co.edu.uniquindio.exploracity.domain.model.PlaceReport
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.Poi
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewAuthor
 import co.edu.uniquindio.exploracity.domain.model.ReviewItem
@@ -42,6 +45,12 @@ internal class MemoryModeration(initial: List<ReviewItem>) : ModerationRepositor
     var changeError: Exception? = null
     val finalized = mutableListOf<Pair<String, FinalizeReason>>()
     val reopened = mutableListOf<Pair<String, String>>()
+
+    /** v1.4.0 · «Reportados». */
+    val reportedPlaces = mutableListOf<ReportedPlace>()
+    var reportedError: Exception? = null
+    var dismissError: Exception? = null
+    val dismissed = mutableListOf<String>()
 
     override val pendingCount = MutableStateFlow(initial.size)
 
@@ -107,7 +116,33 @@ internal class MemoryModeration(initial: List<ReviewItem>) : ModerationRepositor
         changeError?.let { throw it }
         resolvedItems.removeAll { it.id == id }
     }
+
+    override suspend fun reported(): List<ReportedPlace> {
+        delay(1.seconds)
+        reportedError?.let { throw it }
+        return reportedPlaces.toList()
+    }
+
+    override suspend fun dismissReports(id: String) {
+        dismissed += id
+        delay(1.seconds)
+        dismissError?.let { throw it }
+        reportedPlaces.removeAll { it.id == id }
+    }
 }
+
+/** v1.4.0 · Un lugar reportado de prueba, con un reporte por cada motivo de [reasons]. */
+internal fun reportedPlace(id: String, vararg reasons: PlaceReportReason = arrayOf(PlaceReportReason.CLOSED)) = ReportedPlace(
+    id = id,
+    title = "Lugar $id",
+    category = Category.CULTURE,
+    status = PublicationStatus.VERIFIED,
+    photoUrl = null,
+    authorName = "Camilo R.",
+    reasons = reasons.distinct(),
+    reports = reasons.map { PlaceReport(it, null, Instant.parse("2026-10-01T15:00:00Z")) },
+    firstReportedAt = Instant.parse("2026-10-01T15:00:00Z"),
+)
 
 /** Una pendiente de prueba; con [duplicate], parecida a [candidates]. */
 internal fun review(id: String, duplicate: Boolean = false, candidates: List<DuplicateCandidate> = emptyList()) = ReviewItem(

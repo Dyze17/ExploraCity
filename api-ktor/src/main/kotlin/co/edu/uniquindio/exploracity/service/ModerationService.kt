@@ -11,6 +11,9 @@ import co.edu.uniquindio.exploracity.model.ModerationWorkResponse
 import co.edu.uniquindio.exploracity.model.PublicationStatus
 import co.edu.uniquindio.exploracity.model.RejectRequest
 import co.edu.uniquindio.exploracity.model.RejectionReason
+import co.edu.uniquindio.exploracity.model.ReportResolution
+import co.edu.uniquindio.exploracity.model.ReportedPlaceResponse
+import co.edu.uniquindio.exploracity.model.ReportedPlacesResponse
 import co.edu.uniquindio.exploracity.model.ResolvedResponse
 import co.edu.uniquindio.exploracity.model.ReviewItemResponse
 import co.edu.uniquindio.exploracity.model.ReviewQueueResponse
@@ -20,6 +23,8 @@ import co.edu.uniquindio.exploracity.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.repository.NewDecision
 import co.edu.uniquindio.exploracity.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.repository.OwnPlaceRow
+import co.edu.uniquindio.exploracity.repository.PlaceReportRepository
+import co.edu.uniquindio.exploracity.repository.PlaceReportRow
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.PublicationRepository
 import co.edu.uniquindio.exploracity.repository.ResolvedRow
@@ -32,25 +37,26 @@ import java.util.UUID
 
 /**
  * Componente de Moderación (SAD) · La cola (32), la revisión (33 y 33A), las decisiones (34, 35 y 36), «Tu trabajo de
- * hoy» (37) y «Resueltas». F1: un moderador nunca ve ni decide sus propias publicaciones.
+ * hoy» (37), «Resueltas» y «Reportados» (v1.4.0). F1: un moderador nunca ve ni decide sus propias publicaciones.
  */
 class ModerationService(
     private val database: Database,
     private val publications: PublicationRepository,
     private val places: PlaceRepository,
     private val moderation: ModerationRepository,
+    private val reports: PlaceReportRepository,
     private val notifications: NotificationRepository,
     private val reputation: ReputationService,
     private val views: PublicationViews,
     private val city: CitySettings,
     private val clock: Clock,
 ) {
-    /** 7.c · Cuántas esperan (sin las propias) y desde hace cuántos días la más antigua. */
+    /** 7.c · Cuántas esperan (sin las propias), desde hace cuántos días la más antigua y cuántos lugares tienen reportes. */
     suspend fun summary(moderatorId: UUID): ModerationSummaryResponse = database.query {
         val pending = publications.pending(excludeAuthor = moderatorId)
         val now = clock.instant()
         val oldest = pending.minOfOrNull { it.submittedAt }?.let { Duration.between(it, now).toDays().toInt() } ?: 0
-        ModerationSummaryResponse(pending.size, oldest)
+        ModerationSummaryResponse(pending.size, oldest, reports.reportedPlaces(excludeAuthor = moderatorId).size)
     }
 
     /** 32 · La cola, de la más antigua a la más reciente, sin las propias (F1). */
@@ -77,6 +83,7 @@ class ModerationService(
             publications.setStatus(place.id, PublicationStatus.VERIFIED)
             publications.setPoints(place.id, place.pointsEarned + points, place.firstPublication)
             moderation.decide(NewDecision(place.id, moderatorId, DecisionAction.VERIFIED, note = clean), now)
+            reports.resolve(place.id, moderatorId, ReportResolution.REVIEWED, now)
             val author = checkNotNull(place.authorId)
             notifications.verified(author, place.id, place.fields.title, points, now)
             reputation.awardBadges(author)
@@ -130,6 +137,7 @@ class ModerationService(
                 ),
                 now,
             )
+            reports.resolve(place.id, moderatorId, ReportResolution.REVIEWED, now)
             val author = checkNotNull(place.authorId)
             if (duplicate && original != null) {
                 notifications.duplicateRejected(author, place.id, place.fields.title, original.id, original.title, now)
@@ -170,6 +178,7 @@ class ModerationService(
             val now = clock.instant()
             publications.setStatus(place.id, PublicationStatus.FINALIZED)
             moderation.decide(NewDecision(place.id, moderatorId, DecisionAction.FINALIZED, finalizeReason = reason), now)
+            reports.resolve(place.id, moderatorId, ReportResolution.FINALIZED, now)
             place.authorId?.let { notifications.finalized(it, place.id, place.fields.title, reason, ModerationTexts.sentence(reason), now) }
         }
     }
@@ -177,6 +186,7 @@ class ModerationService(
     /**
      * 36 · Vuelve a pendiente una pública: sale del feed y entra a la cola como recién enviada. El motivo (20 a 300
      * caracteres) queda como nota interna. Una sin autor (cuenta eliminada) no puede volver: nadie podría corregirla.
+     * Sus reportes siguen abiertos: la revisión (33) los muestra y se cierran al decidirla.
      */
     suspend fun reopen(moderatorId: UUID, placeId: String, reason: String) {
         val clean = reason.trim()
@@ -189,6 +199,52 @@ class ModerationService(
             moderation.decide(NewDecision(place.id, moderatorId, DecisionAction.REOPENED, note = clean), now)
         }
     }
+
+    /**
+     * v1.4.0 · «Reportados»: los lugares públicos con reportes abiertos, los más reportados primero y, entre iguales, el
+     * que espera desde hace más. Sin los propios (F1).
+     */
+    suspend fun reported(moderatorId: UUID): ReportedPlacesResponse = database.query {
+        val ids = reports.reportedPlaces(excludeAuthor = moderatorId)
+        val open = reports.open(ids).groupBy { it.placeId }
+        val items = ids.mapNotNull { id -> publications.find(id)?.let { reportedOf(it, open[id].orEmpty()) } }
+        ReportedPlacesResponse(items.sortedWith(compareByDescending<ReportedPlaceResponse> { it.reports.size }.thenBy { it.firstReportedAt }))
+    }
+
+    /** v1.4.0 · Un lugar reportado; 404 si ya no tiene reportes abiertos o dejó de ser público. */
+    suspend fun reportedItem(moderatorId: UUID, placeId: String): ReportedPlaceResponse = database.query {
+        val id = idOrNull(placeId) ?: throw notFound()
+        val place = publications.find(id) ?: throw notFound()
+        if (place.authorId == moderatorId) throw ownPublication()
+        val open = reports.open(listOf(id))
+        if (place.status !in PUBLIC || open.isEmpty()) throw notFound()
+        reportedOf(place, open)
+    }
+
+    /**
+     * v1.4.0 · «Descartar»: el lugar está bien como está. Se cierran sus reportes abiertos sin aviso a nadie: quien
+     * reportó es anónimo y quien publicó no se entera. 409 si otro moderador ya los cerró.
+     */
+    suspend fun dismissReports(moderatorId: UUID, placeId: String) {
+        database.query {
+            val place = public(moderatorId, placeId, PUBLIC)
+            if (reports.resolve(place.id, moderatorId, ReportResolution.DISMISSED, clock.instant()) == 0) {
+                throw ApiException.conflict("already_reviewed")
+            }
+        }
+    }
+
+    private fun reportedOf(place: OwnPlaceRow, open: List<PlaceReportRow>) = ReportedPlaceResponse(
+        id = place.id.toString(),
+        title = place.fields.title,
+        category = place.fields.category,
+        status = place.status,
+        photo = publications.photosOf(place.id).firstOrNull()?.url,
+        authorName = places.author(place.authorId)?.name,
+        reasons = views.reasonsOf(open),
+        reports = open.map(views::reportOf),
+        firstReportedAt = open.minOf { it.createdAt }.iso(),
+    )
 
     /** Dentro de una transacción: la pendiente [placeId], o 409 si ya no lo está. 403 si es del mismo moderador (F1). */
     private fun pending(moderatorId: UUID, placeId: String, lock: Boolean): OwnPlaceRow {
@@ -243,6 +299,9 @@ class ModerationService(
         /** 34 y 36 · Notas internas, como las limita la app: hasta 300; volver a pendiente pide al menos 20. */
         const val NOTE_MAX = 300
         const val REOPEN_MIN = 20
+
+        /** Los estados de un lugar que se ve en el feed: solo esos se reportan, se descartan y se finalizan. */
+        private val PUBLIC = setOf(PublicationStatus.VERIFIED, PublicationStatus.FINALIZED)
 
         /** 35 · Sin parecidos marcados, se ofrecen como original los publicados cercanos. */
         const val NEARBY_METERS = 500.0

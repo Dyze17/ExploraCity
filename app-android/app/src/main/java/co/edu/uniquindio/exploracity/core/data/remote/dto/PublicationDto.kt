@@ -10,6 +10,8 @@ import co.edu.uniquindio.exploracity.domain.model.FixKind
 import co.edu.uniquindio.exploracity.domain.model.ModerationWork
 import co.edu.uniquindio.exploracity.domain.model.OpeningHours
 import co.edu.uniquindio.exploracity.domain.model.OwnPublication
+import co.edu.uniquindio.exploracity.domain.model.PlaceReport
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.PriceRange
 import co.edu.uniquindio.exploracity.domain.model.PublicationChanges
 import co.edu.uniquindio.exploracity.domain.model.PublicationStatus
@@ -18,6 +20,7 @@ import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
 import co.edu.uniquindio.exploracity.domain.model.RejectDecision
 import co.edu.uniquindio.exploracity.domain.model.Rejection
 import co.edu.uniquindio.exploracity.domain.model.RejectionReason
+import co.edu.uniquindio.exploracity.domain.model.ReportedPlace
 import co.edu.uniquindio.exploracity.domain.model.RequiredFix
 import co.edu.uniquindio.exploracity.domain.model.ResolvedPublication
 import co.edu.uniquindio.exploracity.domain.model.ReviewAuthor
@@ -288,6 +291,7 @@ data class ReviewItemDto(
     val submittedAt: String,
     val author: ReviewAuthorDto,
     val reportReason: String? = null,
+    val reports: List<PlaceReportDto>? = null,
     val duplicate: SuspicionDto? = null,
 ) {
     fun toDomain() = ReviewItem(
@@ -305,8 +309,44 @@ data class ReviewItemDto(
         author = author.toDomain(),
         reportReason = reportReason,
         duplicate = duplicate?.toDomain(),
+        reports = reports.orEmpty().map { it.toDomain() },
     )
 }
+
+/** v1.4.0 · Un reporte de un lugar, sin quién lo hizo. */
+@Serializable
+data class PlaceReportDto(val reason: PlaceReportReason, val detail: String? = null, val createdAt: String) {
+    fun toDomain() = PlaceReport(reason, detail, Instant.parse(createdAt))
+}
+
+/** v1.4.0 · «Reportados». */
+@Serializable
+data class ReportedPlaceDto(
+    val id: String,
+    val title: String,
+    val category: Category,
+    val status: PublicationStatus,
+    val photo: String? = null,
+    val authorName: String? = null,
+    val reasons: List<PlaceReportReason>,
+    val reports: List<PlaceReportDto>,
+    val firstReportedAt: String,
+) {
+    fun toDomain() = ReportedPlace(
+        id = id,
+        title = title,
+        category = category,
+        status = status,
+        photoUrl = photo,
+        authorName = authorName,
+        reasons = reasons,
+        reports = reports.map { it.toDomain() },
+        firstReportedAt = Instant.parse(firstReportedAt),
+    )
+}
+
+@Serializable
+data class ReportedPlacesDto(val items: List<ReportedPlaceDto>)
 
 @Serializable
 data class ReviewQueueDto(val items: List<ReviewItemDto>)

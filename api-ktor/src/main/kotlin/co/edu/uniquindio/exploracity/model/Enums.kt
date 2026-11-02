@@ -44,6 +44,15 @@ enum class NotificationType { VERIFIED, FINALIZED, COMMENTED, REJECTED, DUPLICAT
 /** 31A · Motivos de reporte de un perfil. */
 enum class ReportReason { IMPERSONATION, INAPPROPRIATE_CONTENT, SPAM }
 
+/** v1.4.0 · Motivos de reporte de un lugar (13). Con [OTHER], el detalle es obligatorio. */
+enum class PlaceReportReason { CLOSED, WRONG_LOCATION, OUTDATED_INFO, BAD_PHOTOS, INAPPROPRIATE, DUPLICATE, OTHER }
+
+/**
+ * v1.4.0 · Cómo se cerró un reporte de lugar: se descartó en «Reportados», el lugar pasó a finalizada (36) o se decidió
+ * en la revisión (33) después de volver a pendiente.
+ */
+enum class ReportResolution { DISMISSED, FINALIZED, REVIEWED }
+
 /** Niveles de reputación según los puntos (G2), los mismos de la app (UserLevel). */
 enum class UserLevel(val minPoints: Int) {
     NEWCOMER(0),

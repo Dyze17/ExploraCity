@@ -43,9 +43,11 @@ data class ReviewItem(
     val location: GeoPoint,
     val submittedAt: Instant,
     val author: ReviewAuthor,
-    /** Motivo de un reporte de la comunidad («información desactualizada»); null si no la reportaron. */
+    /** Los motivos de los reportes de la comunidad, en español; null si no la reportaron. La app lee [reports]. */
     val reportReason: String? = null,
     val duplicate: DuplicateSuspicion? = null,
+    /** v1.4.0 · Los reportes abiertos, del más reciente al más antiguo: volvió a pendiente o la editaron estando reportada. */
+    val reports: List<PlaceReport> = emptyList(),
 ) {
     /** Días completos esperando: «Lleva 3 días». */
     fun waitingDays(now: Instant): Long = Duration.between(submittedAt, now).toDays()
@@ -60,6 +62,23 @@ data class ReviewItem(
         const val URGENT_DAYS = 3
     }
 }
+
+/**
+ * v1.4.0 · «Reportados» · Un lugar público con reportes abiertos: [reasons] van del más repetido al menos y [reports],
+ * del más reciente al más antiguo.
+ */
+data class ReportedPlace(
+    val id: String,
+    val title: String,
+    val category: Category,
+    val status: PublicationStatus,
+    val photoUrl: String?,
+    /** null si la cuenta que lo publicó se eliminó. */
+    val authorName: String?,
+    val reasons: List<PlaceReportReason>,
+    val reports: List<PlaceReport>,
+    val firstReportedAt: Instant,
+)
 
 /** 32 · La cola, de la más antigua a la más reciente. [savedAt] llega con lo guardado sin conexión: solo lectura (32.c). */
 data class ReviewQueue(val items: List<ReviewItem>, val savedAt: Instant? = null)

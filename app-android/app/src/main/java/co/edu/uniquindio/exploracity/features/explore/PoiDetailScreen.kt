@@ -122,6 +122,7 @@ import co.edu.uniquindio.exploracity.core.util.formatDistance
 import co.edu.uniquindio.exploracity.core.util.formatOpeningHours
 import co.edu.uniquindio.exploracity.core.util.hasMapsApiKey
 import co.edu.uniquindio.exploracity.domain.model.Author
+import co.edu.uniquindio.exploracity.domain.model.PlaceReportReason
 import co.edu.uniquindio.exploracity.domain.model.PoiDetails
 import co.edu.uniquindio.exploracity.domain.model.ThemeMode
 import co.edu.uniquindio.exploracity.domain.model.VisitExperience
@@ -172,6 +173,11 @@ fun PoiDetailRoute(
             onOpenAuthor = onOpenAuthor,
             onOpenMap = { onOpenMap(poiId) },
             onMessageShown = viewModel::onMessageShown,
+            onOpenReport = viewModel::onOpenReport,
+            onReportReasonChange = viewModel::onReportReasonChange,
+            onReportDetailChange = viewModel::onReportDetailChange,
+            onConfirmReport = viewModel::onConfirmReport,
+            onDismissReport = viewModel::onDismissReport,
         ),
     )
 }
@@ -190,6 +196,11 @@ class DetailCallbacks(
     val onOpenAuthor: (String) -> Unit = {},
     val onOpenMap: () -> Unit = {},
     val onMessageShown: () -> Unit = {},
+    val onOpenReport: () -> Unit = {},
+    val onReportReasonChange: (PlaceReportReason) -> Unit = {},
+    val onReportDetailChange: (String) -> Unit = {},
+    val onConfirmReport: () -> Unit = {},
+    val onDismissReport: () -> Unit = {},
 )
 
 @Composable
@@ -241,9 +252,10 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
                 }
             }
         }
-        // «Volver» y «Compartir» flotan sobre la galería y siguen a mano al desplazarse (13.a).
+        // «Volver», «Reportar» y «Compartir» flotan sobre la galería y siguen a mano al desplazarse (13.a).
         TopButtons(
             onBack = callbacks.onBack,
+            onReport = callbacks.onOpenReport.takeIf { state.canReport },
             onShare = state.details?.let { details -> { callbacks.onShare(details) } },
             solid = solidTop,
         )
@@ -261,6 +273,16 @@ fun PoiDetailScreen(state: PoiDetailUiState, callbacks: DetailCallbacks, modifie
             onConfirm = callbacks.onConfirmVisit,
             onDismiss = callbacks.onDismissVisit,
         )
+        state.report?.let { report ->
+            ReportPlaceDialog(
+                placeTitle = details.poi.title,
+                state = report,
+                onReasonChange = callbacks.onReportReasonChange,
+                onDetailChange = callbacks.onReportDetailChange,
+                onConfirm = callbacks.onConfirmReport,
+                onDismiss = callbacks.onDismissReport,
+            )
+        }
     }
 }
 
@@ -282,6 +304,7 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
     val visitOffline = stringResource(R.string.visit_offline)
     val visitQueued = stringResource(R.string.visit_queued)
     val visitSaved = stringResource(R.string.visit_saved)
+    val reportSent = stringResource(R.string.place_report_sent)
     val points = (message as? DetailMessage.VisitSaved)?.points ?: 0
     val visitSavedPoints = pluralStringResource(R.plurals.visit_saved_points, points, points)
     LaunchedEffect(message) {
@@ -294,6 +317,7 @@ private fun DetailMessageEffect(message: DetailMessage?, hostState: SnackbarHost
             DetailMessage.VisitOffline -> visitOffline
             DetailMessage.VisitQueued -> visitQueued
             is DetailMessage.VisitSaved -> if (message.points > 0) visitSavedPoints else visitSaved
+            DetailMessage.ReportSent -> reportSent
         }
         // Se consume al terminar: si se marcara antes, el cambio de clave cancelaría este efecto y el aviso.
         hostState.showSnackbar(text, withDismissAction = true, duration = SnackbarDuration.Long)
@@ -428,7 +452,7 @@ private fun GalleryCounter(page: Int, count: Int, modifier: Modifier = Modifier)
 }
 
 @Composable
-private fun TopButtons(onBack: () -> Unit, onShare: (() -> Unit)?, solid: Boolean) {
+private fun TopButtons(onBack: () -> Unit, onReport: (() -> Unit)?, onShare: (() -> Unit)?, solid: Boolean) {
     val scheme = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().background(if (solid) scheme.surface else Color.Transparent)) {
         Row(
@@ -436,7 +460,11 @@ private fun TopButtons(onBack: () -> Unit, onShare: (() -> Unit)?, solid: Boolea
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             RoundIconButton(R.drawable.ic_arrow_back, stringResource(R.string.navigate_back), onBack)
-            if (onShare != null) RoundIconButton(R.drawable.ic_share, stringResource(R.string.detail_share), onShare)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // v1.4.0 · La bandera (README: «flag» = reportar), en lo que publicó otra persona.
+                if (onReport != null) RoundIconButton(R.drawable.ic_flag, stringResource(R.string.detail_report), onReport)
+                if (onShare != null) RoundIconButton(R.drawable.ic_share, stringResource(R.string.detail_share), onShare)
+            }
         }
         if (solid) Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.exploraColors.divider))
     }

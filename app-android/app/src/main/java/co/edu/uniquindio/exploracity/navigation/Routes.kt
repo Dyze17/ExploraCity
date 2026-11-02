@@ -152,3 +152,6 @@ fun PublicationFilter.toStatus(): PublicationStatus? = when (this) {
 /** Sin lienzo (E1): las publicaciones ya decididas; una verificada o finalizada abre 36. */
 @Serializable data object ResolvedPublications
 
+/** v1.4.0 · Los lugares públicos con reportes abiertos. */
+@Serializable data object ReportedPlaces
+

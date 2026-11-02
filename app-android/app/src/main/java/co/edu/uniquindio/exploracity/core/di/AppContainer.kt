@@ -46,6 +46,7 @@ import co.edu.uniquindio.exploracity.core.data.remote.sessionHttpClient
 import co.edu.uniquindio.exploracity.core.data.repository.ApiAccountRepository
 import co.edu.uniquindio.exploracity.core.data.repository.ApiAuthRepository
 import co.edu.uniquindio.exploracity.core.data.repository.ApiCategorySuggester
+import co.edu.uniquindio.exploracity.core.data.repository.ApiContributionRepository
 import co.edu.uniquindio.exploracity.core.data.repository.ApiDevMailbox
 import co.edu.uniquindio.exploracity.core.data.repository.ApiDuplicateFinder
 import co.edu.uniquindio.exploracity.core.data.repository.ApiModerationRepository
@@ -63,6 +64,7 @@ import co.edu.uniquindio.exploracity.core.data.repository.OfflineUserRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyAccountRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyAuthRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyCategorySuggester
+import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyContributionRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyDuplicateFinder
 import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyGoogleAuthRepository
 import co.edu.uniquindio.exploracity.core.data.repository.OnlineOnlyPublicationRepository
@@ -78,6 +80,7 @@ import co.edu.uniquindio.exploracity.domain.model.GeoPoint
 import co.edu.uniquindio.exploracity.domain.repository.AccountRepository
 import co.edu.uniquindio.exploracity.domain.repository.AuthRepository
 import co.edu.uniquindio.exploracity.domain.repository.CategorySuggester
+import co.edu.uniquindio.exploracity.domain.repository.ContributionRepository
 import co.edu.uniquindio.exploracity.domain.repository.DuplicateFinder
 import co.edu.uniquindio.exploracity.domain.repository.ExploredTown
 import co.edu.uniquindio.exploracity.domain.repository.GoogleAuthRepository
@@ -196,6 +199,9 @@ class AppContainer(context: Context) {
         scope = appScope,
         currentUser = { sessionUser.author.value },
     )
+
+    /** v1.4.0 · Reportar un lugar (13); solo con red. */
+    val contributionRepository: ContributionRepository = OnlineOnlyContributionRepository(ApiContributionRepository(poiApi), connectivity)
 
     val notificationRepository: NotificationRepository = OfflineNotificationRepository(
         remote = notificationServer,
