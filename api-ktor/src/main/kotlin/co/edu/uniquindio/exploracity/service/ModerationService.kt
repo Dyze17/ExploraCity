@@ -8,6 +8,10 @@ import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.ModerationSummaryResponse
 import co.edu.uniquindio.exploracity.model.ModerationWorkResponse
+import co.edu.uniquindio.exploracity.model.PendingPhotoResponse
+import co.edu.uniquindio.exploracity.model.PendingPhotosResponse
+import co.edu.uniquindio.exploracity.model.PhotoPlaceResponse
+import co.edu.uniquindio.exploracity.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.model.PublicationStatus
 import co.edu.uniquindio.exploracity.model.RejectRequest
 import co.edu.uniquindio.exploracity.model.RejectionReason
@@ -23,13 +27,18 @@ import co.edu.uniquindio.exploracity.repository.ModerationRepository
 import co.edu.uniquindio.exploracity.repository.NewDecision
 import co.edu.uniquindio.exploracity.repository.NotificationRepository
 import co.edu.uniquindio.exploracity.repository.OwnPlaceRow
+import co.edu.uniquindio.exploracity.integration.MediaStore
+import co.edu.uniquindio.exploracity.repository.PendingPhotoRepository
+import co.edu.uniquindio.exploracity.repository.PendingPhotoRow
 import co.edu.uniquindio.exploracity.repository.PlaceReportRepository
 import co.edu.uniquindio.exploracity.repository.PlaceReportRow
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
 import co.edu.uniquindio.exploracity.repository.PublicationRepository
 import co.edu.uniquindio.exploracity.repository.ResolvedRow
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
 import java.time.LocalDate
@@ -37,7 +46,8 @@ import java.util.UUID
 
 /**
  * Componente de Moderación (SAD) · La cola (32), la revisión (33 y 33A), las decisiones (34, 35 y 36), «Tu trabajo de
- * hoy» (37), «Resueltas» y «Reportados» (v1.4.0). F1: un moderador nunca ve ni decide sus propias publicaciones.
+ * hoy» (37), «Resueltas», «Reportados» y «Fotos por revisar» (v1.4.0). F1: un moderador nunca ve ni decide sus propias
+ * publicaciones ni las fotos que agregó.
  */
 class ModerationService(
     private val database: Database,
@@ -45,18 +55,30 @@ class ModerationService(
     private val places: PlaceRepository,
     private val moderation: ModerationRepository,
     private val reports: PlaceReportRepository,
+    private val pendingPhotos: PendingPhotoRepository,
+    private val media: MediaStore,
     private val notifications: NotificationRepository,
     private val reputation: ReputationService,
     private val views: PublicationViews,
     private val city: CitySettings,
     private val clock: Clock,
 ) {
-    /** 7.c · Cuántas esperan (sin las propias), desde hace cuántos días la más antigua y cuántos lugares tienen reportes. */
+    private val log = LoggerFactory.getLogger(ModerationService::class.java)
+
+    /**
+     * 7.c · Cuántas esperan (sin las propias) y desde hace cuántos días la más antigua. v1.4.0 · Cuántos lugares tienen
+     * reportes y cuántas fotos agregadas esperan revisión.
+     */
     suspend fun summary(moderatorId: UUID): ModerationSummaryResponse = database.query {
         val pending = publications.pending(excludeAuthor = moderatorId)
         val now = clock.instant()
         val oldest = pending.minOfOrNull { it.submittedAt }?.let { Duration.between(it, now).toDays().toInt() } ?: 0
-        ModerationSummaryResponse(pending.size, oldest, reports.reportedPlaces(excludeAuthor = moderatorId).size)
+        ModerationSummaryResponse(
+            pending = pending.size,
+            oldestWaitingDays = oldest,
+            reported = reports.reportedPlaces(excludeAuthor = moderatorId).size,
+            pendingPhotos = pendingPhotos.inReview(excludeOwner = moderatorId).size,
+        )
     }
 
     /** 32 · La cola, de la más antigua a la más reciente, sin las propias (F1). */
@@ -234,6 +256,78 @@ class ModerationService(
         }
     }
 
+    /** v1.4.0 · «Fotos por revisar»: las agregadas a lugares públicos, de la más antigua a la más reciente, sin las propias (F1). */
+    suspend fun photos(moderatorId: UUID): PendingPhotosResponse = database.query {
+        val rows = pendingPhotos.inReview(excludeOwner = moderatorId)
+        val placesById = rows.map { it.placeId }.distinct().mapNotNull { publications.find(it) }.associateBy { it.id }
+        PendingPhotosResponse(
+            rows.mapNotNull { row ->
+                val place = placesById[row.placeId] ?: return@mapNotNull null
+                PendingPhotoResponse(
+                    id = row.photoId.toString(),
+                    url = row.url,
+                    submittedAt = row.submittedAt.iso(),
+                    contributor = places.author(row.ownerId)?.let(PlaceCards::authorOf),
+                    place = PhotoPlaceResponse(
+                        id = place.id.toString(),
+                        title = place.fields.title,
+                        category = place.fields.category,
+                        status = place.status,
+                        authorName = places.author(place.authorId)?.name,
+                        photos = places.photos(place.id),
+                    ),
+                )
+            },
+        )
+    }
+
+    /**
+     * v1.4.0 · Publica una foto agregada: pasa al final de las fotos del lugar y quien la agregó recibe el aviso. 409
+     * already_reviewed si otro moderador ya la decidió; too_many_photos si el lugar llegó a 5 mientras tanto (quien lo
+     * publicó lo editó); state_changed si el lugar dejó de ser público.
+     */
+    suspend fun approvePhoto(moderatorId: UUID, photoId: String) {
+        database.query {
+            val photo = pendingPhoto(moderatorId, photoId)
+            val place = public(moderatorId = null, photo.placeId.toString(), PUBLIC)
+            val current = publications.photosOf(place.id)
+            if (current.size >= PublicationService.PHOTOS_MAX) throw ApiException.conflict("too_many_photos")
+            pendingPhotos.remove(photo.photoId)
+            publications.assignPhotos(place.id, current.map { it.id } + photo.photoId)
+            notifications.photoApproved(photo.ownerId, place.id, place.fields.title, clock.instant())
+        }
+    }
+
+    /** v1.4.0 · No publica una foto agregada: se borra (también del almacén) y quien la agregó recibe el motivo. */
+    suspend fun rejectPhoto(moderatorId: UUID, photoId: String, reason: PhotoRejectionReason) {
+        val publicId = database.query {
+            val photo = pendingPhoto(moderatorId, photoId)
+            val place = publications.find(photo.placeId) ?: throw notFound()
+            publications.deletePhotos(listOf(photo.photoId))
+            notifications.photoRejected(photo.ownerId, place.id, place.fields.title, reason, ModerationTexts.sentence(reason), clock.instant())
+            photo.publicId
+        }
+        try {
+            media.delete(publicId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn("La foto rechazada {} quedó en el almacén.", publicId, e)
+        }
+    }
+
+    /** Dentro de una transacción: la foto que espera revisión, bloqueada; 409 si ya no espera, 403 si es propia (F1). */
+    private fun pendingPhoto(moderatorId: UUID, photoId: String): PendingPhotoRow {
+        val id = idOrNull(photoId) ?: throw photoNotFound()
+        val photo = pendingPhotos.find(id, lock = true)
+        if (photo == null) {
+            if (publications.photoExists(id)) throw ApiException.conflict("already_reviewed")
+            throw photoNotFound()
+        }
+        if (photo.ownerId == moderatorId) throw ApiException(HttpStatusCode.Forbidden, "own_photo")
+        return photo
+    }
+
     private fun reportedOf(place: OwnPlaceRow, open: List<PlaceReportRow>) = ReportedPlaceResponse(
         id = place.id.toString(),
         title = place.fields.title,
@@ -256,11 +350,14 @@ class ModerationService(
         return place
     }
 
-    /** Dentro de una transacción: la pública [placeId] en uno de [statuses], o 409 si cambió de estado. */
-    private fun public(moderatorId: UUID, placeId: String, statuses: Set<PublicationStatus>): OwnPlaceRow {
+    /**
+     * Dentro de una transacción: la pública [placeId] en uno de [statuses], o 409 si cambió de estado. Sin
+     * [moderatorId] no se mira de quién es (las fotos agregadas a un lugar propio sí se revisan).
+     */
+    private fun public(moderatorId: UUID?, placeId: String, statuses: Set<PublicationStatus>): OwnPlaceRow {
         val id = idOrNull(placeId) ?: throw notFound()
         val place = publications.find(id, lock = true) ?: throw notFound()
-        if (place.authorId == moderatorId) throw ownPublication()
+        if (moderatorId != null && place.authorId == moderatorId) throw ownPublication()
         if (place.status !in statuses) throw ApiException.conflict("state_changed")
         return place
     }
@@ -283,6 +380,8 @@ class ModerationService(
     private fun idOrNull(text: String): UUID? = runCatching { UUID.fromString(text) }.getOrNull()
 
     private fun notFound() = ApiException.notFound("publication_not_found")
+
+    private fun photoNotFound() = ApiException.notFound("photo_not_found")
 
     private fun ownPublication() = ApiException(HttpStatusCode.Forbidden, "own_publication")
 

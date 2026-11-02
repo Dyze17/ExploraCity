@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.config.query
 import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.NotificationResponse
 import co.edu.uniquindio.exploracity.model.NotificationType
+import co.edu.uniquindio.exploracity.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.model.NotificationsResponse
 import co.edu.uniquindio.exploracity.model.RejectionReason
 import co.edu.uniquindio.exploracity.model.iso
@@ -53,6 +54,13 @@ class NotificationService(
                 placeTitle = placeTitle,
                 reason = reason,
                 rejectionReason = RejectionReason.entries.firstOrNull { it.name == reasonCode },
+            )
+            NotificationType.PHOTO_APPROVED -> base.copy(placeId = place, placeTitle = placeTitle)
+            NotificationType.PHOTO_REJECTED -> base.copy(
+                placeId = place,
+                placeTitle = placeTitle,
+                reason = reason,
+                photoRejectionReason = PhotoRejectionReason.entries.firstOrNull { it.name == reasonCode },
             )
             NotificationType.DUPLICATE_REJECTED -> base.copy(
                 placeId = place,

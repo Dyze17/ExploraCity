@@ -20,6 +20,13 @@
   "photos": [
     "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"
   ],
+  "gallery": [
+    {
+      "url": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"
+    }
+  ],
+  "photoSlots": 4,
+  "myPendingPhotos": 0,
   "address": "Vía al Mirador, Armenia",
   "hours": {
     "days": [

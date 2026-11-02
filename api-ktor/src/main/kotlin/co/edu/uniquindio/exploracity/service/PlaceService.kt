@@ -6,6 +6,7 @@ import co.edu.uniquindio.exploracity.model.CommentResponse
 import co.edu.uniquindio.exploracity.model.CommentsPageResponse
 import co.edu.uniquindio.exploracity.model.CountResponse
 import co.edu.uniquindio.exploracity.model.FeedPageResponse
+import co.edu.uniquindio.exploracity.model.GalleryPhotoResponse
 import co.edu.uniquindio.exploracity.model.GeoPoint
 import co.edu.uniquindio.exploracity.model.MapAreaResponse
 import co.edu.uniquindio.exploracity.model.PlaceDetailsResponse
@@ -20,6 +21,7 @@ import co.edu.uniquindio.exploracity.model.iso
 import co.edu.uniquindio.exploracity.plugins.ApiException
 import co.edu.uniquindio.exploracity.repository.CommentRow
 import co.edu.uniquindio.exploracity.repository.NotificationRepository
+import co.edu.uniquindio.exploracity.repository.PendingPhotoRepository
 import co.edu.uniquindio.exploracity.repository.PlaceFilter
 import co.edu.uniquindio.exploracity.repository.PlaceReportRepository
 import co.edu.uniquindio.exploracity.repository.PlaceRepository
@@ -39,6 +41,7 @@ class PlaceService(
     private val database: Database,
     private val places: PlaceRepository,
     private val reports: PlaceReportRepository,
+    private val pendingPhotos: PendingPhotoRepository,
     private val notifications: NotificationRepository,
     private val reputation: ReputationService,
     private val cards: PlaceCards,
@@ -69,13 +72,21 @@ class PlaceService(
         TownsResponse(cards.towns(places).map { TownResponse(it.name, it.region, it.places, GeoPoint(it.latitude, it.longitude)) })
     }
 
-    /** 13 · El detalle, con el voto y la visita de quien lo abre. */
+    /**
+     * 13 · El detalle, con el voto y la visita de quien lo abre. v1.4.0 · Cada foto dice quién la agregó si no fue quien
+     * publicó el lugar, cuántas más caben y cuántas de quien mira esperan revisión.
+     */
     suspend fun details(userId: UUID, placeId: String, near: GeoPoint?): PlaceDetailsResponse = database.query {
         val place = place(placeId, near)
+        val gallery = places.gallery(place.id)
+        val waiting = pendingPhotos.of(place.id)
         PlaceDetailsResponse(
             place = cards.summaryOf(place),
             description = place.description,
-            photos = places.photos(place.id),
+            photos = gallery.map { it.url },
+            gallery = gallery.map { GalleryPhotoResponse(it.url, it.ownerName.takeIf { _ -> it.ownerId != place.authorId }) },
+            photoSlots = (PublicationService.PHOTOS_MAX - gallery.size - waiting.size).coerceAtLeast(0),
+            myPendingPhotos = waiting.count { it.ownerId == userId },
             address = place.address,
             hours = place.schedule.firstOrNull()?.let(PlaceCards::hoursOf),
             schedule = place.schedule.map(PlaceCards::hoursOf).ifEmpty { null },

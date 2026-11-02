@@ -265,6 +265,15 @@ object UserReports : Table("user_reports") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** v1.4.0 · Las fotos agregadas que esperan revisión (V15): sin lugar en photos hasta que se aprueban. */
+object PendingPhotos : Table("pending_photos") {
+    val photoId = reference("photo_id", Photos.id, onDelete = ReferenceOption.CASCADE)
+    val placeId = reference("place_id", Places.id, onDelete = ReferenceOption.CASCADE)
+    val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
+
+    override val primaryKey = PrimaryKey(photoId)
+}
+
 /** v1.4.0 · Reportes de lugares (V14): anónimos, a lo sumo uno abierto por persona y lugar. */
 object PlaceReports : Table("place_reports") {
     val id = javaUUID("id").autoGenerate()

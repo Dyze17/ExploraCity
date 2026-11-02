@@ -85,6 +85,9 @@ data class PlaceRow(
     val timeZone: ZoneId? = null,
 )
 
+/** v1.4.0 · Una foto publicada de un lugar y quién la subió. */
+data class GalleryRow(val url: String, val ownerId: UUID, val ownerName: String?)
+
 /** v1.3.0 · Un municipio con [places] lugares públicos; el centro es el promedio de sus coordenadas. */
 data class TownRow(val name: String, val region: String?, val places: Int, val latitude: Double, val longitude: Double)
 
@@ -168,6 +171,13 @@ class PlaceRepository {
 
     fun photos(placeId: UUID): List<String> =
         Photos.select(Photos.url).where { Photos.placeId eq placeId }.orderBy(Photos.position).map { it[Photos.url] }
+
+    /** v1.4.0 · Las fotos de [placeId] en orden, con quién subió cada una (null si su cuenta ya no existe). */
+    fun gallery(placeId: UUID): List<GalleryRow> = Photos.join(Users, JoinType.LEFT, Photos.ownerId, Users.id)
+        .select(Photos.url, Photos.ownerId, Users.name)
+        .where { Photos.placeId eq placeId }
+        .orderBy(Photos.position)
+        .map { GalleryRow(it[Photos.url], it[Photos.ownerId], it[Users.name]) }
 
     /** null si la cuenta ya no existe. */
     fun author(userId: UUID?): AuthorRow? {

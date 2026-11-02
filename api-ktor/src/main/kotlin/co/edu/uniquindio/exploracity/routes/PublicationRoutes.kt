@@ -1,5 +1,6 @@
 package co.edu.uniquindio.exploracity.routes
 
+import co.edu.uniquindio.exploracity.model.AddPhotosRequest
 import co.edu.uniquindio.exploracity.model.ChangesRequest
 import co.edu.uniquindio.exploracity.model.PhotoUrlRequest
 import co.edu.uniquindio.exploracity.model.SubmissionRequest
@@ -27,6 +28,10 @@ fun Route.publicationRoutes(publications: PublicationService) {
     authenticate(ACCESS) {
         post("/photos") {
             call.respond(HttpStatusCode.Created, publications.uploadPhoto(call.user().id, call.receivePhoto()))
+        }
+        post("/places/{id}/photos") {
+            publications.contributePhotos(call.user().id, call.parameters["id"].orEmpty(), call.receive<AddPhotosRequest>().urls)
+            call.respond(HttpStatusCode.NoContent)
         }
         post("/places/suggest-category") {
             val request = call.receive<SuggestionRequest>()

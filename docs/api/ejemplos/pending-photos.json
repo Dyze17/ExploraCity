@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "id": "f5a6b7c8-d9e0-4f12-8a3b-4c5d6e7f8a9b",
+      "url": "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-atardecer.jpg",
+      "submittedAt": "2026-10-03T15:00:00Z",
+      "contributor": {
+        "id": "9b2d4f6a-1c3e-4a5b-8d7f-0e2c4a6b8d10",
+        "name": "Laura Gómez",
+        "points": 35
+      },
+      "place": {
+        "id": "c1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a5b",
+        "title": "Mirador de la Secreta",
+        "category": "NATURE",
+        "status": "VERIFIED",
+        "authorName": "Ana Ríos",
+        "photos": [
+          "https://res.cloudinary.com/exploracity/image/upload/lugares/mirador-1.jpg"
+        ]
+      }
+    }
+  ]
+}

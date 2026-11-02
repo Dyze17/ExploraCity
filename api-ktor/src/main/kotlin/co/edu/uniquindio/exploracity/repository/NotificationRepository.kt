@@ -4,6 +4,7 @@ import co.edu.uniquindio.exploracity.model.Badges
 import co.edu.uniquindio.exploracity.model.Comments
 import co.edu.uniquindio.exploracity.model.FinalizeReason
 import co.edu.uniquindio.exploracity.model.NotificationType
+import co.edu.uniquindio.exploracity.model.PhotoRejectionReason
 import co.edu.uniquindio.exploracity.model.Notifications
 import co.edu.uniquindio.exploracity.model.RejectionReason
 import co.edu.uniquindio.exploracity.model.Users
@@ -147,6 +148,21 @@ class NotificationRepository {
     /** 36 · Pasó a finalizada por [code]; [reason] es el motivo en minúscula. */
     fun finalized(userId: UUID, placeId: UUID, placeTitle: String, code: FinalizeReason, reason: String, at: Instant) =
         insert(userId, NotificationType.FINALIZED, at) {
+            it[Notifications.placeId] = placeId
+            it[Notifications.placeTitle] = placeTitle
+            it[Notifications.reasonCode] = code.name
+            it[Notifications.reason] = reason
+        }
+
+    /** v1.4.0 · Se publicó la foto que [userId] agregó a [placeTitle]. */
+    fun photoApproved(userId: UUID, placeId: UUID, placeTitle: String, at: Instant) = insert(userId, NotificationType.PHOTO_APPROVED, at) {
+        it[Notifications.placeId] = placeId
+        it[Notifications.placeTitle] = placeTitle
+    }
+
+    /** v1.4.0 · No se publicó por [code]; [reason] es la frase del motivo («no muestra el lugar»). */
+    fun photoRejected(userId: UUID, placeId: UUID, placeTitle: String, code: PhotoRejectionReason, reason: String, at: Instant) =
+        insert(userId, NotificationType.PHOTO_REJECTED, at) {
             it[Notifications.placeId] = placeId
             it[Notifications.placeTitle] = placeTitle
             it[Notifications.reasonCode] = code.name

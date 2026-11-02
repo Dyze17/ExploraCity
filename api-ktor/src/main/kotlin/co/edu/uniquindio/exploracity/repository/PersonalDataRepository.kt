@@ -2,6 +2,7 @@ package co.edu.uniquindio.exploracity.repository
 
 import co.edu.uniquindio.exploracity.model.Category
 import co.edu.uniquindio.exploracity.model.Comments
+import co.edu.uniquindio.exploracity.model.PendingPhotos
 import co.edu.uniquindio.exploracity.model.Photos
 import co.edu.uniquindio.exploracity.model.Places
 import co.edu.uniquindio.exploracity.model.PriceRange
@@ -9,11 +10,15 @@ import co.edu.uniquindio.exploracity.model.PublicationStatus
 import co.edu.uniquindio.exploracity.model.Visits
 import co.edu.uniquindio.exploracity.model.Votes
 import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.count
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.neq
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -105,6 +110,39 @@ class PersonalDataRepository {
     /** Los ids en el almacén de medios de todas las fotos que subió. */
     fun photoIds(userId: UUID): List<String> =
         Photos.select(Photos.publicId).where { Photos.ownerId eq userId }.map { it[Photos.publicId] }
+
+    /**
+     * v1.4.0 · Las fotos que agregó a lugares de otras personas: las publicadas y las que esperan revisión. Las de sus
+     * propios lugares ya van en sus publicaciones.
+     */
+    fun contributedPhotos(userId: UUID): List<String> {
+        val published = Photos.join(Places, JoinType.INNER, Photos.placeId, Places.id)
+            .select(Photos.url)
+            .where { (Photos.ownerId eq userId) and (Places.authorId.isNull() or (Places.authorId neq userId)) }
+            .map { it[Photos.url] }
+        val waiting = Photos.join(PendingPhotos, JoinType.INNER, Photos.id, PendingPhotos.photoId)
+            .select(Photos.url)
+            .where { Photos.ownerId eq userId }
+            .map { it[Photos.url] }
+        return published + waiting
+    }
+
+    /**
+     * v1.4.0 · Las fotos que otras personas agregaron a sus publicaciones pendientes y rechazadas, que esperaban
+     * revisión: se borran con ellas. Devuelve sus ids en el almacén.
+     */
+    fun deletePendingPhotosOnUnpublished(userId: UUID): List<String> {
+        val rows = Photos.join(PendingPhotos, JoinType.INNER, Photos.id, PendingPhotos.photoId)
+            .join(Places, JoinType.INNER, PendingPhotos.placeId, Places.id)
+            .select(Photos.id, Photos.publicId)
+            .where {
+                (Places.authorId eq userId) and (Places.status inList listOf(PublicationStatus.PENDING, PublicationStatus.REJECTED)) and
+                    (Photos.ownerId neq userId)
+            }
+            .map { it[Photos.id] to it[Photos.publicId] }
+        if (rows.isNotEmpty()) Photos.deleteWhere { Photos.id inList rows.map { it.first } }
+        return rows.map { it.second }
+    }
 
     /** 30 · Lo que nadie más ve se va con la cuenta: sus publicaciones pendientes y rechazadas. */
     fun deleteUnpublished(userId: UUID): Int = Places.deleteWhere {

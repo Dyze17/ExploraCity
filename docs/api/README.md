@@ -67,11 +67,13 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `invalid_refresh_token` | 401 | El token de renovación no existe, venció, se revocó o ya se usó |
 | `forbidden` | 403 | La ruta es de Moderación y la persona no tiene el rol |
 | `own_publication` | 403 | Un moderador intenta decidir sobre su propia publicación (F1) |
+| `own_photo` | 403 | Un moderador intenta revisar una foto que agregó él (F1, v1.4.0) |
 | `not_found` | 404 | La ruta no existe |
 | `user_not_found` | 404 | La persona del perfil o del reporte no existe |
 | `place_not_found` | 404 | El lugar no existe o no es público (pendiente o rechazado) |
 | `notification_not_found` | 404 | El aviso no existe o es de otra persona |
 | `publication_not_found` | 404 | La publicación no existe, es de otra persona o ya no está para moderar |
+| `photo_not_found` | 404 | La foto agregada que se revisa no existe o ya se rechazó (v1.4.0) |
 | `registration_required` | 404 | Entrar con Google: la cuenta de Google es nueva. Trae `email` y `name` para el registro en modo Google (C1) |
 | `method_not_allowed` | 405 | La ruta no acepta ese método |
 | `email_taken` | 409 | Ya hay una cuenta con ese correo. Con Google: el correo ya tiene otra cuenta de Google vinculada |
@@ -81,7 +83,7 @@ Un enlace vencido trae además el correo al que se envió, para pedir otro con e
 | `no_pending_email` | 409 | Se pide reenviar el enlace sin un cambio de correo pendiente |
 | `cannot_resubmit` | 409 | Se reenvía una publicación que no está rechazada o que el moderador no permitió corregir |
 | `not_editable` | 409 | Se edita una publicación rechazada o finalizada (solo se editan pendientes y verificadas) |
-| `too_many_photos` | 409 | La publicación ya tiene 5 fotos |
+| `too_many_photos` | 409 | La publicación ya tiene 5 fotos o, al agregar fotos a un lugar (v1.4.0), no caben entre las publicadas y las que esperan revisión |
 | `already_reviewed` | 409 | Otra persona ya decidió esa pendiente |
 | `state_changed` | 409 | La publicación ya no está en el estado que vio el moderador |
 | `cannot_reopen` | 409 | Se intenta volver a pendiente un lugar cuya cuenta se eliminó |
@@ -201,6 +203,7 @@ En cada lugar:
 - `openNow` sale del horario y de la hora del lugar: cada lugar guarda la zona horaria de su pin (ADR-17). Sin zona, usa la de la ciudad. Un tramo que cierra después de medianoche sigue abierto la madrugada siguiente. Siempre abierto (`alwaysOpen`), es `true`; sin horario, no viene.
 - `summary` es la primera oración de la descripción, para la tarjeta del mapa.
 - En el detalle, `photos` trae todas las fotos en orden, y los días del horario van de `MONDAY` a `SUNDAY`. Si la cuenta que publicó el lugar se eliminó, no viene `author` y la app muestra «Usuario eliminado».
+- **Fotos de la comunidad (v1.4.0):** `gallery` trae las mismas fotos de `photos`, con `contributor` (el nombre de quien la agregó) en las que no subió quien publicó el lugar. `photoSlots` dice cuántas más caben (5 menos las publicadas y las que esperan revisión) y `myPendingPhotos`, cuántas de quien mira esperan revisión.
 
 ### Social (13, 14 y 14.b)
 
@@ -237,6 +240,8 @@ Cada aviso trae `id`, `type`, `createdAt` y `read`, más los campos que pide su 
 | `FINALIZED` | `placeId`, `placeTitle`, `reason` (el motivo en minúscula) y `finalizeReason` (`CLOSED`, `EVENT_ENDED` o `MERGED`) | Pasar a finalizada (36) |
 | `REJECTED` | `placeId`, `placeTitle`, `reason` (la frase del motivo o, con «Otro», lo que escribió el moderador) y `rejectionReason` | Rechazar (35) |
 | `DUPLICATE_REJECTED` | `placeId`, `placeTitle`, `existingPlaceId`, `existingTitle` | Rechazar por duplicado (35) |
+| `PHOTO_APPROVED` | `placeId`, `placeTitle` | Publicar una foto que la persona agregó a un lugar (v1.4.0) |
+| `PHOTO_REJECTED` | `placeId`, `placeTitle`, `reason` (la frase del motivo) y `photoRejectionReason` (`NOT_THE_PLACE`, `INAPPROPRIATE` o `LOW_QUALITY`) | No publicar una foto agregada; la foto se borra (v1.4.0) |
 
 Las insignias se revisan después de cada acción que mueve sus cifras: publicar, quedar verificada, comentar, visitar o recibir un voto.
 
@@ -255,6 +260,7 @@ Las insignias se revisan después de cada acción que mueve sus cifras: publicar
 | `PUT /v1/publications/{id}` | Token | Lo editable (abajo) | `200` con la publicación, que vuelve a verificación | Un ítem de [`publications.json`](ejemplos/publications.json) |
 | `DELETE /v1/publications/{id}` | Token | — | `204`. La borra con sus fotos (también del almacén), comentarios y votos | — |
 | `POST /v1/publications/{id}/photos` | Token | `{ "url" }` | `204`. Una foto que terminó de subir después del envío va al final, hasta 5 | — |
+| `POST /v1/places/{id}/photos` | Token | `{ "urls" }` | `204`. v1.4.0 · Agrega a un lugar público fotos ya subidas con `POST /v1/photos`, de quien lo publicó o de cualquier persona (C1). Esperan a un moderador antes de verse (D1). Si no caben todas, no se agrega ninguna (`409 too_many_photos`) | — |
 
 La publicación lleva:
 - `title` (5 a 60), `description` (30 a 600), `category`, `categoryOrigin` (`SUGGESTED` o `CHOSEN`) y `location`.
@@ -297,10 +303,14 @@ Solo con el rol de moderador (`403 forbidden` con otro rol). Un moderador nunca 
 | `GET /v1/moderation/reports` | — | «Reportados» (v1.4.0): los lugares públicos con reportes abiertos, los más reportados primero y, entre iguales, el que espera desde hace más | [`reported-places.json`](ejemplos/reported-places.json) |
 | `GET /v1/moderation/reports/{id}` | — | Un lugar reportado; `404` si ya no tiene reportes abiertos o dejó de ser público | Un ítem de [`reported-places.json`](ejemplos/reported-places.json) |
 | `POST /v1/moderation/reports/{id}/dismiss` | — | `204`. «Descartar»: el lugar queda como está y se cierran sus reportes. `409 already_reviewed` si otro moderador ya los cerró | — |
+| `GET /v1/moderation/photos` | — | «Fotos por revisar» (v1.4.0): las agregadas a lugares públicos, de la más antigua a la más reciente, con las fotos que ya tiene el lugar para comparar. Sin las que agregó el propio moderador | [`pending-photos.json`](ejemplos/pending-photos.json) |
+| `POST /v1/moderation/photos/{id}/approve` | — | `204`. Pasa al final de las fotos del lugar y quien la agregó recibe `PHOTO_APPROVED`. `409 too_many_photos` si el lugar ya llegó a 5 | — |
+| `POST /v1/moderation/photos/{id}/reject` | `{ "reason" }` (`NOT_THE_PLACE`, `INAPPROPRIATE` o `LOW_QUALITY`) | `204`. La foto se borra, también del almacén, y quien la agregó recibe `PHOTO_REJECTED` | — |
 
 - **Dos moderadores a la vez:** si otra persona ya decidió, la respuesta es `409 already_reviewed`; si la publicación cambió de estado, `409 state_changed`.
 - **Qué corregir (E1):** sale del motivo del rechazo. `PHOTO` pide una foto donde se reconozca el lugar y `LOCATION`, el pin sobre la entrada. Los demás motivos llevan solo el mensaje. Sin mensaje del moderador, va el del motivo.
 - **Reportes (v1.4.0):** pasar un lugar reportado a finalizada cierra sus reportes. Volver a pendiente los deja abiertos: la revisión (33) los trae en `reports`, del más reciente al más antiguo, y en `reportReason`, en español para la app 1.3. Se cierran al verificarla o rechazarla. Si quien publicó edita un lugar reportado, también llega a la revisión con sus reportes.
+- **Fotos agregadas (v1.4.0):** mientras esperan, la foto no está en el lugar. Las de un lugar que volvió a pendiente esperan a que vuelva a ser público; si quien lo publicó lo borra, se borran con él. Quien lo publicó puede quitar en la edición (23) una foto que agregó otra persona. El resumen trae `pendingPhotos`.
 - **Lugares sin autor:** una pendiente cuya cuenta se eliminó no sale en la cola, y un lugar sin autor no vuelve a pendiente (`409 cannot_reopen`).
 
 ### Desarrollo
