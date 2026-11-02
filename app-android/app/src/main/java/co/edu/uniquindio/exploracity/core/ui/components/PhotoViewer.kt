@@ -23,11 +23,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -46,21 +49,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import co.edu.uniquindio.exploracity.R
-import co.edu.uniquindio.exploracity.domain.model.PublishedPhoto
+
+/** Una foto del visor: su dirección (null si no la hay) y lo que dice el lector (por omisión, «Foto 2 de 5»). */
+data class ViewerPhoto(val url: String?, val description: String? = null)
 
 /**
- * Fotos a pantalla completa (33: «cada foto es tocable a pantalla completa con zoom»): se pasan con el dedo, se acercan
- * pellizcando o tocando dos veces, y se cierran con la X o con «atrás». Mientras una foto carga, o si no se puede
- * descargar, su página muestra la cámara, que también se acerca.
+ * Fotos a pantalla completa (33: «cada foto es tocable a pantalla completa con zoom»; 13 desde la galería del detalle):
+ * se pasan con el dedo, se acercan pellizcando o tocando dos veces, y se cierran con la X o con «atrás». Se ven
+ * enteras, sin recortar, sean verticales u horizontales. Mientras una foto carga, o si no se puede descargar, su página
+ * muestra la cámara, que también se acerca. [onPageChange] avisa qué foto se está viendo, para volver a ella al cerrar.
  */
 @Composable
-fun PhotoViewer(photos: List<PublishedPhoto>, startIndex: Int, onDismiss: () -> Unit) {
+fun PhotoViewer(photos: List<ViewerPhoto>, startIndex: Int, onDismiss: () -> Unit, onPageChange: (Int) -> Unit = {}) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         NoNavigationBarScrim()
         val pagerState = rememberPagerState(initialPage = startIndex.coerceIn(0, (photos.size - 1).coerceAtLeast(0))) { photos.size }
+        val currentOnPageChange by rememberUpdatedState(onPageChange)
+        LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect { currentOnPageChange(it) } }
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             HorizontalPager(pagerState, Modifier.fillMaxSize()) { page ->
-                val description = stringResource(R.string.review_photo, page + 1, photos.size)
+                val description = photos[page].description ?: stringResource(R.string.review_photo, page + 1, photos.size)
                 ZoomablePhoto(photos[page].url, description)
             }
             Row(
@@ -90,7 +98,7 @@ fun PhotoViewer(photos: List<PublishedPhoto>, startIndex: Int, onDismiss: () -> 
 
 /** Una página con zoom de 1× a 4×; con zoom, el dedo mueve la foto en lugar de pasar a la siguiente. */
 @Composable
-private fun ZoomablePhoto(url: String, description: String) {
+private fun ZoomablePhoto(url: String?, description: String) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     Box(

@@ -237,6 +237,8 @@
     <string name="detail_share_chooser">Compartir lugar</string>
     <string name="detail_share_text">%1$s en ExploraCity: %2$s</string>
     <string name="detail_photo_description">%1$s. Foto %2$d de %3$d</string>
+    <!-- 13 · Qué foto de la galería se ve; el lector ya lo oye en cada foto. -->
+    <string name="detail_photo_counter">%1$d/%2$d</string>
     <string name="detail_open_now">Abierto ahora</string>
     <string name="detail_closed_now">Cerrado ahora</string>
     <string name="detail_distance_description">A %1$s</string>
