@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -63,6 +64,7 @@ import co.edu.uniquindio.exploracity.core.ui.components.relativeTimeText
 import co.edu.uniquindio.exploracity.core.ui.components.rememberNow
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraCityTheme
 import co.edu.uniquindio.exploracity.core.ui.theme.ExploraElevation
+import co.edu.uniquindio.exploracity.core.ui.theme.FontScaleThresholds
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraColors
 import co.edu.uniquindio.exploracity.core.ui.theme.exploraShadow
 import co.edu.uniquindio.exploracity.domain.model.Category
@@ -189,7 +191,7 @@ private fun ReportedList(items: List<ReportedPlace>, callbacks: ReportedPlacesCa
 
 /**
  * Un lugar reportado: portada, nombre, categoría y estado, quién lo publicó, cuántos reportes y desde cuándo, cada
- * reporte y las tres acciones. Con fuente grande las acciones pasan a otra línea.
+ * reporte y las tres acciones. Con fuente grande, «Descartar» y «Cambiar estado» se apilan.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -229,14 +231,22 @@ private fun ReportedCard(place: ReportedPlace, callbacks: ReportedPlacesCallback
             }
         }
         ReportLines(place.reports)
-        FlowRow(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            ExploraButton(stringResource(R.string.reported_open_place), onClick = { callbacks.onOpenPlace(place.id) }, style = ExploraButtonStyle.TEXT)
-            ExploraButton(stringResource(R.string.reported_dismiss), onClick = { callbacks.onAskDismiss(place) }, style = ExploraButtonStyle.SECONDARY)
-            ExploraButton(stringResource(R.string.reported_change_state), onClick = { callbacks.onChangeState(place.id) }, style = ExploraButtonStyle.SECONDARY)
+        // «Ver el lugar» como enlace y las dos decisiones a lo ancho: las tres en una fila no cabían en 384 dp (S20+).
+        ExploraButton(stringResource(R.string.reported_open_place), onClick = { callbacks.onOpenPlace(place.id) }, style = ExploraButtonStyle.TEXT)
+        val dismiss = @Composable { modifier: Modifier ->
+            ExploraButton(stringResource(R.string.reported_dismiss), onClick = { callbacks.onAskDismiss(place) }, modifier = modifier, style = ExploraButtonStyle.SECONDARY)
+        }
+        val changeState = @Composable { modifier: Modifier ->
+            ExploraButton(stringResource(R.string.reported_change_state), onClick = { callbacks.onChangeState(place.id) }, modifier = modifier, style = ExploraButtonStyle.SECONDARY)
+        }
+        if (LocalDensity.current.fontScale > FontScaleThresholds.StackRows) {
+            dismiss(Modifier.fillMaxWidth())
+            changeState(Modifier.fillMaxWidth())
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                dismiss(Modifier.weight(1f))
+                changeState(Modifier.weight(1f))
+            }
         }
     }
 }
